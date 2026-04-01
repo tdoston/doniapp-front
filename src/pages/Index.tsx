@@ -108,9 +108,10 @@ const Index = () => {
           <button
             type="button"
             onClick={handleBack}
-            className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted transition-colors active:scale-[0.98]"
+            className="inline-flex h-10 items-center justify-center gap-1 rounded-lg px-3 text-muted-foreground hover:bg-muted transition-colors active:scale-[0.98] font-semibold text-sm"
           >
             <ChevronLeft className="h-5 w-5" />
+            Ortga
           </button>
           <h1 className="text-lg font-extrabold text-primary">{hostelName}</h1>
           {prefill.roomName && (
