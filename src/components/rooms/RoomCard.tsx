@@ -1,5 +1,5 @@
 import React, { useState, useRef, useCallback } from "react";
-import { BedDouble } from "lucide-react";
+import { BedDouble, Plus, User, Phone } from "lucide-react";
 
 export type BedStatus = "empty" | "booked" | "selected" | "processing";
 
@@ -21,6 +21,7 @@ interface RoomCardProps {
   room: RoomData;
   onBedTap: (roomId: string, bedId: number) => void;
   onBedLongPress: (roomId: string, bedId: number) => void;
+  onBookRoom: (roomId: string) => void;
 }
 
 const statusStyles: Record<BedStatus, string> = {
@@ -30,13 +31,21 @@ const statusStyles: Record<BedStatus, string> = {
   processing: "bg-primary/40 text-primary-foreground animate-pulse",
 };
 
-const RoomCard = ({ room, onBedTap, onBedLongPress }: RoomCardProps) => {
+const RoomCard = ({ room, onBedTap, onBedLongPress, onBookRoom }: RoomCardProps) => {
   const bookedCount = room.beds.filter((b) => b.status === "booked").length;
+  const emptyCount = room.beds.filter((b) => b.status === "empty" || b.status === "selected").length;
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [pressedBed, setPressedBed] = useState<number | null>(null);
+  const [expanded, setExpanded] = useState(false);
 
   const cols =
-    room.beds.length <= 2 ? "grid-cols-2" : room.beds.length <= 4 ? "grid-cols-4" : "grid-cols-4";
+    room.beds.length === 1
+      ? "grid-cols-1"
+      : room.beds.length <= 2
+      ? "grid-cols-2"
+      : room.beds.length === 3
+      ? "grid-cols-3"
+      : "grid-cols-4";
 
   const handleTouchStart = useCallback(
     (bedId: number) => {
@@ -44,6 +53,7 @@ const RoomCard = ({ room, onBedTap, onBedLongPress }: RoomCardProps) => {
       timerRef.current = setTimeout(() => {
         onBedLongPress(room.id, bedId);
         setPressedBed(null);
+        timerRef.current = null;
       }, 800);
     },
     [room.id, onBedLongPress]
@@ -63,13 +73,27 @@ const RoomCard = ({ room, onBedTap, onBedLongPress }: RoomCardProps) => {
 
   return (
     <div className="mx-4 mb-4 rounded-2xl overflow-hidden bg-foreground/90 animate-fade-in">
-      <div className="flex items-center justify-between px-4 py-3">
-        <h3 className="text-sm font-bold text-card">{room.name}</h3>
-        <span className="text-xs font-semibold bg-card/20 text-card px-2 py-0.5 rounded-md">
-          {bookedCount}/{room.totalBeds}
-        </span>
-      </div>
-      <div className={`grid ${cols} gap-3 px-4 pb-4`}>
+      {/* Room Header */}
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="flex items-center justify-between px-4 py-3 w-full text-left"
+      >
+        <div className="flex items-center gap-2">
+          <h3 className="text-sm font-bold text-card">{room.name}</h3>
+          <span className="text-xs text-card/60">({room.totalBeds} ta)</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-semibold bg-destructive/30 text-destructive-foreground px-2 py-0.5 rounded-md">
+            {bookedCount}
+          </span>
+          <span className="text-xs font-semibold bg-accent/30 text-accent-foreground px-2 py-0.5 rounded-md">
+            {emptyCount}
+          </span>
+        </div>
+      </button>
+
+      {/* Beds Grid */}
+      <div className={`grid ${cols} gap-3 px-4 pb-3`}>
         {room.beds.map((bed) => (
           <button
             key={bed.id}
@@ -86,11 +110,45 @@ const RoomCard = ({ room, onBedTap, onBedLongPress }: RoomCardProps) => {
             } ${pressedBed === bed.id ? "scale-95" : ""}`}
             aria-label={`Karavot ${bed.id} - ${bed.status}`}
           >
-            <BedDouble className="w-6 h-6 mb-1" />
-            <span className="text-sm">{bed.id}</span>
+            <BedDouble className="w-5 h-5 mb-0.5" />
+            <span className="text-xs">{bed.id}</span>
+            {bed.status === "booked" && bed.guestName && (
+              <span className="text-[10px] mt-0.5 opacity-90 truncate max-w-full px-1">{bed.guestName}</span>
+            )}
           </button>
         ))}
       </div>
+
+      {/* Expanded guest details */}
+      {expanded && bookedCount > 0 && (
+        <div className="px-4 pb-3 space-y-1.5">
+          {room.beds
+            .filter((b) => b.status === "booked" && b.guestName)
+            .map((bed) => (
+              <div key={bed.id} className="flex items-center gap-2 bg-card/10 rounded-lg px-3 py-2">
+                <User className="w-3.5 h-3.5 text-card/70" />
+                <span className="text-xs text-card font-medium flex-1">{bed.guestName}</span>
+                {bed.guestPhone && (
+                  <a href={`tel:${bed.guestPhone}`} className="flex items-center gap-1 text-info text-xs">
+                    <Phone className="w-3 h-3" />
+                    {bed.guestPhone}
+                  </a>
+                )}
+              </div>
+            ))}
+        </div>
+      )}
+
+      {/* Book Room Button */}
+      {emptyCount > 0 && (
+        <button
+          onClick={() => onBookRoom(room.id)}
+          className="flex items-center justify-center gap-2 w-full py-2.5 bg-primary/20 text-primary text-sm font-bold transition-all active:bg-primary/30"
+        >
+          <Plus className="w-4 h-4" />
+          Bron qilish ({emptyCount} ta bo'sh)
+        </button>
+      )}
     </div>
   );
 };
