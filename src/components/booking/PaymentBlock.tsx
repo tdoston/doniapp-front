@@ -15,18 +15,33 @@ const PaymentBlock = ({ price, paid, onPaidChange }: PaymentBlockProps) => {
   const paidNum = Number(paid.replace(/\D/g, "")) || 0;
   const debt = priceNum - paidNum;
 
+  const handleFullPaid = () => {
+    if (priceNum > 0) {
+      onPaidChange(String(priceNum));
+    }
+  };
+
   return (
     <div className="space-y-3">
       <div className="space-y-2">
         <label className="text-sm font-medium text-muted-foreground">To'langan (so'm)</label>
-        <input
-          type="text"
-          inputMode="numeric"
-          value={formatNumber(paid)}
-          onChange={(e) => onPaidChange(e.target.value.replace(/\D/g, ""))}
-          placeholder="0"
-          className="w-full h-12 px-4 rounded-lg border border-input bg-card text-foreground text-lg font-bold focus:outline-none focus:ring-2 focus:ring-ring transition-all"
-        />
+        <div className="flex gap-2">
+          <input
+            type="text"
+            inputMode="numeric"
+            value={formatNumber(paid)}
+            onChange={(e) => onPaidChange(e.target.value.replace(/\D/g, ""))}
+            placeholder="0"
+            className="flex-1 h-12 px-4 rounded-lg border border-input bg-card text-foreground text-lg font-bold focus:outline-none focus:ring-2 focus:ring-ring transition-all"
+          />
+          <button
+            type="button"
+            onClick={handleFullPaid}
+            className="h-12 px-4 rounded-lg bg-accent text-accent-foreground font-bold text-sm whitespace-nowrap transition-all active:scale-[0.97]"
+          >
+            To'liq to'landi
+          </button>
+        </div>
       </div>
 
       {priceNum > 0 && (

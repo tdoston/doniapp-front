@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, Copy } from "lucide-react";
 import { toast } from "sonner";
 import PhotoUpload from "@/components/booking/PhotoUpload";
 import PhoneInput from "@/components/booking/PhoneInput";
@@ -133,6 +133,20 @@ const Index = () => {
     navigate("/");
   };
 
+  const handleCopy = () => {
+    const info = [
+      prefill.hostel ? `Filial: ${prefill.hostel}` : "",
+      prefill.roomName ? `Xona: ${prefill.roomName}` : "",
+      prefill.bedId ? `Karavot: ${prefill.bedId}` : "",
+      phone ? `Tel: +${phone}` : "",
+      price ? `Narx: ${price}` : "",
+      paid ? `To'langan: ${paid}` : "",
+      notes ? `Izoh: ${notes}` : "",
+    ].filter(Boolean).join("\n");
+    navigator.clipboard.writeText(info);
+    toast.success("Nusxalandi!");
+  };
+
   const handleRoomForFullChange = (roomId: string) => {
     setAssignedRoomId(roomId);
     const selected = roomOptions.find((room) => room.id === roomId);
@@ -182,6 +196,8 @@ const Index = () => {
     );
   };
 
+  const hostelName = prefill.hostel || "Bron";
+
   return (
     <div
       className="min-h-screen bg-background"
@@ -197,11 +213,10 @@ const Index = () => {
             type="button"
             onClick={handleBack}
             className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted transition-colors active:scale-[0.98]"
-            aria-label="Orqaga qaytish"
           >
             <ChevronLeft className="h-5 w-5" />
           </button>
-          <h1 className="text-xl font-extrabold text-primary">DoniHostel</h1>
+          <h1 className="text-xl font-extrabold text-primary">{hostelName}</h1>
         </div>
         <p className="text-xs text-muted-foreground">
           {prefill.mode === "edit"
@@ -295,13 +310,22 @@ const Index = () => {
         className="fixed bottom-0 left-0 right-0 p-4 bg-card/95 backdrop-blur border-t border-border"
         style={{ paddingBottom: "calc(1rem + env(safe-area-inset-bottom))" }}
       >
-        <div className="max-w-lg mx-auto grid grid-cols-2 gap-3">
+        <div className="max-w-lg mx-auto grid grid-cols-3 gap-3">
           <button
             type="button"
             onClick={handleBack}
-            className="h-16 rounded-xl font-bold text-lg bg-muted text-foreground border border-border transition-all active:scale-[0.98]"
+            className="h-16 rounded-xl font-bold text-lg bg-muted text-foreground border border-border transition-all active:scale-[0.98] flex items-center justify-center gap-2"
           >
-            Bekor qilish
+            <ChevronLeft className="h-5 w-5" />
+            Ortga
+          </button>
+          <button
+            type="button"
+            onClick={handleCopy}
+            className="h-16 rounded-xl font-bold text-lg bg-muted text-foreground border border-border transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+          >
+            <Copy className="h-5 w-5" />
+            Copy
           </button>
           <button
             type="button"
