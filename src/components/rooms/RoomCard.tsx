@@ -38,15 +38,6 @@ const RoomCard = ({ room, onBedTap, onBedLongPress, onBookRoom }: RoomCardProps)
   const [pressedBed, setPressedBed] = useState<number | null>(null);
   const [expanded, setExpanded] = useState(false);
 
-  const cols =
-    room.beds.length === 1
-      ? "grid-cols-1"
-      : room.beds.length <= 2
-      ? "grid-cols-2"
-      : room.beds.length === 3
-      ? "grid-cols-3"
-      : "grid-cols-4";
-
   const handleTouchStart = useCallback(
     (bedId: number) => {
       setPressedBed(bedId);
@@ -93,7 +84,7 @@ const RoomCard = ({ room, onBedTap, onBedLongPress, onBookRoom }: RoomCardProps)
       </button>
 
       {/* Beds Grid */}
-      <div className={`grid ${cols} gap-3 px-4 pb-3`}>
+      <div className="grid grid-cols-4 gap-3 px-4 pb-3">
         {room.beds.map((bed) => (
           <button
             key={bed.id}
@@ -139,16 +130,14 @@ const RoomCard = ({ room, onBedTap, onBedLongPress, onBookRoom }: RoomCardProps)
         </div>
       )}
 
-      {/* Book Room Button */}
-      {emptyCount > 0 && (
-        <button
-          onClick={() => onBookRoom(room.id)}
-          className="flex items-center justify-center gap-2 w-full py-2.5 bg-primary/20 text-primary text-sm font-bold transition-all active:bg-primary/30"
-        >
-          <Plus className="w-4 h-4" />
-          Bron qilish ({emptyCount} ta bo'sh)
-        </button>
-      )}
+      {/* Full Room Booking Button */}
+      <button
+        onClick={() => onBookRoom(room.id)}
+        className="flex items-center justify-center gap-2 w-full py-2.5 bg-primary/20 text-primary text-sm font-bold transition-all active:bg-primary/30"
+      >
+        <Plus className="w-4 h-4" />
+        To'liq xona bron qilish
+      </button>
     </div>
   );
 };

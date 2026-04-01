@@ -177,21 +177,37 @@ const RoomsPage = () => {
   };
 
   const handleBedTap = (roomId: string, bedId: number) => {
-    setRooms((prev) => {
-      const updated = { ...prev };
-      updated[activeHostel] = updated[activeHostel].map((room) => {
-        if (room.id !== roomId) return room;
-        return {
-          ...room,
-          beds: room.beds.map((bed) => {
-            if (bed.id !== bedId) return bed;
-            if (bed.status === "empty") return { ...bed, status: "selected" as const };
-            if (bed.status === "selected") return { ...bed, status: "empty" as const };
-            return bed;
-          }),
-        };
+    const room = currentRooms.find((r) => r.id === roomId);
+    const bed = room?.beds.find((b) => b.id === bedId);
+    if (!bed) return;
+
+    if (bed.status === "booked") {
+      navigate("/booking", {
+        state: {
+          mode: "edit",
+          hostel: activeHostel,
+          roomOptions: currentRooms.map((r) => ({ id: r.id, name: r.name, totalBeds: r.totalBeds })),
+          roomId: room?.id,
+          roomName: room?.name,
+          bedId: bed.id,
+          guestName: bed.guestName,
+          guestPhone: bed.guestPhone,
+        },
       });
-      return updated;
+      toast.info(`Karavot ${bed.id} broni tahrirlash uchun ochildi`);
+      return;
+    }
+
+    toast.info(`Karavot ${bedId} uchun band qilish formasi`);
+    navigate("/booking", {
+      state: {
+        mode: "create",
+        hostel: activeHostel,
+        roomOptions: currentRooms.map((r) => ({ id: r.id, name: r.name, totalBeds: r.totalBeds })),
+        roomId: room?.id,
+        roomName: room?.name,
+        bedId: bed.id,
+      },
     });
   };
 
@@ -199,35 +215,69 @@ const RoomsPage = () => {
     const room = currentRooms.find((r) => r.id === roomId);
     const bed = room?.beds.find((b) => b.id === bedId);
     if (bed?.status === "booked") {
-      toast.info(`${bed.guestName} - ${bed.guestPhone}`);
+      navigate("/booking", {
+        state: {
+          mode: "edit",
+          hostel: activeHostel,
+          roomOptions: currentRooms.map((r) => ({ id: r.id, name: r.name, totalBeds: r.totalBeds })),
+          roomId: room?.id,
+          roomName: room?.name,
+          bedId: bed.id,
+          guestName: bed.guestName,
+          guestPhone: bed.guestPhone,
+        },
+      });
+      toast.info(`Karavot ${bed.id} broni tahrirlash uchun ochildi`);
     } else {
       toast.info(`Karavot ${bedId} uchun band qilish formasi`);
-      navigate("/booking");
+      navigate("/booking", {
+        state: {
+          mode: "create",
+          hostel: activeHostel,
+          roomOptions: currentRooms.map((r) => ({ id: r.id, name: r.name, totalBeds: r.totalBeds })),
+          roomId: room?.id,
+          roomName: room?.name,
+          bedId,
+        },
+      });
     }
   };
 
   const handleBookRoom = (roomId: string) => {
     const room = currentRooms.find((r) => r.id === roomId);
     if (!room) return;
-    const emptyBeds = room.beds.filter((b) => b.status === "empty" || b.status === "selected");
-    if (emptyBeds.length === 0) {
-      toast.error("Bu xonada bo'sh joy yo'q!");
-      return;
-    }
-    toast.info(`${room.name} - ${emptyBeds.length} ta bo'sh joy bor`);
-    navigate("/booking");
+
+    toast.info(`${room.name} uchun to'liq xona bron qilish`);
+    navigate("/booking", {
+      state: {
+        mode: "create",
+        bookingScope: "full-room",
+        hostel: activeHostel,
+        roomOptions: currentRooms.map((r) => ({ id: r.id, name: r.name, totalBeds: r.totalBeds })),
+        roomId: room.id,
+        roomName: room.name,
+      },
+    });
   };
 
   return (
-    <div className="min-h-screen bg-background pb-16">
+    <div
+      className="min-h-screen bg-background"
+      style={{
+        paddingTop: "env(safe-area-inset-top)",
+        paddingBottom: "calc(76px + env(safe-area-inset-bottom))",
+      }}
+    >
       <div className="sticky top-0 z-10 bg-card border-b border-border px-4 py-3">
         <h1 className="text-xl font-extrabold text-primary">DoniHostel</h1>
       </div>
 
-      <CalendarBar selectedDate={selectedDate} onSelect={setSelectedDate} />
       <StatCards stats={stats} />
-
       <div className="pt-2">
+        <CalendarBar selectedDate={selectedDate} onSelect={setSelectedDate} />
+      </div>
+
+      <div className="pt-3">
         {currentRooms.map((room) => (
           <RoomCard
             key={room.id}

@@ -8,7 +8,10 @@ interface BottomNavProps {
 
 const BottomNav = ({ hostels, active, onSelect }: BottomNavProps) => {
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-foreground/95 backdrop-blur flex z-20">
+    <div
+      className="fixed bottom-0 left-0 right-0 bg-foreground/95 backdrop-blur flex z-20"
+      style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+    >
       {hostels.map((h) => (
         <button
           key={h}
