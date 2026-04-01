@@ -4,7 +4,6 @@ import { ChevronLeft, Copy } from "lucide-react";
 import { toast } from "sonner";
 import PhotoUpload from "@/components/booking/PhotoUpload";
 import PhoneInput from "@/components/booking/PhoneInput";
-import GenderToggle from "@/components/booking/GenderToggle";
 import PriceInput from "@/components/booking/PriceInput";
 import PaymentBlock from "@/components/booking/PaymentBlock";
 import NotesInput from "@/components/booking/NotesInput";
@@ -37,7 +36,6 @@ const Index = () => {
 
   const [photos, setPhotos] = useState<string[]>([]);
   const [phone, setPhone] = useState(normalizedPhone);
-  const [gender, setGender] = useState<"male" | "female" | null>(null);
   const [price, setPrice] = useState(prefill.price || sessionStorage.getItem("lastPrice") || "");
   const [paid, setPaid] = useState(prefill.paid || "");
   const [notes, setNotes] = useState(() => {
@@ -65,14 +63,12 @@ const Index = () => {
   const handleAutoFill = (guest: typeof MOCK_GUESTS[string]) => {
     setPrice(String(guest.price));
     setNotes(guest.notes);
-    setGender(guest.gender);
     toast.success("Ma'lumotlar to'ldirildi");
   };
 
   const handleSave = () => {
     toast.success(prefill.mode === "edit" ? "Bron ma'lumotlari yangilandi!" : "Mehmon saqlandi!");
     setPhone("");
-    setGender(null);
     setPaid("");
     setNotes("");
     setPhotos([]);
@@ -126,7 +122,6 @@ const Index = () => {
       <div className="flex-1 overflow-y-auto">
         <div className="max-w-lg mx-auto px-4 py-3 space-y-3">
           <PhotoUpload photos={photos} onAdd={handlePhotos} onRemove={removePhoto} />
-          <GenderToggle value={gender} onChange={setGender} />
           <PhoneInput
             value={phone}
             onChange={setPhone}
