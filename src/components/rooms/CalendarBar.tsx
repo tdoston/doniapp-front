@@ -1,3 +1,4 @@
+import React from "react";
 import { addDays, format, isSameDay } from "date-fns";
 
 interface CalendarBarProps {
