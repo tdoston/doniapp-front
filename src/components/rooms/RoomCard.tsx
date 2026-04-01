@@ -99,7 +99,6 @@ const RoomCard = ({ room, onBedTap, onBedLongPress, onBookRoom }: RoomCardProps)
             className={`flex flex-col items-center justify-center rounded-xl py-3 min-h-[72px] font-bold transition-all select-none ${
               statusStyles[bed.status]
             } ${pressedBed === bed.id ? "scale-95" : ""}`}
-            aria-label={`Karavot ${bed.id} - ${bed.status}`}
           >
             <BedDouble className="w-5 h-5 mb-0.5" />
             <span className="text-xs">{bed.id}</span>
