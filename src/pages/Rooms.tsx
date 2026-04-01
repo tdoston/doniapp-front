@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { toast } from "sonner";
 import CalendarBar from "@/components/rooms/CalendarBar";
 import StatCards from "@/components/rooms/StatCards";
 import RoomCard, { RoomData } from "@/components/rooms/RoomCard";
@@ -194,11 +193,9 @@ const RoomsPage = () => {
           guestPhone: bed.guestPhone,
         },
       });
-      toast.info(`Karavot ${bed.id} broni tahrirlash uchun ochildi`);
       return;
     }
 
-    toast.info(`Karavot ${bedId} uchun band qilish formasi`);
     navigate("/booking", {
       state: {
         mode: "create",
@@ -227,9 +224,7 @@ const RoomsPage = () => {
           guestPhone: bed.guestPhone,
         },
       });
-      toast.info(`Karavot ${bed.id} broni tahrirlash uchun ochildi`);
     } else {
-      toast.info(`Karavot ${bedId} uchun band qilish formasi`);
       navigate("/booking", {
         state: {
           mode: "create",
@@ -247,7 +242,6 @@ const RoomsPage = () => {
     const room = currentRooms.find((r) => r.id === roomId);
     if (!room) return;
 
-    toast.info(`${room.name} uchun to'liq xona bron qilish`);
     navigate("/booking", {
       state: {
         mode: "create",
