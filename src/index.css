@@ -1,30 +1,28 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    --background: 210 20% 96%;
-    --foreground: 220 20% 15%;
+    --background: 220 20% 97%;
+    --foreground: 224 20% 14%;
 
     --card: 0 0% 100%;
-    --card-foreground: 220 20% 15%;
+    --card-foreground: 224 20% 14%;
 
     --popover: 0 0% 100%;
     --popover-foreground: 220 20% 15%;
 
-    --primary: 243 75% 59%;
+    --primary: 220 84% 56%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 210 20% 93%;
-    --secondary-foreground: 220 20% 15%;
+    --secondary: 220 18% 93%;
+    --secondary-foreground: 224 20% 14%;
 
-    --muted: 210 15% 90%;
-    --muted-foreground: 215 12% 50%;
+    --muted: 220 16% 92%;
+    --muted-foreground: 220 10% 43%;
 
-    --accent: 142 60% 45%;
+    --accent: 144 56% 42%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 72% 51%;
@@ -33,22 +31,22 @@
     --success: 142 60% 45%;
     --success-foreground: 0 0% 100%;
 
-    --warning: 45 93% 58%;
-    --warning-foreground: 30 80% 20%;
+    --warning: 38 92% 56%;
+    --warning-foreground: 32 80% 18%;
 
-    --info: 210 80% 60%;
+    --info: 214 86% 58%;
     --info-foreground: 0 0% 100%;
 
-    --empty: 48 80% 78%;
-    --guest: 215 60% 82%;
-    --debt: 0 60% 85%;
-    --income: 142 50% 82%;
+    --empty: 48 88% 84%;
+    --guest: 214 54% 86%;
+    --debt: 0 64% 88%;
+    --income: 145 48% 86%;
 
-    --border: 214 20% 88%;
-    --input: 214 20% 88%;
-    --ring: 243 75% 59%;
+    --border: 220 14% 88%;
+    --input: 220 14% 88%;
+    --ring: 220 84% 56%;
 
-    --radius: 0.75rem;
+    --radius: 0.95rem;
 
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 240 5.3% 26.1%;
@@ -91,6 +89,11 @@
   body {
     @apply bg-background text-foreground font-sans;
     -webkit-tap-highlight-color: transparent;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    letter-spacing: -0.01em;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 }
 
