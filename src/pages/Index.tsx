@@ -67,6 +67,13 @@ const Index = () => {
     toast.success("Ma'lumotlar to'ldirildi");
   };
 
+  const handleRecentGuestSelect = (guest: RecentGuest) => {
+    setPhone(guest.phone);
+    setPrice(String(guest.price));
+    if (guest.notes) setNotes(guest.notes);
+    toast.success(`${guest.name} tanlandi`);
+  };
+
   const handleSave = () => {
     toast.success(prefill.mode === "edit" ? "Bron ma'lumotlari yangilandi!" : "Mehmon saqlandi!");
     setPhone("");
