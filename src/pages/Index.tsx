@@ -7,6 +7,7 @@ import PhoneInput from "@/components/booking/PhoneInput";
 import PriceInput from "@/components/booking/PriceInput";
 import PaymentBlock from "@/components/booking/PaymentBlock";
 import NotesInput from "@/components/booking/NotesInput";
+import RecentGuests, { RecentGuest } from "@/components/booking/RecentGuests";
 
 // Mock repeat guest data
 const MOCK_GUESTS: Record<string, { lastVisit: string; price: number; notes: string; gender: "male" | "female" }> = {
@@ -66,6 +67,13 @@ const Index = () => {
     toast.success("Ma'lumotlar to'ldirildi");
   };
 
+  const handleRecentGuestSelect = (guest: RecentGuest) => {
+    setPhone(guest.phone);
+    setPrice(String(guest.price));
+    if (guest.notes) setNotes(guest.notes);
+    toast.success(`${guest.name} tanlandi`);
+  };
+
   const handleSave = () => {
     toast.success(prefill.mode === "edit" ? "Bron ma'lumotlari yangilandi!" : "Mehmon saqlandi!");
     setPhone("");
@@ -122,6 +130,7 @@ const Index = () => {
       <div className="flex-1 overflow-y-auto">
         <div className="max-w-lg mx-auto px-4 py-3 space-y-3">
           <PhotoUpload photos={photos} onAdd={handlePhotos} onRemove={removePhoto} />
+          <RecentGuests onSelect={handleRecentGuestSelect} />
           <PhoneInput
             value={phone}
             onChange={setPhone}
