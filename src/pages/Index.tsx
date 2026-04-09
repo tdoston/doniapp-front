@@ -130,6 +130,7 @@ const Index = () => {
       <div className="flex-1 overflow-y-auto">
         <div className="max-w-lg mx-auto px-4 py-3 space-y-3">
           <PhotoUpload photos={photos} onAdd={handlePhotos} onRemove={removePhoto} />
+          <RecentGuests onSelect={handleRecentGuestSelect} />
           <PhoneInput
             value={phone}
             onChange={setPhone}
