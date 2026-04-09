@@ -7,6 +7,7 @@ import PhoneInput from "@/components/booking/PhoneInput";
 import PriceInput from "@/components/booking/PriceInput";
 import PaymentBlock from "@/components/booking/PaymentBlock";
 import NotesInput from "@/components/booking/NotesInput";
+import RecentGuests, { RecentGuest } from "@/components/booking/RecentGuests";
 
 // Mock repeat guest data
 const MOCK_GUESTS: Record<string, { lastVisit: string; price: number; notes: string; gender: "male" | "female" }> = {
