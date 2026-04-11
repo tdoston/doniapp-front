@@ -1,5 +1,7 @@
 import { useEffect, useRef } from "react";
 import { Check } from "lucide-react";
+import PhoneInputLib from "react-phone-number-input";
+import "react-phone-number-input/style.css";
 
 interface RepeatGuest {
   lastVisit: string;
@@ -16,42 +18,21 @@ interface PhoneInputProps {
   autoFocus?: boolean;
 }
 
-const formatPhone = (raw: string): string => {
-  const d = raw.replace(/\D/g, "").slice(0, 12);
-  if (d.length <= 3) return d;
-  if (d.length <= 5) return `${d.slice(0, 3)} ${d.slice(3)}`;
-  if (d.length <= 8) return `${d.slice(0, 3)} ${d.slice(3, 5)} ${d.slice(5)}`;
-  if (d.length <= 10) return `${d.slice(0, 3)} ${d.slice(3, 5)} ${d.slice(5, 8)} ${d.slice(8)}`;
-  return `${d.slice(0, 3)} ${d.slice(3, 5)} ${d.slice(5, 8)} ${d.slice(8, 10)} ${d.slice(10)}`;
-};
-
 const PhoneInput = ({ value, onChange, repeatGuest, onAutoFill, autoFocus }: PhoneInputProps) => {
-  const ref = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    if (autoFocus) {
-      setTimeout(() => ref.current?.focus(), 100);
-    }
-  }, [autoFocus]);
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const raw = e.target.value.replace(/\D/g, "");
-    onChange(raw);
-  };
+  const phoneValue = value ? (value.startsWith("+") ? value : `+${value}`) : undefined;
 
   return (
     <div className="space-y-2">
       <label className="text-sm font-medium text-muted-foreground">Telefon raqami</label>
-      <div className="relative">
-        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-medium">+</span>
-        <input
-          ref={ref}
-          type="tel"
-          inputMode="numeric"
-          value={formatPhone(value)}
-          onChange={handleChange}
-          placeholder="998 XX XXX XX XX"
-          className="w-full h-12 pl-7 pr-4 rounded-lg border border-input bg-card text-foreground text-base font-medium focus:outline-none focus:ring-2 focus:ring-ring transition-all"
+      <div className="phone-input-wrapper">
+        <PhoneInputLib
+          international
+          defaultCountry="UZ"
+          value={phoneValue}
+          onChange={(val) => onChange(val ? val.replace(/\D/g, "") : "")}
+          placeholder="Telefon raqamini kiriting"
+          autoFocus={autoFocus}
+          className="w-full h-12 rounded-lg border border-input bg-card text-foreground text-base font-medium focus-within:ring-2 focus-within:ring-ring transition-all px-3"
         />
       </div>
 
