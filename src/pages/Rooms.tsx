@@ -259,11 +259,27 @@ const RoomsPage = () => {
       className="min-h-screen bg-background"
       style={{
         paddingTop: "env(safe-area-inset-top)",
-        paddingBottom: "calc(76px + env(safe-area-inset-bottom))",
       }}
     >
-      <div className="sticky top-0 z-10 bg-card border-b border-border px-4 py-3">
-        <h1 className="text-xl font-extrabold text-primary">DoniHostel</h1>
+      <div className="sticky top-0 z-10 bg-card border-b border-border">
+        <div className="px-4 py-3">
+          <h1 className="text-xl font-extrabold text-primary">DoniHostel</h1>
+        </div>
+        <div className="flex">
+          {HOSTELS.map((h) => (
+            <button
+              key={h}
+              onClick={() => setActiveHostel(h)}
+              className={`flex-1 py-2.5 text-sm font-bold transition-all border-b-2 ${
+                activeHostel === h
+                  ? "border-primary text-primary bg-primary/5"
+                  : "border-transparent text-muted-foreground"
+              }`}
+            >
+              {h}
+            </button>
+          ))}
+        </div>
       </div>
 
       <StatCards stats={stats} />
@@ -283,7 +299,6 @@ const RoomsPage = () => {
         ))}
       </div>
 
-      <BottomNav hostels={HOSTELS} active={activeHostel} onSelect={setActiveHostel} />
     </div>
   );
 };
