@@ -37,7 +37,7 @@ const MOCK_CLEANING: CleaningRoom[] = [
   { id: "t-bath", name: "Umumiy dush va hojatxona", hostel: "Tabarruk", guestName: "", status: "dirty", type: "bathroom", totalBeds: 0, occupiedBeds: 0, photosBefore: [], photosAfter: [] },
 ];
 
-const HOSTELS = ["Barchasi", "Vodnik", "Zargarlik", "Tabarruk"];
+const HOSTELS_LIST = ["Vodnik", "Zargarlik", "Tabarruk"];
 
 // Returns max photos allowed for a room
 const getMaxPhotos = (room: CleaningRoom): number => {
@@ -55,16 +55,19 @@ interface GalleryState {
   activeIdx: number;
 }
 
-const CleaningPage = () => {
+interface CleaningPageProps {
+  activeHostel: string;
+}
+
+const CleaningPage = ({ activeHostel }: CleaningPageProps) => {
   const [rooms, setRooms] = useState<CleaningRoom[]>(MOCK_CLEANING);
-  const [activeHostel, setActiveHostel] = useState("Barchasi");
   const [expandedRoom, setExpandedRoom] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const [activeUpload, setActiveUpload] = useState<{ roomId: string; type: "before" | "after" } | null>(null);
   const [gallery, setGallery] = useState<GalleryState | null>(null);
   const touchStartX = useRef(0);
 
-  const filtered = activeHostel === "Barchasi" ? rooms : rooms.filter((r) => r.hostel === activeHostel);
+  const filtered = rooms.filter((r) => r.hostel === activeHostel);
   const dirtyCount = filtered.filter((r) => r.status === "dirty").length;
   const cleanedCount = filtered.filter((r) => r.status === "cleaned").length;
 
@@ -138,22 +141,6 @@ const CleaningPage = () => {
 
   return (
     <div className="pb-4">
-      {/* Hostel filter */}
-      <div className="flex gap-2 px-4 py-3 overflow-x-auto">
-        {HOSTELS.map((h) => (
-          <button
-            key={h}
-            onClick={() => setActiveHostel(h)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all ${
-              activeHostel === h
-                ? "bg-primary text-primary-foreground"
-                : "bg-secondary text-muted-foreground"
-            }`}
-          >
-            {h}
-          </button>
-        ))}
-      </div>
 
       {/* Stats */}
       <div className="grid grid-cols-2 gap-3 px-4 pb-3">

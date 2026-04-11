@@ -294,7 +294,7 @@ const RoomsPage = () => {
       case "payments":
         return <PaymentsPage />;
       case "cleaning":
-        return <CleaningPage />;
+        return <CleaningPage activeHostel={activeHostel} />;
       default:
         return null;
     }
@@ -310,7 +310,7 @@ const RoomsPage = () => {
         <div className="px-4 py-3">
           <h1 className="text-xl font-extrabold text-primary">DoniHostel</h1>
         </div>
-        {activeTab === "rooms" && (
+        {(activeTab === "rooms" || activeTab === "cleaning") && (
           <div className="flex">
             {HOSTELS.map((h) => (
               <button
