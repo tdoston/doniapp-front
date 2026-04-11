@@ -103,16 +103,43 @@ const CleaningPage = ({ activeHostel }: CleaningPageProps) => {
 
   const openGallery = (roomId: string, type: "before" | "after", title: string) => {
     const room = rooms.find(r => r.id === roomId);
-    const photos = type === "before" ? room?.photosBefore : room?.photosAfter;
-    if (photos && photos.length > 0) {
-      setGallery({ roomId, type, title, activeIdx: 0 });
-    }
+    if (!room) return;
+    // Build combined array: all before photos then all after photos
+    const combined = [
+      ...room.photosBefore.map(() => "before" as const),
+      ...room.photosAfter.map(() => "after" as const),
+    ];
+    if (combined.length === 0) return;
+    // Find starting index based on which section was tapped
+    const startIdx = type === "before" ? 0 : room.photosBefore.length;
+    const clampedIdx = Math.min(startIdx, combined.length - 1);
+    setGallery({ roomId, type, title: room.name, activeIdx: clampedIdx });
   };
 
-  const getGalleryPhotos = (): string[] => {
+  const getGalleryPhotos = (): { url: string; label: string }[] => {
     if (!gallery) return [];
     const room = rooms.find(r => r.id === gallery.roomId);
-    return (gallery.type === "before" ? room?.photosBefore : room?.photosAfter) || [];
+    if (!room) return [];
+    return [
+      ...room.photosBefore.map(url => ({ url, label: "Oldin (Do)" })),
+      ...room.photosAfter.map(url => ({ url, label: "Keyin (Posle)" })),
+    ];
+  };
+
+  const getGalleryCurrentType = (): "before" | "after" => {
+    if (!gallery) return "before";
+    const room = rooms.find(r => r.id === gallery.roomId);
+    if (!room) return "before";
+    return gallery.activeIdx < room.photosBefore.length ? "before" : "after";
+  };
+
+  const getGalleryCurrentLocalIdx = (): number => {
+    if (!gallery) return 0;
+    const room = rooms.find(r => r.id === gallery.roomId);
+    if (!room) return 0;
+    return gallery.activeIdx < room.photosBefore.length
+      ? gallery.activeIdx
+      : gallery.activeIdx - room.photosBefore.length;
   };
 
   const handleGalleryDelete = () => {
