@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { ChevronLeft, Copy } from "lucide-react";
+import { ChevronLeft, Copy, Plus, Trash2, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import PhotoUpload from "@/components/booking/PhotoUpload";
 import PhoneInput from "@/components/booking/PhoneInput";
@@ -9,7 +9,6 @@ import PaymentBlock from "@/components/booking/PaymentBlock";
 import NotesInput from "@/components/booking/NotesInput";
 import RecentGuests, { RecentGuest } from "@/components/booking/RecentGuests";
 
-// Mock repeat guest data
 const MOCK_GUESTS: Record<string, { lastVisit: string; price: number; notes: string; gender: "male" | "female" }> = {
   "998901234567": { lastVisit: "2024-03-15", price: 80000, notes: "oilali", gender: "male" },
 };
@@ -29,12 +28,32 @@ interface BookingPrefillState {
   roomOptions?: Array<{ id: string; name: string; totalBeds: number }>;
 }
 
+interface GuestEntry {
+  id: number;
+  phone: string;
+  price: string;
+  paid: string;
+  notes: string;
+  photos: string[];
+}
+
+const createEmptyGuest = (id: number): GuestEntry => ({
+  id,
+  phone: "",
+  price: sessionStorage.getItem("lastPrice") || "",
+  paid: "",
+  notes: "",
+  photos: [],
+});
+
 const Index = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const prefill = (location.state as BookingPrefillState | null) || {};
   const normalizedPhone = (prefill.guestPhone || "").replace(/\D/g, "");
+  const isFullRoom = prefill.bookingScope === "full-room";
 
+  // Single guest state
   const [photos, setPhotos] = useState<string[]>([]);
   const [phone, setPhone] = useState(normalizedPhone);
   const [price, setPrice] = useState(prefill.price || sessionStorage.getItem("lastPrice") || "");
@@ -45,41 +64,110 @@ const Index = () => {
     return "";
   });
 
-  const repeatGuest = MOCK_GUESTS[phone] || null;
+  // Multi-guest state (full room)
+  const [guests, setGuests] = useState<GuestEntry[]>(() => [createEmptyGuest(1)]);
+  const [activeGuestIdx, setActiveGuestIdx] = useState(0);
+
+  const repeatGuest = MOCK_GUESTS[isFullRoom ? guests[activeGuestIdx]?.phone || "" : phone] || null;
 
   const handlePhotos = useCallback((files: FileList) => {
-    const remaining = 3 - photos.length;
-    const toAdd = Array.from(files).slice(0, remaining);
-    toAdd.forEach((file) => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setPhotos((prev) => [...prev, e.target?.result as string].slice(0, 3));
-      };
-      reader.readAsDataURL(file);
-    });
-  }, [photos.length]);
+    if (isFullRoom) {
+      const guest = guests[activeGuestIdx];
+      if (!guest) return;
+      const remaining = 3 - guest.photos.length;
+      const toAdd = Array.from(files).slice(0, remaining);
+      toAdd.forEach((file) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          setGuests((prev) =>
+            prev.map((g, i) =>
+              i === activeGuestIdx
+                ? { ...g, photos: [...g.photos, e.target?.result as string].slice(0, 3) }
+                : g
+            )
+          );
+        };
+        reader.readAsDataURL(file);
+      });
+    } else {
+      const remaining = 3 - photos.length;
+      const toAdd = Array.from(files).slice(0, remaining);
+      toAdd.forEach((file) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          setPhotos((prev) => [...prev, e.target?.result as string].slice(0, 3));
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+  }, [photos.length, isFullRoom, guests, activeGuestIdx]);
 
-  const removePhoto = (i: number) => setPhotos((prev) => prev.filter((_, idx) => idx !== i));
+  const removePhoto = (i: number) => {
+    if (isFullRoom) {
+      setGuests((prev) =>
+        prev.map((g, idx) =>
+          idx === activeGuestIdx
+            ? { ...g, photos: g.photos.filter((_, pi) => pi !== i) }
+            : g
+        )
+      );
+    } else {
+      setPhotos((prev) => prev.filter((_, idx) => idx !== i));
+    }
+  };
 
   const handleAutoFill = (guest: typeof MOCK_GUESTS[string]) => {
-    setPrice(String(guest.price));
-    setNotes(guest.notes);
+    if (isFullRoom) {
+      updateGuest(activeGuestIdx, { price: String(guest.price), notes: guest.notes });
+    } else {
+      setPrice(String(guest.price));
+      setNotes(guest.notes);
+    }
     toast.success("Ma'lumotlar to'ldirildi");
   };
 
   const handleRecentGuestSelect = (guest: RecentGuest) => {
-    setPhone(guest.phone);
-    setPrice(String(guest.price));
-    if (guest.notes) setNotes(guest.notes);
+    if (isFullRoom) {
+      updateGuest(activeGuestIdx, {
+        phone: guest.phone,
+        price: String(guest.price),
+        notes: guest.notes || "",
+      });
+    } else {
+      setPhone(guest.phone);
+      setPrice(String(guest.price));
+      if (guest.notes) setNotes(guest.notes);
+    }
     toast.success(`${guest.name} tanlandi`);
+  };
+
+  const updateGuest = (idx: number, data: Partial<GuestEntry>) => {
+    setGuests((prev) => prev.map((g, i) => (i === idx ? { ...g, ...data } : g)));
+  };
+
+  const addGuest = () => {
+    const newId = guests.length + 1;
+    setGuests((prev) => [...prev, createEmptyGuest(newId)]);
+    setActiveGuestIdx(guests.length);
+  };
+
+  const removeGuest = (idx: number) => {
+    if (guests.length <= 1) return;
+    setGuests((prev) => prev.filter((_, i) => i !== idx));
+    setActiveGuestIdx((prev) => Math.min(prev, guests.length - 2));
   };
 
   const handleSave = () => {
     toast.success(prefill.mode === "edit" ? "Bron ma'lumotlari yangilandi!" : "Mehmon saqlandi!");
-    setPhone("");
-    setPaid("");
-    setNotes("");
-    setPhotos([]);
+    if (isFullRoom) {
+      setGuests([createEmptyGuest(1)]);
+      setActiveGuestIdx(0);
+    } else {
+      setPhone("");
+      setPaid("");
+      setNotes("");
+      setPhotos([]);
+    }
   };
 
   const handleBack = () => {
@@ -91,20 +179,20 @@ const Index = () => {
   };
 
   const handleCopyPhone = () => {
-    if (phone) {
-      navigator.clipboard.writeText(`+${phone}`);
+    const p = isFullRoom ? guests[activeGuestIdx]?.phone : phone;
+    if (p) {
+      navigator.clipboard.writeText(`+${p}`);
       toast.success("Telefon nusxalandi!");
     }
   };
 
   const hostelName = prefill.hostel || "Bron";
+  const activeGuest = guests[activeGuestIdx];
 
   return (
     <div
       className="h-[100dvh] bg-background flex flex-col overflow-hidden"
-      style={{
-        paddingTop: "env(safe-area-inset-top)",
-      }}
+      style={{ paddingTop: "env(safe-area-inset-top)" }}
     >
       {/* Header */}
       <div className="bg-card border-b border-border px-4 py-2 shrink-0">
@@ -124,23 +212,84 @@ const Index = () => {
             </span>
           )}
         </div>
+        {isFullRoom && (
+          <p className="text-xs text-muted-foreground mt-1 px-1">
+            To'liq xona bron · {guests.length} mehmon
+          </p>
+        )}
       </div>
 
-      {/* Form - scrollable area that fits between header and footer */}
+      {/* Multi-guest tabs for full room */}
+      {isFullRoom && (
+        <div className="bg-card border-b border-border px-3 py-2 shrink-0">
+          <div className="flex items-center gap-2 overflow-x-auto">
+            {guests.map((g, idx) => (
+              <button
+                key={g.id}
+                onClick={() => setActiveGuestIdx(idx)}
+                className={`relative flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
+                  idx === activeGuestIdx
+                    ? "bg-primary text-primary-foreground shadow-md"
+                    : "bg-secondary text-muted-foreground"
+                }`}
+              >
+                Mehmon {idx + 1}
+                {g.phone && (
+                  <span className="opacity-70">·{g.phone.slice(-4)}</span>
+                )}
+                {guests.length > 1 && idx === activeGuestIdx && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      removeGuest(idx);
+                    }}
+                    className="ml-1 p-0.5 rounded-full bg-destructive/20 text-destructive hover:bg-destructive/40"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                  </button>
+                )}
+              </button>
+            ))}
+            <button
+              onClick={addGuest}
+              className="flex items-center gap-1 px-3 py-2 rounded-xl text-xs font-bold bg-primary/10 text-primary whitespace-nowrap active:bg-primary/20"
+            >
+              <UserPlus className="w-3.5 h-3.5" />
+              Qo'shish
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Form */}
       <div className="flex-1 overflow-y-auto">
         <div className="max-w-lg mx-auto px-4 py-3 space-y-3">
-          <PhotoUpload photos={photos} onAdd={handlePhotos} onRemove={removePhoto} />
+          <PhotoUpload
+            photos={isFullRoom ? activeGuest?.photos || [] : photos}
+            onAdd={handlePhotos}
+            onRemove={removePhoto}
+          />
           <RecentGuests onSelect={handleRecentGuestSelect} />
           <PhoneInput
-            value={phone}
-            onChange={setPhone}
+            value={isFullRoom ? activeGuest?.phone || "" : phone}
+            onChange={(v) => isFullRoom ? updateGuest(activeGuestIdx, { phone: v }) : setPhone(v)}
             repeatGuest={repeatGuest}
             onAutoFill={handleAutoFill}
             autoFocus
           />
-          <PriceInput value={price} onChange={setPrice} />
-          <PaymentBlock price={price} paid={paid} onPaidChange={setPaid} />
-          <NotesInput value={notes} onChange={setNotes} />
+          <PriceInput
+            value={isFullRoom ? activeGuest?.price || "" : price}
+            onChange={(v) => isFullRoom ? updateGuest(activeGuestIdx, { price: v }) : setPrice(v)}
+          />
+          <PaymentBlock
+            price={isFullRoom ? activeGuest?.price || "" : price}
+            paid={isFullRoom ? activeGuest?.paid || "" : paid}
+            onPaidChange={(v) => isFullRoom ? updateGuest(activeGuestIdx, { paid: v }) : setPaid(v)}
+          />
+          <NotesInput
+            value={isFullRoom ? activeGuest?.notes || "" : notes}
+            onChange={(v) => isFullRoom ? updateGuest(activeGuestIdx, { notes: v }) : setNotes(v)}
+          />
         </div>
       </div>
 
