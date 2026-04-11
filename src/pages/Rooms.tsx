@@ -1,9 +1,12 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import CalendarBar from "@/components/rooms/CalendarBar";
+import DateSelector from "@/components/rooms/DateSelector";
 import StatCards from "@/components/rooms/StatCards";
 import RoomCard, { RoomData } from "@/components/rooms/RoomCard";
 import BottomNav from "@/components/rooms/BottomNav";
+import CleaningPage from "@/pages/Cleaning";
+import GuestsPage from "@/pages/Guests";
+import PaymentsPage from "@/pages/Payments";
 
 const HOSTELS = ["Vodnik", "Zargarlik", "Tabarruk"];
 
@@ -163,6 +166,7 @@ const MOCK_ROOMS: Record<string, RoomData[]> = {
 const RoomsPage = () => {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [activeHostel, setActiveHostel] = useState("Vodnik");
+  const [activeTab, setActiveTab] = useState("rooms");
   const [rooms, setRooms] = useState<Record<string, RoomData[]>>(MOCK_ROOMS);
   const navigate = useNavigate();
 
@@ -254,51 +258,69 @@ const RoomsPage = () => {
     });
   };
 
+  const renderContent = () => {
+    switch (activeTab) {
+      case "rooms":
+        return (
+          <>
+            <StatCards stats={stats} />
+            <DateSelector selectedDate={selectedDate} onSelect={setSelectedDate} />
+            <div className="pt-3">
+              {currentRooms.map((room) => (
+                <RoomCard
+                  key={room.id}
+                  room={room}
+                  onBedTap={handleBedTap}
+                  onBedLongPress={handleBedLongPress}
+                  onBookRoom={handleBookRoom}
+                />
+              ))}
+            </div>
+          </>
+        );
+      case "guests":
+        return <GuestsPage />;
+      case "payments":
+        return <PaymentsPage />;
+      case "cleaning":
+        return <CleaningPage />;
+      default:
+        return null;
+    }
+  };
+
   return (
     <div
-      className="min-h-screen bg-background"
-      style={{
-        paddingTop: "env(safe-area-inset-top)",
-      }}
+      className="min-h-screen bg-background pb-20"
+      style={{ paddingTop: "env(safe-area-inset-top)" }}
     >
+      {/* Header */}
       <div className="sticky top-0 z-10 bg-card border-b border-border">
         <div className="px-4 py-3">
           <h1 className="text-xl font-extrabold text-primary">DoniHostel</h1>
         </div>
-        <div className="flex">
-          {HOSTELS.map((h) => (
-            <button
-              key={h}
-              onClick={() => setActiveHostel(h)}
-              className={`flex-1 py-2.5 text-sm font-bold transition-all border-b-2 ${
-                activeHostel === h
-                  ? "border-primary text-primary bg-primary/5"
-                  : "border-transparent text-muted-foreground"
-              }`}
-            >
-              {h}
-            </button>
-          ))}
-        </div>
+        {activeTab === "rooms" && (
+          <div className="flex">
+            {HOSTELS.map((h) => (
+              <button
+                key={h}
+                onClick={() => setActiveHostel(h)}
+                className={`flex-1 py-2.5 text-sm font-bold transition-all border-b-2 ${
+                  activeHostel === h
+                    ? "border-primary text-primary bg-primary/5"
+                    : "border-transparent text-muted-foreground"
+                }`}
+              >
+                {h}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
-      <StatCards stats={stats} />
-      <div className="pt-2">
-        <CalendarBar selectedDate={selectedDate} onSelect={setSelectedDate} />
-      </div>
+      {renderContent()}
 
-      <div className="pt-3">
-        {currentRooms.map((room) => (
-          <RoomCard
-            key={room.id}
-            room={room}
-            onBedTap={handleBedTap}
-            onBedLongPress={handleBedLongPress}
-            onBookRoom={handleBookRoom}
-          />
-        ))}
-      </div>
-
+      <BottomNav active={activeTab} onSelect={setActiveTab} />
     </div>
   );
 };
