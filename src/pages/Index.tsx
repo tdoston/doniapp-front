@@ -6,6 +6,7 @@ import PhoneInput from "@/components/booking/PhoneInput";
 import PriceInput from "@/components/booking/PriceInput";
 import PaymentBlock from "@/components/booking/PaymentBlock";
 import NotesInput from "@/components/booking/NotesInput";
+import NightsSelector from "@/components/booking/NightsSelector";
 import RecentGuests, { RecentGuest } from "@/components/booking/RecentGuests";
 
 const MOCK_GUESTS: Record<string, { lastVisit: string; price: number; notes: string; gender: "male" | "female" }> = {
@@ -32,6 +33,7 @@ interface GuestEntry {
   phone: string;
   price: string;
   paid: string;
+  nights: number;
   notes: string;
   photos: string[];
 }
@@ -41,6 +43,7 @@ const createEmptyGuest = (id: number): GuestEntry => ({
   phone: "",
   price: sessionStorage.getItem("lastPrice") || "",
   paid: "",
+  nights: 1,
   notes: "",
   photos: [],
 });
@@ -62,6 +65,7 @@ const Index = () => {
     if (prefill.guestName) return `Mijoz: ${prefill.guestName}`;
     return "";
   });
+  const [nights, setNights] = useState(1);
 
   // Multi-guest state (full room)
   const [guests, setGuests] = useState<GuestEntry[]>(() => [createEmptyGuest(1)]);
@@ -274,6 +278,10 @@ const Index = () => {
             repeatGuest={repeatGuest}
             onAutoFill={handleAutoFill}
             autoFocus
+          />
+          <NightsSelector
+            value={isFullRoom ? activeGuest?.nights || 1 : nights}
+            onChange={(v) => isFullRoom ? updateGuest(activeGuestIdx, { nights: v }) : setNights(v)}
           />
           <PriceInput
             value={isFullRoom ? activeGuest?.price || "" : price}
