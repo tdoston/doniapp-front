@@ -279,10 +279,6 @@ const Index = () => {
             onAutoFill={handleAutoFill}
             autoFocus
           />
-          <NightsSelector
-            value={isFullRoom ? activeGuest?.nights || 1 : nights}
-            onChange={(v) => isFullRoom ? updateGuest(activeGuestIdx, { nights: v }) : setNights(v)}
-          />
           <PriceInput
             value={isFullRoom ? activeGuest?.price || "" : price}
             onChange={(v) => isFullRoom ? updateGuest(activeGuestIdx, { price: v }) : setPrice(v)}
@@ -295,6 +291,10 @@ const Index = () => {
           <NotesInput
             value={isFullRoom ? activeGuest?.notes || "" : notes}
             onChange={(v) => isFullRoom ? updateGuest(activeGuestIdx, { notes: v }) : setNotes(v)}
+          />
+          <NightsSelector
+            value={isFullRoom ? activeGuest?.nights || 1 : nights}
+            onChange={(v) => isFullRoom ? updateGuest(activeGuestIdx, { nights: v }) : setNights(v)}
           />
         </div>
       </div>
