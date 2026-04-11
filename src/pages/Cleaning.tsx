@@ -256,55 +256,99 @@ const CleaningPage = ({ activeHostel }: CleaningPageProps) => {
 
               {isExpanded && (
                 <div className="px-4 pb-4 space-y-3">
-                  {/* Before photos */}
-                  <div>
-                    <p className="text-[10px] font-semibold text-muted-foreground mb-1.5">Oldin (Do)</p>
-                    <div className="grid grid-cols-4 gap-2">
-                      {room.photosBefore.map((url, i) => (
-                        <button
-                          key={i}
-                          onClick={() => openGallery(room.id, "before", `${room.name} — Oldin`)}
-                          className="w-full h-16 rounded-lg overflow-hidden border border-border"
-                        >
-                          <img src={url} alt={`Before ${i + 1}`} className="w-full h-full object-cover" />
-                        </button>
-                      ))}
-                      {room.photosBefore.length < maxPhotos && (
-                        <button
-                          onClick={() => handlePhotoUpload(room.id, "before")}
-                          className="w-full h-16 rounded-lg border-2 border-dashed border-muted-foreground/30 flex flex-col items-center justify-center gap-0.5 text-muted-foreground active:bg-secondary/50"
-                        >
-                          <Camera className="w-4 h-4" />
-                          <span className="text-[8px] font-semibold">{room.photosBefore.length}/{maxPhotos}</span>
-                        </button>
-                      )}
+                  {maxPhotos === 1 ? (
+                    /* Side-by-side layout for single-photo rooms */
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <p className="text-[10px] font-semibold text-muted-foreground mb-1.5">Oldin</p>
+                        {room.photosBefore.length > 0 ? (
+                          <button
+                            onClick={() => openGallery(room.id, "before", `${room.name} — Oldin`)}
+                            className="w-full h-24 rounded-lg overflow-hidden border border-border"
+                          >
+                            <img src={room.photosBefore[0]} alt="Before" className="w-full h-full object-cover" />
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => handlePhotoUpload(room.id, "before")}
+                            className="w-full h-24 rounded-lg border-2 border-dashed border-muted-foreground/30 flex flex-col items-center justify-center gap-1 text-muted-foreground active:bg-secondary/50"
+                          >
+                            <Camera className="w-5 h-5" />
+                            <span className="text-[9px] font-semibold">Rasmga olish</span>
+                          </button>
+                        )}
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-semibold text-muted-foreground mb-1.5">Keyin</p>
+                        {room.photosAfter.length > 0 ? (
+                          <button
+                            onClick={() => openGallery(room.id, "after", `${room.name} — Keyin`)}
+                            className="w-full h-24 rounded-lg overflow-hidden border border-border"
+                          >
+                            <img src={room.photosAfter[0]} alt="After" className="w-full h-full object-cover" />
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => handlePhotoUpload(room.id, "after")}
+                            className="w-full h-24 rounded-lg border-2 border-dashed border-muted-foreground/30 flex flex-col items-center justify-center gap-1 text-muted-foreground active:bg-secondary/50"
+                          >
+                            <ImagePlus className="w-5 h-5" />
+                            <span className="text-[9px] font-semibold">Rasmga olish</span>
+                          </button>
+                        )}
+                      </div>
                     </div>
-                  </div>
-
-                  {/* After photos */}
-                  <div>
-                    <p className="text-[10px] font-semibold text-muted-foreground mb-1.5">Keyin (Posle)</p>
-                    <div className="grid grid-cols-4 gap-2">
-                      {room.photosAfter.map((url, i) => (
-                        <button
-                          key={i}
-                          onClick={() => openGallery(room.id, "after", `${room.name} — Keyin`)}
-                          className="w-full h-16 rounded-lg overflow-hidden border border-border"
-                        >
-                          <img src={url} alt={`After ${i + 1}`} className="w-full h-full object-cover" />
-                        </button>
-                      ))}
-                      {room.photosAfter.length < maxPhotos && (
-                        <button
-                          onClick={() => handlePhotoUpload(room.id, "after")}
-                          className="w-full h-16 rounded-lg border-2 border-dashed border-muted-foreground/30 flex flex-col items-center justify-center gap-0.5 text-muted-foreground active:bg-secondary/50"
-                        >
-                          <ImagePlus className="w-4 h-4" />
-                          <span className="text-[8px] font-semibold">{room.photosAfter.length}/{maxPhotos}</span>
-                        </button>
-                      )}
-                    </div>
-                  </div>
+                  ) : (
+                    /* Stacked layout for multi-photo rooms */
+                    <>
+                      <div>
+                        <p className="text-[10px] font-semibold text-muted-foreground mb-1.5">Oldin (Do)</p>
+                        <div className="grid grid-cols-4 gap-2">
+                          {room.photosBefore.map((url, i) => (
+                            <button
+                              key={i}
+                              onClick={() => openGallery(room.id, "before", `${room.name} — Oldin`)}
+                              className="w-full h-16 rounded-lg overflow-hidden border border-border"
+                            >
+                              <img src={url} alt={`Before ${i + 1}`} className="w-full h-full object-cover" />
+                            </button>
+                          ))}
+                          {room.photosBefore.length < maxPhotos && (
+                            <button
+                              onClick={() => handlePhotoUpload(room.id, "before")}
+                              className="w-full h-16 rounded-lg border-2 border-dashed border-muted-foreground/30 flex flex-col items-center justify-center gap-0.5 text-muted-foreground active:bg-secondary/50"
+                            >
+                              <Camera className="w-4 h-4" />
+                              <span className="text-[8px] font-semibold">{room.photosBefore.length}/{maxPhotos}</span>
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-semibold text-muted-foreground mb-1.5">Keyin (Posle)</p>
+                        <div className="grid grid-cols-4 gap-2">
+                          {room.photosAfter.map((url, i) => (
+                            <button
+                              key={i}
+                              onClick={() => openGallery(room.id, "after", `${room.name} — Keyin`)}
+                              className="w-full h-16 rounded-lg overflow-hidden border border-border"
+                            >
+                              <img src={url} alt={`After ${i + 1}`} className="w-full h-full object-cover" />
+                            </button>
+                          ))}
+                          {room.photosAfter.length < maxPhotos && (
+                            <button
+                              onClick={() => handlePhotoUpload(room.id, "after")}
+                              className="w-full h-16 rounded-lg border-2 border-dashed border-muted-foreground/30 flex flex-col items-center justify-center gap-0.5 text-muted-foreground active:bg-secondary/50"
+                            >
+                              <ImagePlus className="w-4 h-4" />
+                              <span className="text-[8px] font-semibold">{room.photosAfter.length}/{maxPhotos}</span>
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </>
+                  )}
 
                   {/* Mark as cleaned */}
                   {isDirty && (
