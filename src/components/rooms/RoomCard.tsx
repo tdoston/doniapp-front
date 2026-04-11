@@ -1,5 +1,6 @@
 import React, { useState, useRef, useCallback } from "react";
-import { BedDouble, Plus, User, Phone } from "lucide-react";
+import { BedDouble, Plus, ImageIcon, Sparkles } from "lucide-react";
+import RoomPhotoGallery from "./RoomPhotoGallery";
 
 export type BedStatus = "empty" | "booked" | "selected" | "processing";
 
@@ -15,6 +16,8 @@ export interface RoomData {
   name: string;
   totalBeds: number;
   beds: BedData[];
+  photos?: string[];
+  cleaningStatus?: "clean" | "dirty";
 }
 
 interface RoomCardProps {
@@ -32,11 +35,10 @@ const statusStyles: Record<BedStatus, string> = {
 };
 
 const RoomCard = ({ room, onBedTap, onBedLongPress, onBookRoom }: RoomCardProps) => {
-  const bookedCount = room.beds.filter((b) => b.status === "booked").length;
-  const emptyCount = room.beds.filter((b) => b.status === "empty" || b.status === "selected").length;
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [pressedBed, setPressedBed] = useState<number | null>(null);
-  const [expanded, setExpanded] = useState(false);
+  const [showGallery, setShowGallery] = useState(false);
+  const [photos, setPhotos] = useState<string[]>(room.photos || []);
 
   const handleTouchStart = useCallback(
     (bedId: number) => {
@@ -62,82 +64,95 @@ const RoomCard = ({ room, onBedTap, onBedLongPress, onBookRoom }: RoomCardProps)
     [room.id, onBedTap]
   );
 
-  return (
-    <div className="mx-4 mb-4 rounded-2xl overflow-hidden bg-foreground/90 animate-fade-in">
-      {/* Room Header */}
-      <button
-        onClick={() => setExpanded(!expanded)}
-        className="flex items-center justify-between px-4 py-3 w-full text-left"
-      >
-        <div className="flex items-center gap-2">
-          <h3 className="text-sm font-bold text-card">{room.name}</h3>
-          <span className="text-xs text-card/60">({room.totalBeds} ta)</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-semibold bg-destructive/30 text-destructive-foreground px-2 py-0.5 rounded-md">
-            {bookedCount}
-          </span>
-          <span className="text-xs font-semibold bg-accent/30 text-accent-foreground px-2 py-0.5 rounded-md">
-            {emptyCount}
-          </span>
-        </div>
-      </button>
+  const handleUploadPhotos = (files: FileList) => {
+    const remaining = 3 - photos.length;
+    Array.from(files)
+      .slice(0, remaining)
+      .forEach((file) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          setPhotos((prev) => [...prev, e.target?.result as string].slice(0, 3));
+        };
+        reader.readAsDataURL(file);
+      });
+  };
 
-      {/* Beds Grid */}
-      <div className="grid grid-cols-4 gap-3 px-4 pb-3">
-        {room.beds.map((bed) => (
-          <button
-            key={bed.id}
-            onTouchStart={() => handleTouchStart(bed.id)}
-            onTouchEnd={() => handleTouchEnd(bed.id)}
-            onMouseDown={() => handleTouchStart(bed.id)}
-            onMouseUp={() => handleTouchEnd(bed.id)}
-            onMouseLeave={() => {
-              if (timerRef.current) clearTimeout(timerRef.current);
-              setPressedBed(null);
-            }}
-            className={`flex flex-col items-center justify-center rounded-xl py-3 min-h-[72px] font-bold transition-all select-none ${
-              statusStyles[bed.status]
-            } ${pressedBed === bed.id ? "scale-95" : ""}`}
-          >
-            <BedDouble className="w-5 h-5 mb-0.5" />
-            <span className="text-xs">{bed.id}</span>
-            {bed.status === "booked" && bed.guestName && (
-              <span className="text-[10px] mt-0.5 opacity-90 truncate max-w-full px-1">{bed.guestName}</span>
-            )}
-          </button>
-        ))}
+  const cleaningStatus = room.cleaningStatus || "clean";
+
+  return (
+    <>
+      <div className="mx-4 mb-4 rounded-2xl overflow-hidden bg-foreground/90 animate-fade-in">
+        {/* Room Header */}
+        <div className="flex items-center justify-between px-4 py-3">
+          <h3 className="text-sm font-bold text-card">{room.name}</h3>
+          <div className="flex items-center gap-2">
+            {/* Cleaning status */}
+            <div
+              className={`flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold ${
+                cleaningStatus === "clean"
+                  ? "bg-accent/20 text-accent-foreground"
+                  : "bg-orange-500/20 text-orange-300"
+              }`}
+            >
+              <Sparkles className="w-3 h-3" />
+              {cleaningStatus === "clean" ? "Toza" : "Toza emas"}
+            </div>
+            {/* Photo gallery button */}
+            <button
+              onClick={() => setShowGallery(true)}
+              className="p-1.5 rounded-lg bg-white/10 text-card/70 hover:bg-white/20 transition-colors"
+            >
+              <ImageIcon className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+
+        {/* Beds Grid */}
+        <div className="grid grid-cols-4 gap-3 px-4 pb-3">
+          {room.beds.map((bed) => (
+            <button
+              key={bed.id}
+              onTouchStart={() => handleTouchStart(bed.id)}
+              onTouchEnd={() => handleTouchEnd(bed.id)}
+              onMouseDown={() => handleTouchStart(bed.id)}
+              onMouseUp={() => handleTouchEnd(bed.id)}
+              onMouseLeave={() => {
+                if (timerRef.current) clearTimeout(timerRef.current);
+                setPressedBed(null);
+              }}
+              className={`flex flex-col items-center justify-center rounded-xl py-3 min-h-[72px] font-bold transition-all select-none ${
+                statusStyles[bed.status]
+              } ${pressedBed === bed.id ? "scale-95" : ""}`}
+            >
+              <BedDouble className="w-5 h-5 mb-0.5" />
+              <span className="text-xs">{bed.id}</span>
+              {bed.status === "booked" && bed.guestName && (
+                <span className="text-[10px] mt-0.5 opacity-90 truncate max-w-full px-1">{bed.guestName}</span>
+              )}
+            </button>
+          ))}
+        </div>
+
+        {/* Full Room Booking Button */}
+        <button
+          onClick={() => onBookRoom(room.id)}
+          className="flex items-center justify-center gap-2 w-full py-2.5 bg-primary/20 text-primary text-sm font-bold transition-all active:bg-primary/30"
+        >
+          <Plus className="w-4 h-4" />
+          To'liq xona bron qilish
+        </button>
       </div>
 
-      {/* Expanded guest details */}
-      {expanded && bookedCount > 0 && (
-        <div className="px-4 pb-3 space-y-1.5">
-          {room.beds
-            .filter((b) => b.status === "booked" && b.guestName)
-            .map((bed) => (
-              <div key={bed.id} className="flex items-center gap-2 bg-card/10 rounded-lg px-3 py-2">
-                <User className="w-3.5 h-3.5 text-card/70" />
-                <span className="text-xs text-card font-medium flex-1">{bed.guestName}</span>
-                {bed.guestPhone && (
-                  <a href={`tel:${bed.guestPhone}`} className="flex items-center gap-1 text-info text-xs">
-                    <Phone className="w-3 h-3" />
-                    {bed.guestPhone}
-                  </a>
-                )}
-              </div>
-            ))}
-        </div>
+      {/* Photo Gallery Modal */}
+      {showGallery && (
+        <RoomPhotoGallery
+          roomName={room.name}
+          photos={photos}
+          onUpload={handleUploadPhotos}
+          onClose={() => setShowGallery(false)}
+        />
       )}
-
-      {/* Full Room Booking Button */}
-      <button
-        onClick={() => onBookRoom(room.id)}
-        className="flex items-center justify-center gap-2 w-full py-2.5 bg-primary/20 text-primary text-sm font-bold transition-all active:bg-primary/30"
-      >
-        <Plus className="w-4 h-4" />
-        To'liq xona bron qilish
-      </button>
-    </div>
+    </>
   );
 };
 
