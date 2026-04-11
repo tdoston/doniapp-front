@@ -407,10 +407,20 @@ const CleaningPage = ({ activeHostel }: CleaningPageProps) => {
       {/* Photo Gallery Modal */}
       {gallery && (() => {
         const photos = getGalleryPhotos();
+        const currentPhoto = photos[gallery.activeIdx];
         return (
         <div className="fixed inset-0 z-50 bg-black/90 flex flex-col animate-fade-in">
           <div className="flex items-center justify-between px-4 py-3 shrink-0">
-            <h3 className="text-white font-bold text-sm">{gallery.title}</h3>
+            <div>
+              <h3 className="text-white font-bold text-sm">{gallery.title}</h3>
+              {currentPhoto && (
+                <span className={`text-[11px] font-semibold ${
+                  getGalleryCurrentType() === "before" ? "text-orange-400" : "text-green-400"
+                }`}>
+                  {currentPhoto.label}
+                </span>
+              )}
+            </div>
             <div className="flex items-center gap-2">
               <button onClick={handleShareGallery} className="p-2 rounded-full bg-white/10 text-white">
                 <Share2 className="w-5 h-5" />
@@ -428,11 +438,13 @@ const CleaningPage = ({ activeHostel }: CleaningPageProps) => {
           >
             <div className="relative w-full max-w-sm">
               <div className="w-full aspect-[4/3] rounded-2xl overflow-hidden bg-white/5">
-                <img
-                  src={photos[gallery.activeIdx]}
-                  alt={`${gallery.title} ${gallery.activeIdx + 1}`}
-                  className="w-full h-full object-cover"
-                />
+                {currentPhoto && (
+                  <img
+                    src={currentPhoto.url}
+                    alt={`${gallery.title} ${currentPhoto.label}`}
+                    className="w-full h-full object-cover"
+                  />
+                )}
               </div>
 
               {gallery.activeIdx > 0 && (
@@ -454,14 +466,21 @@ const CleaningPage = ({ activeHostel }: CleaningPageProps) => {
 
               {photos.length > 1 && (
                 <div className="flex justify-center gap-1.5 mt-3">
-                  {photos.map((_, i) => (
-                    <div
-                      key={i}
-                      className={`w-2 h-2 rounded-full transition-all ${
-                        i === gallery.activeIdx ? "bg-white scale-125" : "bg-white/30"
-                      }`}
-                    />
-                  ))}
+                  {photos.map((p, i) => {
+                    const room = rooms.find(r => r.id === gallery.roomId);
+                    const beforeCount = room?.photosBefore.length || 0;
+                    const isBefore = i < beforeCount;
+                    return (
+                      <div
+                        key={i}
+                        className={`w-2 h-2 rounded-full transition-all ${
+                          i === gallery.activeIdx
+                            ? (isBefore ? "bg-orange-400 scale-125" : "bg-green-400 scale-125")
+                            : (isBefore ? "bg-orange-400/30" : "bg-green-400/30")
+                        }`}
+                      />
+                    );
+                  })}
                 </div>
               )}
             </div>
