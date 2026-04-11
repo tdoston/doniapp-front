@@ -298,7 +298,7 @@ const Index = () => {
         className="bg-card/95 backdrop-blur border-t border-border px-4 py-3 shrink-0"
         style={{ paddingBottom: "calc(0.75rem + env(safe-area-inset-bottom))" }}
       >
-        <div className="max-w-lg mx-auto grid grid-cols-3 gap-2">
+        <div className="max-w-lg mx-auto grid grid-cols-2 gap-2">
           <button
             type="button"
             onClick={handleBack}
@@ -306,14 +306,6 @@ const Index = () => {
           >
             <ChevronLeft className="h-5 w-5" />
             Ortga
-          </button>
-          <button
-            type="button"
-            onClick={handleCopyPhone}
-            className="h-14 rounded-xl font-bold text-base bg-muted text-foreground border border-border transition-all active:scale-[0.98] flex items-center justify-center gap-1.5"
-          >
-            <Copy className="h-4 w-4" />
-            Copy
           </button>
           <button
             type="button"
