@@ -93,7 +93,6 @@ const CleaningPage = ({ activeHostel }: CleaningPageProps) => {
           : r
       )
     );
-    toast.success(activeUpload.type === "before" ? "Oldingi rasm yuklandi" : "Keyingi rasm yuklandi");
     setActiveUpload(null);
     e.target.value = "";
   };
@@ -102,13 +101,45 @@ const CleaningPage = ({ activeHostel }: CleaningPageProps) => {
     setRooms((prev) =>
       prev.map((r) => (r.id === roomId ? { ...r, status: "cleaned" as CleaningStatus } : r))
     );
-    toast.success("Tozalandi ✓");
   };
 
-  const openGallery = (photos: string[], title: string) => {
-    if (photos.length > 0) {
-      setGallery({ photos, title, activeIdx: 0 });
+  const openGallery = (roomId: string, type: "before" | "after", title: string) => {
+    const room = rooms.find(r => r.id === roomId);
+    const photos = type === "before" ? room?.photosBefore : room?.photosAfter;
+    if (photos && photos.length > 0) {
+      setGallery({ roomId, type, title, activeIdx: 0 });
     }
+  };
+
+  const getGalleryPhotos = (): string[] => {
+    if (!gallery) return [];
+    const room = rooms.find(r => r.id === gallery.roomId);
+    return (gallery.type === "before" ? room?.photosBefore : room?.photosAfter) || [];
+  };
+
+  const handleGalleryDelete = () => {
+    if (!gallery) return;
+    const key = gallery.type === "before" ? "photosBefore" : "photosAfter";
+    setRooms(prev => prev.map(r =>
+      r.id === gallery.roomId ? { ...r, [key]: r[key].filter((_, i) => i !== gallery.activeIdx) } : r
+    ));
+    const photos = getGalleryPhotos();
+    if (photos.length <= 1) {
+      setGallery(null);
+    } else if (gallery.activeIdx > 0) {
+      setGallery({ ...gallery, activeIdx: gallery.activeIdx - 1 });
+    }
+  };
+
+  const handleGalleryReplace = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !gallery) return;
+    const url = URL.createObjectURL(file);
+    const key = gallery.type === "before" ? "photosBefore" : "photosAfter";
+    setRooms(prev => prev.map(r =>
+      r.id === gallery.roomId ? { ...r, [key]: r[key].map((p, i) => i === gallery.activeIdx ? url : p) } : r
+    ));
+    e.target.value = "";
   };
 
   const handleGalleryTouchStart = (e: React.TouchEvent) => {
