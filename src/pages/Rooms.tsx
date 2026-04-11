@@ -200,6 +200,7 @@ const RoomsPage = () => {
           guestPhone: bed.guestPhone,
           price: guestData ? String(guestData.price) : "",
           notes: guestData?.notes || "",
+          checkedInBy: bed.checkedInBy,
         },
       });
       return;
