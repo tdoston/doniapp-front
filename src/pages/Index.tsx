@@ -127,6 +127,25 @@ const Index = () => {
     }
   };
 
+  const replacePhoto = (i: number, file: File) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const url = e.target?.result as string;
+      if (isFullRoom) {
+        setGuests((prev) =>
+          prev.map((g, idx) =>
+            idx === activeGuestIdx
+              ? { ...g, photos: g.photos.map((p, pi) => (pi === i ? url : p)) }
+              : g
+          )
+        );
+      } else {
+        setPhotos((prev) => prev.map((p, idx) => (idx === i ? url : p)));
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleAutoFill = (guest: typeof GUEST_LOOKUP[string]) => {
     if (isFullRoom) {
       updateGuest(activeGuestIdx, { price: String(guest.price), notes: guest.notes });
