@@ -55,12 +55,17 @@ const Index = () => {
   const prefill = (location.state as BookingPrefillState | null) || {};
   const normalizedPhone = (prefill.guestPhone || "").replace(/\D/g, "");
   const isFullRoom = prefill.bookingScope === "full-room";
+  const isEditMode = prefill.mode === "edit";
 
   // Single guest state
   const [showRecentGuests, setShowRecentGuests] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   const [photos, setPhotos] = useState<string[]>([]);
   const [phone, setPhone] = useState(normalizedPhone);
-  const [price, setPrice] = useState(prefill.price || sessionStorage.getItem("lastPrice") || "");
+  const [price, setPrice] = useState(() => {
+    if (prefill.price) return prefill.price;
+    return sessionStorage.getItem("lastPrice") || "";
+  });
   const [paid, setPaid] = useState(prefill.paid || "");
   const [notes, setNotes] = useState(() => {
     if (prefill.notes) return prefill.notes;
