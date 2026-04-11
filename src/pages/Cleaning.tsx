@@ -286,7 +286,7 @@ const CleaningPage = ({ activeHostel }: CleaningPageProps) => {
               </button>
 
               {isExpanded && (
-                <div className="px-4 pb-3 space-y-2">
+                <div className="px-4 pb-4 space-y-3">
                   {maxPhotos === 1 ? (
                     /* Side-by-side layout for single-photo rooms */
                     <div className="grid grid-cols-2 gap-3">
