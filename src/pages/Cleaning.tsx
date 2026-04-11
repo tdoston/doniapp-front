@@ -148,9 +148,10 @@ const CleaningPage = ({ activeHostel }: CleaningPageProps) => {
 
   const handleGalleryTouchEnd = (e: React.TouchEvent) => {
     if (!gallery) return;
+    const photos = getGalleryPhotos();
     const diff = touchStartX.current - e.changedTouches[0].clientX;
     if (Math.abs(diff) > 50) {
-      if (diff > 0 && gallery.activeIdx < gallery.photos.length - 1) {
+      if (diff > 0 && gallery.activeIdx < photos.length - 1) {
         setGallery({ ...gallery, activeIdx: gallery.activeIdx + 1 });
       }
       if (diff < 0 && gallery.activeIdx > 0) {
@@ -167,7 +168,6 @@ const CleaningPage = ({ activeHostel }: CleaningPageProps) => {
       } catch {}
     } else {
       await navigator.clipboard.writeText(window.location.href);
-      toast.success("Link nusxalandi!");
     }
   };
 
