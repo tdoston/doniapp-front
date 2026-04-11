@@ -50,21 +50,25 @@ const PhoneInput = ({ value, onChange, repeatGuest, onAutoFill, onGuestsOpen, au
       </div>
 
       {repeatGuest && (
-        <div className="bg-accent/10 border border-accent/30 rounded-lg p-3 animate-fade-in">
-          <div className="flex items-center gap-2 text-accent font-semibold text-sm mb-1">
-            <Check className="w-4 h-4" />
-            Avval kelgan: {repeatGuest.name}
+        <div className="bg-accent/10 border border-accent/30 rounded-xl p-3 animate-fade-in">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="flex items-center gap-2 text-accent font-semibold text-sm">
+                <Check className="w-4 h-4" />
+                Avval kelgan: {repeatGuest.name}
+              </div>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Oxirgi: {repeatGuest.lastVisit} · {repeatGuest.price.toLocaleString()} so'm
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => onAutoFill(repeatGuest)}
+              className="h-10 px-4 rounded-lg bg-primary text-primary-foreground font-semibold text-xs whitespace-nowrap transition-all active:scale-[0.97]"
+            >
+              To'ldirish
+            </button>
           </div>
-          <p className="text-xs text-muted-foreground mb-2">
-            Oxirgi: {repeatGuest.lastVisit} · {repeatGuest.price.toLocaleString()} so'm
-          </p>
-          <button
-            type="button"
-            onClick={() => onAutoFill(repeatGuest)}
-            className="text-xs font-semibold text-primary underline"
-          >
-            Ma'lumotni to'ldirish
-          </button>
         </div>
       )}
     </div>
