@@ -272,9 +272,11 @@ const Index = () => {
             onRemove={removePhoto}
           />
 
-          {showRecentGuests && (
-            <RecentGuests onSelect={(guest) => { handleRecentGuestSelect(guest); setShowRecentGuests(false); }} />
-          )}
+          <RecentGuests
+            open={showRecentGuests}
+            onClose={() => setShowRecentGuests(false)}
+            onSelect={(guest) => { handleRecentGuestSelect(guest); setShowRecentGuests(false); }}
+          />
           
           <PhoneInput
             value={isFullRoom ? activeGuest?.phone || "" : phone}
