@@ -78,6 +78,18 @@ const RoomCard = ({ room, onBedTap, onBedLongPress, onBookRoom }: RoomCardProps)
       });
   };
 
+  const handleDeletePhoto = (index: number) => {
+    setPhotos((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleReplacePhoto = (index: number, file: File) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setPhotos((prev) => prev.map((p, i) => (i === index ? (e.target?.result as string) : p)));
+    };
+    reader.readAsDataURL(file);
+  };
+
   const cleaningStatus = room.cleaningStatus || "clean";
 
   return (
@@ -150,6 +162,8 @@ const RoomCard = ({ room, onBedTap, onBedLongPress, onBookRoom }: RoomCardProps)
           roomName={room.name}
           photos={photos}
           onUpload={handleUploadPhotos}
+          onDelete={handleDeletePhoto}
+          onReplace={handleReplacePhoto}
           onClose={() => setShowGallery(false)}
         />
       )}
