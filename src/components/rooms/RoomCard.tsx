@@ -9,6 +9,7 @@ export interface BedData {
   status: BedStatus;
   guestName?: string;
   guestPhone?: string;
+  checkedInBy?: string;
 }
 
 export interface RoomData {
@@ -128,6 +129,9 @@ const RoomCard = ({ room, onBedTap, onBedLongPress, onBookRoom }: RoomCardProps)
               <span className="text-xs">{bed.id}</span>
               {bed.status === "booked" && bed.guestName && (
                 <span className="text-[10px] mt-0.5 opacity-90 truncate max-w-full px-1">{bed.guestName}</span>
+              )}
+              {bed.status === "booked" && bed.checkedInBy && (
+                <span className="text-[8px] opacity-60 truncate max-w-full px-1">{bed.checkedInBy}</span>
               )}
             </button>
           ))}
