@@ -1,16 +1,19 @@
 import React, { useState, useRef } from "react";
-import { X, ChevronLeft, ChevronRight, Upload, Share2, Image } from "lucide-react";
+import { X, ChevronLeft, ChevronRight, Upload, Share2, Image, Trash2, RefreshCw } from "lucide-react";
 
 interface RoomPhotoGalleryProps {
   roomName: string;
   photos: string[];
   onUpload: (files: FileList) => void;
+  onDelete?: (index: number) => void;
+  onReplace?: (index: number, file: File) => void;
   onClose: () => void;
 }
 
-const RoomPhotoGallery = ({ roomName, photos, onUpload, onClose }: RoomPhotoGalleryProps) => {
+const RoomPhotoGallery = ({ roomName, photos, onUpload, onDelete, onReplace, onClose }: RoomPhotoGalleryProps) => {
   const [activeIdx, setActiveIdx] = useState(0);
   const fileRef = useRef<HTMLInputElement>(null);
+  const replaceRef = useRef<HTMLInputElement>(null);
   const touchStartX = useRef(0);
 
   const handleShare = async () => {
@@ -24,7 +27,6 @@ const RoomPhotoGallery = ({ roomName, photos, onUpload, onClose }: RoomPhotoGall
       } catch {}
     } else {
       await navigator.clipboard.writeText(window.location.href);
-      alert("Link nusxalandi!");
     }
   };
 
@@ -44,6 +46,20 @@ const RoomPhotoGallery = ({ roomName, photos, onUpload, onClose }: RoomPhotoGall
     if (e.target.files && e.target.files.length > 0) {
       onUpload(e.target.files);
     }
+    e.target.value = "";
+  };
+
+  const handleReplaceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files?.[0] && onReplace) {
+      onReplace(activeIdx, e.target.files[0]);
+    }
+    e.target.value = "";
+  };
+
+  const handleDelete = () => {
+    if (!onDelete) return;
+    onDelete(activeIdx);
+    if (activeIdx > 0) setActiveIdx(activeIdx - 1);
   };
 
   return (
@@ -93,7 +109,6 @@ const RoomPhotoGallery = ({ roomName, photos, onUpload, onClose }: RoomPhotoGall
               />
             </div>
 
-            {/* Nav arrows */}
             {activeIdx > 0 && (
               <button
                 onClick={() => setActiveIdx((p) => p - 1)}
@@ -111,7 +126,6 @@ const RoomPhotoGallery = ({ roomName, photos, onUpload, onClose }: RoomPhotoGall
               </button>
             )}
 
-            {/* Dots */}
             {photos.length > 1 && (
               <div className="flex justify-center gap-1.5 mt-3">
                 {photos.map((_, i) => (
@@ -129,26 +143,38 @@ const RoomPhotoGallery = ({ roomName, photos, onUpload, onClose }: RoomPhotoGall
       </div>
 
       {/* Bottom actions */}
-      {photos.length > 0 && photos.length < 3 && (
-        <div className="px-4 pb-6 shrink-0 flex justify-center">
+      <div className="px-4 pb-6 shrink-0 flex justify-center gap-3">
+        {photos.length > 0 && onReplace && (
+          <button
+            onClick={() => replaceRef.current?.click()}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/10 text-white text-sm font-semibold"
+          >
+            <RefreshCw className="w-4 h-4" />
+            Almashtirish
+          </button>
+        )}
+        {photos.length > 0 && onDelete && (
+          <button
+            onClick={handleDelete}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-destructive/20 text-destructive text-sm font-semibold"
+          >
+            <Trash2 className="w-4 h-4" />
+            O'chirish
+          </button>
+        )}
+        {photos.length < 3 && (
           <button
             onClick={() => fileRef.current?.click()}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/10 text-white text-sm font-semibold"
           >
             <Upload className="w-4 h-4" />
-            Rasm qo'shish ({photos.length}/3)
+            Qo'shish ({photos.length}/3)
           </button>
-        </div>
-      )}
+        )}
+      </div>
 
-      <input
-        ref={fileRef}
-        type="file"
-        accept="image/*"
-        multiple
-        className="hidden"
-        onChange={handleFileChange}
-      />
+      <input ref={fileRef} type="file" accept="image/*" multiple className="hidden" onChange={handleFileChange} />
+      <input ref={replaceRef} type="file" accept="image/*" className="hidden" onChange={handleReplaceChange} />
     </div>
   );
 };

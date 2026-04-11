@@ -1,6 +1,5 @@
 import React, { useState, useRef } from "react";
-import { Camera, Check, ChevronDown, ChevronUp, ImagePlus, DoorClosed, ShowerHead, BedDouble, Users, X, ChevronLeft, ChevronRight, Share2 } from "lucide-react";
-import { toast } from "sonner";
+import { Camera, Check, ChevronDown, ChevronUp, ImagePlus, DoorClosed, ShowerHead, BedDouble, Users, X, ChevronLeft, ChevronRight, Share2, Trash2, RefreshCw } from "lucide-react";
 
 type CleaningStatus = "dirty" | "cleaned";
 type RoomType = "room" | "bathroom";
@@ -50,7 +49,8 @@ const getMaxPhotos = (room: CleaningRoom): number => {
 };
 
 interface GalleryState {
-  photos: string[];
+  roomId: string;
+  type: "before" | "after";
   title: string;
   activeIdx: number;
 }
@@ -63,6 +63,7 @@ const CleaningPage = ({ activeHostel }: CleaningPageProps) => {
   const [rooms, setRooms] = useState<CleaningRoom[]>(MOCK_CLEANING);
   const [expandedRoom, setExpandedRoom] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const replaceRef = useRef<HTMLInputElement>(null);
   const [activeUpload, setActiveUpload] = useState<{ roomId: string; type: "before" | "after" } | null>(null);
   const [gallery, setGallery] = useState<GalleryState | null>(null);
   const touchStartX = useRef(0);
@@ -92,7 +93,6 @@ const CleaningPage = ({ activeHostel }: CleaningPageProps) => {
           : r
       )
     );
-    toast.success(activeUpload.type === "before" ? "Oldingi rasm yuklandi" : "Keyingi rasm yuklandi");
     setActiveUpload(null);
     e.target.value = "";
   };
@@ -101,13 +101,45 @@ const CleaningPage = ({ activeHostel }: CleaningPageProps) => {
     setRooms((prev) =>
       prev.map((r) => (r.id === roomId ? { ...r, status: "cleaned" as CleaningStatus } : r))
     );
-    toast.success("Tozalandi ✓");
   };
 
-  const openGallery = (photos: string[], title: string) => {
-    if (photos.length > 0) {
-      setGallery({ photos, title, activeIdx: 0 });
+  const openGallery = (roomId: string, type: "before" | "after", title: string) => {
+    const room = rooms.find(r => r.id === roomId);
+    const photos = type === "before" ? room?.photosBefore : room?.photosAfter;
+    if (photos && photos.length > 0) {
+      setGallery({ roomId, type, title, activeIdx: 0 });
     }
+  };
+
+  const getGalleryPhotos = (): string[] => {
+    if (!gallery) return [];
+    const room = rooms.find(r => r.id === gallery.roomId);
+    return (gallery.type === "before" ? room?.photosBefore : room?.photosAfter) || [];
+  };
+
+  const handleGalleryDelete = () => {
+    if (!gallery) return;
+    const key = gallery.type === "before" ? "photosBefore" : "photosAfter";
+    setRooms(prev => prev.map(r =>
+      r.id === gallery.roomId ? { ...r, [key]: r[key].filter((_, i) => i !== gallery.activeIdx) } : r
+    ));
+    const photos = getGalleryPhotos();
+    if (photos.length <= 1) {
+      setGallery(null);
+    } else if (gallery.activeIdx > 0) {
+      setGallery({ ...gallery, activeIdx: gallery.activeIdx - 1 });
+    }
+  };
+
+  const handleGalleryReplace = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !gallery) return;
+    const url = URL.createObjectURL(file);
+    const key = gallery.type === "before" ? "photosBefore" : "photosAfter";
+    setRooms(prev => prev.map(r =>
+      r.id === gallery.roomId ? { ...r, [key]: r[key].map((p, i) => i === gallery.activeIdx ? url : p) } : r
+    ));
+    e.target.value = "";
   };
 
   const handleGalleryTouchStart = (e: React.TouchEvent) => {
@@ -116,9 +148,10 @@ const CleaningPage = ({ activeHostel }: CleaningPageProps) => {
 
   const handleGalleryTouchEnd = (e: React.TouchEvent) => {
     if (!gallery) return;
+    const photos = getGalleryPhotos();
     const diff = touchStartX.current - e.changedTouches[0].clientX;
     if (Math.abs(diff) > 50) {
-      if (diff > 0 && gallery.activeIdx < gallery.photos.length - 1) {
+      if (diff > 0 && gallery.activeIdx < photos.length - 1) {
         setGallery({ ...gallery, activeIdx: gallery.activeIdx + 1 });
       }
       if (diff < 0 && gallery.activeIdx > 0) {
@@ -135,7 +168,6 @@ const CleaningPage = ({ activeHostel }: CleaningPageProps) => {
       } catch {}
     } else {
       await navigator.clipboard.writeText(window.location.href);
-      toast.success("Link nusxalandi!");
     }
   };
 
@@ -233,7 +265,7 @@ const CleaningPage = ({ activeHostel }: CleaningPageProps) => {
                       {room.photosBefore.map((url, i) => (
                         <button
                           key={i}
-                          onClick={() => openGallery(room.photosBefore, `${room.name} — Oldin`)}
+                          onClick={() => openGallery(room.id, "before", `${room.name} — Oldin`)}
                           className="w-full h-16 rounded-lg overflow-hidden border border-border"
                         >
                           <img src={url} alt={`Before ${i + 1}`} className="w-full h-full object-cover" />
@@ -258,7 +290,7 @@ const CleaningPage = ({ activeHostel }: CleaningPageProps) => {
                       {room.photosAfter.map((url, i) => (
                         <button
                           key={i}
-                          onClick={() => openGallery(room.photosAfter, `${room.name} — Keyin`)}
+                          onClick={() => openGallery(room.id, "after", `${room.name} — Keyin`)}
                           className="w-full h-16 rounded-lg overflow-hidden border border-border"
                         >
                           <img src={url} alt={`After ${i + 1}`} className="w-full h-full object-cover" />
@@ -300,7 +332,9 @@ const CleaningPage = ({ activeHostel }: CleaningPageProps) => {
       </div>
 
       {/* Photo Gallery Modal */}
-      {gallery && (
+      {gallery && (() => {
+        const photos = getGalleryPhotos();
+        return (
         <div className="fixed inset-0 z-50 bg-black/90 flex flex-col animate-fade-in">
           <div className="flex items-center justify-between px-4 py-3 shrink-0">
             <h3 className="text-white font-bold text-sm">{gallery.title}</h3>
@@ -322,7 +356,7 @@ const CleaningPage = ({ activeHostel }: CleaningPageProps) => {
             <div className="relative w-full max-w-sm">
               <div className="w-full aspect-[4/3] rounded-2xl overflow-hidden bg-white/5">
                 <img
-                  src={gallery.photos[gallery.activeIdx]}
+                  src={photos[gallery.activeIdx]}
                   alt={`${gallery.title} ${gallery.activeIdx + 1}`}
                   className="w-full h-full object-cover"
                 />
@@ -336,7 +370,7 @@ const CleaningPage = ({ activeHostel }: CleaningPageProps) => {
                   <ChevronLeft className="w-5 h-5" />
                 </button>
               )}
-              {gallery.activeIdx < gallery.photos.length - 1 && (
+              {gallery.activeIdx < photos.length - 1 && (
                 <button
                   onClick={() => setGallery({ ...gallery, activeIdx: gallery.activeIdx + 1 })}
                   className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full bg-black/50 text-white"
@@ -345,9 +379,9 @@ const CleaningPage = ({ activeHostel }: CleaningPageProps) => {
                 </button>
               )}
 
-              {gallery.photos.length > 1 && (
+              {photos.length > 1 && (
                 <div className="flex justify-center gap-1.5 mt-3">
-                  {gallery.photos.map((_, i) => (
+                  {photos.map((_, i) => (
                     <div
                       key={i}
                       className={`w-2 h-2 rounded-full transition-all ${
@@ -359,8 +393,29 @@ const CleaningPage = ({ activeHostel }: CleaningPageProps) => {
               )}
             </div>
           </div>
+
+          {/* Bottom edit actions */}
+          <div className="px-4 pb-6 shrink-0 flex justify-center gap-3">
+            <button
+              onClick={() => replaceRef.current?.click()}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/10 text-white text-sm font-semibold"
+            >
+              <RefreshCw className="w-4 h-4" />
+              Almashtirish
+            </button>
+            <button
+              onClick={handleGalleryDelete}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-destructive/20 text-destructive text-sm font-semibold"
+            >
+              <Trash2 className="w-4 h-4" />
+              O'chirish
+            </button>
+          </div>
+
+          <input ref={replaceRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleGalleryReplace} />
         </div>
-      )}
+        );
+      })()}
     </div>
   );
 };
