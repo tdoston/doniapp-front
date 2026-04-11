@@ -1,6 +1,5 @@
 import React, { useState, useRef } from "react";
-import { Camera, Check, ChevronDown, ChevronUp, ImagePlus, DoorClosed, ShowerHead, BedDouble, Users, X, ChevronLeft, ChevronRight, Share2 } from "lucide-react";
-import { toast } from "sonner";
+import { Camera, Check, ChevronDown, ChevronUp, ImagePlus, DoorClosed, ShowerHead, BedDouble, Users, X, ChevronLeft, ChevronRight, Share2, Trash2, RefreshCw } from "lucide-react";
 
 type CleaningStatus = "dirty" | "cleaned";
 type RoomType = "room" | "bathroom";
@@ -50,7 +49,8 @@ const getMaxPhotos = (room: CleaningRoom): number => {
 };
 
 interface GalleryState {
-  photos: string[];
+  roomId: string;
+  type: "before" | "after";
   title: string;
   activeIdx: number;
 }
@@ -63,6 +63,7 @@ const CleaningPage = ({ activeHostel }: CleaningPageProps) => {
   const [rooms, setRooms] = useState<CleaningRoom[]>(MOCK_CLEANING);
   const [expandedRoom, setExpandedRoom] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const replaceRef = useRef<HTMLInputElement>(null);
   const [activeUpload, setActiveUpload] = useState<{ roomId: string; type: "before" | "after" } | null>(null);
   const [gallery, setGallery] = useState<GalleryState | null>(null);
   const touchStartX = useRef(0);
