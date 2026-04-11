@@ -144,15 +144,17 @@ const CleaningPage = ({ activeHostel }: CleaningPageProps) => {
 
   const handleGalleryDelete = () => {
     if (!gallery) return;
-    const key = gallery.type === "before" ? "photosBefore" : "photosAfter";
+    const currentType = getGalleryCurrentType();
+    const localIdx = getGalleryCurrentLocalIdx();
+    const key = currentType === "before" ? "photosBefore" : "photosAfter";
     setRooms(prev => prev.map(r =>
-      r.id === gallery.roomId ? { ...r, [key]: r[key].filter((_, i) => i !== gallery.activeIdx) } : r
+      r.id === gallery.roomId ? { ...r, [key]: r[key].filter((_, i) => i !== localIdx) } : r
     ));
     const photos = getGalleryPhotos();
     if (photos.length <= 1) {
       setGallery(null);
-    } else if (gallery.activeIdx > 0) {
-      setGallery({ ...gallery, activeIdx: gallery.activeIdx - 1 });
+    } else if (gallery.activeIdx >= photos.length - 1) {
+      setGallery({ ...gallery, activeIdx: Math.max(0, gallery.activeIdx - 1) });
     }
   };
 
