@@ -168,6 +168,11 @@ const Index = () => {
   };
 
   const handleSave = () => {
+    if (isEditMode && !showConfirm) {
+      setShowConfirm(true);
+      return;
+    }
+    setShowConfirm(false);
     
     if (isFullRoom) {
       setGuests([createEmptyGuest(1)]);
@@ -178,6 +183,7 @@ const Index = () => {
       setNotes("");
       setPhotos([]);
     }
+    navigate(-1);
   };
 
   const handleBack = () => {
