@@ -103,29 +103,58 @@ const CleaningPage = ({ activeHostel }: CleaningPageProps) => {
 
   const openGallery = (roomId: string, type: "before" | "after", title: string) => {
     const room = rooms.find(r => r.id === roomId);
-    const photos = type === "before" ? room?.photosBefore : room?.photosAfter;
-    if (photos && photos.length > 0) {
-      setGallery({ roomId, type, title, activeIdx: 0 });
-    }
+    if (!room) return;
+    // Build combined array: all before photos then all after photos
+    const combined = [
+      ...room.photosBefore.map(() => "before" as const),
+      ...room.photosAfter.map(() => "after" as const),
+    ];
+    if (combined.length === 0) return;
+    // Find starting index based on which section was tapped
+    const startIdx = type === "before" ? 0 : room.photosBefore.length;
+    const clampedIdx = Math.min(startIdx, combined.length - 1);
+    setGallery({ roomId, type, title: room.name, activeIdx: clampedIdx });
   };
 
-  const getGalleryPhotos = (): string[] => {
+  const getGalleryPhotos = (): { url: string; label: string }[] => {
     if (!gallery) return [];
     const room = rooms.find(r => r.id === gallery.roomId);
-    return (gallery.type === "before" ? room?.photosBefore : room?.photosAfter) || [];
+    if (!room) return [];
+    return [
+      ...room.photosBefore.map(url => ({ url, label: "Oldin (Do)" })),
+      ...room.photosAfter.map(url => ({ url, label: "Keyin (Posle)" })),
+    ];
+  };
+
+  const getGalleryCurrentType = (): "before" | "after" => {
+    if (!gallery) return "before";
+    const room = rooms.find(r => r.id === gallery.roomId);
+    if (!room) return "before";
+    return gallery.activeIdx < room.photosBefore.length ? "before" : "after";
+  };
+
+  const getGalleryCurrentLocalIdx = (): number => {
+    if (!gallery) return 0;
+    const room = rooms.find(r => r.id === gallery.roomId);
+    if (!room) return 0;
+    return gallery.activeIdx < room.photosBefore.length
+      ? gallery.activeIdx
+      : gallery.activeIdx - room.photosBefore.length;
   };
 
   const handleGalleryDelete = () => {
     if (!gallery) return;
-    const key = gallery.type === "before" ? "photosBefore" : "photosAfter";
+    const currentType = getGalleryCurrentType();
+    const localIdx = getGalleryCurrentLocalIdx();
+    const key = currentType === "before" ? "photosBefore" : "photosAfter";
     setRooms(prev => prev.map(r =>
-      r.id === gallery.roomId ? { ...r, [key]: r[key].filter((_, i) => i !== gallery.activeIdx) } : r
+      r.id === gallery.roomId ? { ...r, [key]: r[key].filter((_, i) => i !== localIdx) } : r
     ));
     const photos = getGalleryPhotos();
     if (photos.length <= 1) {
       setGallery(null);
-    } else if (gallery.activeIdx > 0) {
-      setGallery({ ...gallery, activeIdx: gallery.activeIdx - 1 });
+    } else if (gallery.activeIdx >= photos.length - 1) {
+      setGallery({ ...gallery, activeIdx: Math.max(0, gallery.activeIdx - 1) });
     }
   };
 
@@ -133,9 +162,11 @@ const CleaningPage = ({ activeHostel }: CleaningPageProps) => {
     const file = e.target.files?.[0];
     if (!file || !gallery) return;
     const url = URL.createObjectURL(file);
-    const key = gallery.type === "before" ? "photosBefore" : "photosAfter";
+    const currentType = getGalleryCurrentType();
+    const localIdx = getGalleryCurrentLocalIdx();
+    const key = currentType === "before" ? "photosBefore" : "photosAfter";
     setRooms(prev => prev.map(r =>
-      r.id === gallery.roomId ? { ...r, [key]: r[key].map((p, i) => i === gallery.activeIdx ? url : p) } : r
+      r.id === gallery.roomId ? { ...r, [key]: r[key].map((p, i) => i === localIdx ? url : p) } : r
     ));
     e.target.value = "";
   };
@@ -376,10 +407,20 @@ const CleaningPage = ({ activeHostel }: CleaningPageProps) => {
       {/* Photo Gallery Modal */}
       {gallery && (() => {
         const photos = getGalleryPhotos();
+        const currentPhoto = photos[gallery.activeIdx];
         return (
         <div className="fixed inset-0 z-50 bg-black/90 flex flex-col animate-fade-in">
           <div className="flex items-center justify-between px-4 py-3 shrink-0">
-            <h3 className="text-white font-bold text-sm">{gallery.title}</h3>
+            <div>
+              <h3 className="text-white font-bold text-sm">{gallery.title}</h3>
+              {currentPhoto && (
+                <span className={`text-[11px] font-semibold ${
+                  getGalleryCurrentType() === "before" ? "text-orange-400" : "text-green-400"
+                }`}>
+                  {currentPhoto.label}
+                </span>
+              )}
+            </div>
             <div className="flex items-center gap-2">
               <button onClick={handleShareGallery} className="p-2 rounded-full bg-white/10 text-white">
                 <Share2 className="w-5 h-5" />
@@ -397,11 +438,13 @@ const CleaningPage = ({ activeHostel }: CleaningPageProps) => {
           >
             <div className="relative w-full max-w-sm">
               <div className="w-full aspect-[4/3] rounded-2xl overflow-hidden bg-white/5">
-                <img
-                  src={photos[gallery.activeIdx]}
-                  alt={`${gallery.title} ${gallery.activeIdx + 1}`}
-                  className="w-full h-full object-cover"
-                />
+                {currentPhoto && (
+                  <img
+                    src={currentPhoto.url}
+                    alt={`${gallery.title} ${currentPhoto.label}`}
+                    className="w-full h-full object-cover"
+                  />
+                )}
               </div>
 
               {gallery.activeIdx > 0 && (
@@ -423,14 +466,21 @@ const CleaningPage = ({ activeHostel }: CleaningPageProps) => {
 
               {photos.length > 1 && (
                 <div className="flex justify-center gap-1.5 mt-3">
-                  {photos.map((_, i) => (
-                    <div
-                      key={i}
-                      className={`w-2 h-2 rounded-full transition-all ${
-                        i === gallery.activeIdx ? "bg-white scale-125" : "bg-white/30"
-                      }`}
-                    />
-                  ))}
+                  {photos.map((p, i) => {
+                    const room = rooms.find(r => r.id === gallery.roomId);
+                    const beforeCount = room?.photosBefore.length || 0;
+                    const isBefore = i < beforeCount;
+                    return (
+                      <div
+                        key={i}
+                        className={`w-2 h-2 rounded-full transition-all ${
+                          i === gallery.activeIdx
+                            ? (isBefore ? "bg-orange-400 scale-125" : "bg-green-400 scale-125")
+                            : (isBefore ? "bg-orange-400/30" : "bg-green-400/30")
+                        }`}
+                      />
+                    );
+                  })}
                 </div>
               )}
             </div>
