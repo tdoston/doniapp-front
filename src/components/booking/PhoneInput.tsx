@@ -3,6 +3,7 @@ import PhoneInputLib from "react-phone-number-input";
 import "react-phone-number-input/style.css";
 
 interface RepeatGuest {
+  name: string;
   lastVisit: string;
   price: number;
   notes: string;
@@ -52,10 +53,10 @@ const PhoneInput = ({ value, onChange, repeatGuest, onAutoFill, onGuestsOpen, au
         <div className="bg-accent/10 border border-accent/30 rounded-lg p-3 animate-fade-in">
           <div className="flex items-center gap-2 text-accent font-semibold text-sm mb-1">
             <Check className="w-4 h-4" />
-            Avval kelgan mijoz
+            Avval kelgan: {repeatGuest.name}
           </div>
           <p className="text-xs text-muted-foreground mb-2">
-            Oxirgi tashrif: {repeatGuest.lastVisit} · {repeatGuest.price.toLocaleString()} so'm
+            Oxirgi: {repeatGuest.lastVisit} · {repeatGuest.price.toLocaleString()} so'm
           </p>
           <button
             type="button"
