@@ -219,7 +219,7 @@ const CleaningPage = ({ activeHostel }: CleaningPageProps) => {
       <input ref={fileRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFileChange} />
 
       {/* Room list */}
-      <div className="space-y-2 px-4">
+      <div className="space-y-1.5 px-4">
         {filtered.map((room) => {
           const isExpanded = expandedRoom === room.id;
           const isDirty = room.status === "dirty";
@@ -235,7 +235,7 @@ const CleaningPage = ({ activeHostel }: CleaningPageProps) => {
             >
               <button
                 onClick={() => setExpandedRoom(isExpanded ? null : room.id)}
-                className="flex items-center justify-between w-full px-4 py-3"
+                className="flex items-center justify-between w-full px-3 py-2.5"
               >
                 <div className="flex items-center gap-3">
                   {isBathroom ? (
@@ -286,7 +286,7 @@ const CleaningPage = ({ activeHostel }: CleaningPageProps) => {
               </button>
 
               {isExpanded && (
-                <div className="px-4 pb-4 space-y-3">
+                <div className="px-4 pb-3 space-y-2">
                   {maxPhotos === 1 ? (
                     /* Side-by-side layout for single-photo rooms */
                     <div className="grid grid-cols-2 gap-3">
