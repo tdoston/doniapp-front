@@ -1,5 +1,5 @@
 import React, { useState, useRef } from "react";
-import { Camera, Check, ChevronDown, ChevronUp, ImagePlus, DoorOpen, ShowerHead, BedDouble, Users } from "lucide-react";
+import { Camera, Check, ChevronDown, ChevronUp, ImagePlus, DoorClosed, ShowerHead, BedDouble, Users, X, ChevronLeft, ChevronRight, Share2 } from "lucide-react";
 import { toast } from "sonner";
 
 type CleaningStatus = "dirty" | "cleaned";
@@ -38,7 +38,22 @@ const MOCK_CLEANING: CleaningRoom[] = [
 ];
 
 const HOSTELS = ["Barchasi", "Vodnik", "Zargarlik", "Tabarruk"];
-const MAX_PHOTOS = 4;
+
+// Returns max photos allowed for a room
+const getMaxPhotos = (room: CleaningRoom): number => {
+  if (room.type === "bathroom") return 4;
+  // Lux rooms
+  if (room.name.toLowerCase().includes("lux")) return 4;
+  // Tabarruk xona 1 & 2
+  if (room.hostel === "Tabarruk" && (room.name === "Xona 1" || room.name === "Xona 2")) return 4;
+  return 2;
+};
+
+interface GalleryState {
+  photos: string[];
+  title: string;
+  activeIdx: number;
+}
 
 const CleaningPage = () => {
   const [rooms, setRooms] = useState<CleaningRoom[]>(MOCK_CLEANING);
@@ -46,6 +61,8 @@ const CleaningPage = () => {
   const [expandedRoom, setExpandedRoom] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const [activeUpload, setActiveUpload] = useState<{ roomId: string; type: "before" | "after" } | null>(null);
+  const [gallery, setGallery] = useState<GalleryState | null>(null);
+  const touchStartX = useRef(0);
 
   const filtered = activeHostel === "Barchasi" ? rooms : rooms.filter((r) => r.hostel === activeHostel);
   const dirtyCount = filtered.filter((r) => r.status === "dirty").length;
@@ -59,13 +76,16 @@ const CleaningPage = () => {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !activeUpload) return;
+    const room = rooms.find((r) => r.id === activeUpload.roomId);
+    if (!room) return;
 
+    const maxPhotos = getMaxPhotos(room);
     const url = URL.createObjectURL(file);
     const key = activeUpload.type === "before" ? "photosBefore" : "photosAfter";
     setRooms((prev) =>
       prev.map((r) =>
         r.id === activeUpload.roomId
-          ? { ...r, [key]: [...r[key], url].slice(0, MAX_PHOTOS) }
+          ? { ...r, [key]: [...r[key], url].slice(0, maxPhotos) }
           : r
       )
     );
@@ -79,6 +99,41 @@ const CleaningPage = () => {
       prev.map((r) => (r.id === roomId ? { ...r, status: "cleaned" as CleaningStatus } : r))
     );
     toast.success("Tozalandi ✓");
+  };
+
+  const openGallery = (photos: string[], title: string) => {
+    if (photos.length > 0) {
+      setGallery({ photos, title, activeIdx: 0 });
+    }
+  };
+
+  const handleGalleryTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+  };
+
+  const handleGalleryTouchEnd = (e: React.TouchEvent) => {
+    if (!gallery) return;
+    const diff = touchStartX.current - e.changedTouches[0].clientX;
+    if (Math.abs(diff) > 50) {
+      if (diff > 0 && gallery.activeIdx < gallery.photos.length - 1) {
+        setGallery({ ...gallery, activeIdx: gallery.activeIdx + 1 });
+      }
+      if (diff < 0 && gallery.activeIdx > 0) {
+        setGallery({ ...gallery, activeIdx: gallery.activeIdx - 1 });
+      }
+    }
+  };
+
+  const handleShareGallery = async () => {
+    if (!gallery) return;
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: gallery.title, url: window.location.href });
+      } catch {}
+    } else {
+      await navigator.clipboard.writeText(window.location.href);
+      toast.success("Link nusxalandi!");
+    }
   };
 
   return (
@@ -121,6 +176,7 @@ const CleaningPage = () => {
           const isExpanded = expandedRoom === room.id;
           const isDirty = room.status === "dirty";
           const isBathroom = room.type === "bathroom";
+          const maxPhotos = getMaxPhotos(room);
 
           return (
             <div
@@ -137,7 +193,7 @@ const CleaningPage = () => {
                   {isBathroom ? (
                     <ShowerHead className={`w-5 h-5 ${isDirty ? "text-destructive" : "text-green-500"}`} />
                   ) : (
-                    <DoorOpen className={`w-5 h-5 ${isDirty ? "text-destructive" : "text-green-500"}`} />
+                    <DoorClosed className={`w-5 h-5 ${isDirty ? "text-destructive" : "text-green-500"}`} />
                   )}
                   <div className="text-left">
                     <p className="text-sm font-bold text-foreground">{room.name}</p>
@@ -188,15 +244,21 @@ const CleaningPage = () => {
                     <p className="text-[10px] font-semibold text-muted-foreground mb-1.5">Oldin (Do)</p>
                     <div className="grid grid-cols-4 gap-2">
                       {room.photosBefore.map((url, i) => (
-                        <img key={i} src={url} alt={`Before ${i + 1}`} className="w-full h-16 object-cover rounded-lg border border-border" />
+                        <button
+                          key={i}
+                          onClick={() => openGallery(room.photosBefore, `${room.name} — Oldin`)}
+                          className="w-full h-16 rounded-lg overflow-hidden border border-border"
+                        >
+                          <img src={url} alt={`Before ${i + 1}`} className="w-full h-full object-cover" />
+                        </button>
                       ))}
-                      {room.photosBefore.length < MAX_PHOTOS && (
+                      {room.photosBefore.length < maxPhotos && (
                         <button
                           onClick={() => handlePhotoUpload(room.id, "before")}
                           className="w-full h-16 rounded-lg border-2 border-dashed border-muted-foreground/30 flex flex-col items-center justify-center gap-0.5 text-muted-foreground active:bg-secondary/50"
                         >
                           <Camera className="w-4 h-4" />
-                          <span className="text-[8px] font-semibold">{room.photosBefore.length}/{MAX_PHOTOS}</span>
+                          <span className="text-[8px] font-semibold">{room.photosBefore.length}/{maxPhotos}</span>
                         </button>
                       )}
                     </div>
@@ -207,15 +269,21 @@ const CleaningPage = () => {
                     <p className="text-[10px] font-semibold text-muted-foreground mb-1.5">Keyin (Posle)</p>
                     <div className="grid grid-cols-4 gap-2">
                       {room.photosAfter.map((url, i) => (
-                        <img key={i} src={url} alt={`After ${i + 1}`} className="w-full h-16 object-cover rounded-lg border border-border" />
+                        <button
+                          key={i}
+                          onClick={() => openGallery(room.photosAfter, `${room.name} — Keyin`)}
+                          className="w-full h-16 rounded-lg overflow-hidden border border-border"
+                        >
+                          <img src={url} alt={`After ${i + 1}`} className="w-full h-full object-cover" />
+                        </button>
                       ))}
-                      {room.photosAfter.length < MAX_PHOTOS && (
+                      {room.photosAfter.length < maxPhotos && (
                         <button
                           onClick={() => handlePhotoUpload(room.id, "after")}
                           className="w-full h-16 rounded-lg border-2 border-dashed border-muted-foreground/30 flex flex-col items-center justify-center gap-0.5 text-muted-foreground active:bg-secondary/50"
                         >
                           <ImagePlus className="w-4 h-4" />
-                          <span className="text-[8px] font-semibold">{room.photosAfter.length}/{MAX_PHOTOS}</span>
+                          <span className="text-[8px] font-semibold">{room.photosAfter.length}/{maxPhotos}</span>
                         </button>
                       )}
                     </div>
@@ -243,6 +311,69 @@ const CleaningPage = () => {
           </div>
         )}
       </div>
+
+      {/* Photo Gallery Modal */}
+      {gallery && (
+        <div className="fixed inset-0 z-50 bg-black/90 flex flex-col animate-fade-in">
+          <div className="flex items-center justify-between px-4 py-3 shrink-0">
+            <h3 className="text-white font-bold text-sm">{gallery.title}</h3>
+            <div className="flex items-center gap-2">
+              <button onClick={handleShareGallery} className="p-2 rounded-full bg-white/10 text-white">
+                <Share2 className="w-5 h-5" />
+              </button>
+              <button onClick={() => setGallery(null)} className="p-2 rounded-full bg-white/10 text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+
+          <div
+            className="flex-1 flex items-center justify-center px-4"
+            onTouchStart={handleGalleryTouchStart}
+            onTouchEnd={handleGalleryTouchEnd}
+          >
+            <div className="relative w-full max-w-sm">
+              <div className="w-full aspect-[4/3] rounded-2xl overflow-hidden bg-white/5">
+                <img
+                  src={gallery.photos[gallery.activeIdx]}
+                  alt={`${gallery.title} ${gallery.activeIdx + 1}`}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+
+              {gallery.activeIdx > 0 && (
+                <button
+                  onClick={() => setGallery({ ...gallery, activeIdx: gallery.activeIdx - 1 })}
+                  className="absolute left-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full bg-black/50 text-white"
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
+              )}
+              {gallery.activeIdx < gallery.photos.length - 1 && (
+                <button
+                  onClick={() => setGallery({ ...gallery, activeIdx: gallery.activeIdx + 1 })}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full bg-black/50 text-white"
+                >
+                  <ChevronRight className="w-5 h-5" />
+                </button>
+              )}
+
+              {gallery.photos.length > 1 && (
+                <div className="flex justify-center gap-1.5 mt-3">
+                  {gallery.photos.map((_, i) => (
+                    <div
+                      key={i}
+                      className={`w-2 h-2 rounded-full transition-all ${
+                        i === gallery.activeIdx ? "bg-white scale-125" : "bg-white/30"
+                      }`}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useCallback } from "react";
-import { BedDouble, Plus, ImageIcon, Sparkles } from "lucide-react";
+import { BedDouble, Plus, ImageIcon, Sparkles, DoorClosed } from "lucide-react";
 import RoomPhotoGallery from "./RoomPhotoGallery";
 
 export type BedStatus = "empty" | "booked" | "selected" | "processing";
