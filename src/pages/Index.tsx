@@ -270,6 +270,8 @@ const Index = () => {
             onAdd={handlePhotos}
             onRemove={removePhoto}
           />
+
+          <RecentGuests onSelect={handleRecentGuestSelect} />
           
           <PhoneInput
             value={isFullRoom ? activeGuest?.phone || "" : phone}
@@ -281,19 +283,18 @@ const Index = () => {
           <PriceInput
             value={isFullRoom ? activeGuest?.price || "" : price}
             onChange={(v) => isFullRoom ? updateGuest(activeGuestIdx, { price: v }) : setPrice(v)}
+            nights={isFullRoom ? activeGuest?.nights || 1 : nights}
+            onNightsChange={(v) => isFullRoom ? updateGuest(activeGuestIdx, { nights: v }) : setNights(v)}
           />
           <PaymentBlock
             price={isFullRoom ? activeGuest?.price || "" : price}
             paid={isFullRoom ? activeGuest?.paid || "" : paid}
+            nights={isFullRoom ? activeGuest?.nights || 1 : nights}
             onPaidChange={(v) => isFullRoom ? updateGuest(activeGuestIdx, { paid: v }) : setPaid(v)}
           />
           <NotesInput
             value={isFullRoom ? activeGuest?.notes || "" : notes}
             onChange={(v) => isFullRoom ? updateGuest(activeGuestIdx, { notes: v }) : setNotes(v)}
-          />
-          <NightsSelector
-            value={isFullRoom ? activeGuest?.nights || 1 : nights}
-            onChange={(v) => isFullRoom ? updateGuest(activeGuestIdx, { nights: v }) : setNights(v)}
           />
         </div>
       </div>
