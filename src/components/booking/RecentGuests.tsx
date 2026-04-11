@@ -11,7 +11,7 @@ export interface RecentGuest {
   room?: string;
 }
 
-const RECENT_GUESTS: RecentGuest[] = [
+export const RECENT_GUESTS: RecentGuest[] = [
   { name: "Miroj", phone: "998901234567", lastVisit: "Bugun", price: 80000, notes: "oilali", hostel: "Vodnik", room: "1-qavat Zal" },
   { name: "Akbar", phone: "998911234567", lastVisit: "Bugun", price: 75000, hostel: "Vodnik", room: "1-qavat Zal" },
   { name: "Fatima", phone: "998921234567", lastVisit: "Bugun", price: 90000, hostel: "Vodnik", room: "1-qavat Lux" },
