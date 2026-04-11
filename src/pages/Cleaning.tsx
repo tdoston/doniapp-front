@@ -204,12 +204,12 @@ const CleaningPage = ({ activeHostel }: CleaningPageProps) => {
     <div className="pb-4">
 
       {/* Stats */}
-      <div className="grid grid-cols-2 gap-3 px-4 pb-3">
-        <div className="bg-destructive/10 rounded-xl p-3 text-center">
+      <div className="grid grid-cols-2 gap-2.5 px-4 pt-1 pb-2.5">
+        <div className="bg-destructive/10 rounded-xl py-2.5 px-3 text-center">
           <span className="text-2xl font-black text-destructive">{dirtyCount}</span>
           <p className="text-[10px] font-semibold text-destructive/70 mt-0.5">Tozalanmagan</p>
         </div>
-        <div className="bg-green-500/10 rounded-xl p-3 text-center">
+        <div className="bg-green-500/10 rounded-xl py-2.5 px-3 text-center">
           <span className="text-2xl font-black text-green-600">{cleanedCount}</span>
           <p className="text-[10px] font-semibold text-green-600/70 mt-0.5">Tozalangan</p>
         </div>
