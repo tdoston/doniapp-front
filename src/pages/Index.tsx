@@ -55,12 +55,17 @@ const Index = () => {
   const prefill = (location.state as BookingPrefillState | null) || {};
   const normalizedPhone = (prefill.guestPhone || "").replace(/\D/g, "");
   const isFullRoom = prefill.bookingScope === "full-room";
+  const isEditMode = prefill.mode === "edit";
 
   // Single guest state
   const [showRecentGuests, setShowRecentGuests] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   const [photos, setPhotos] = useState<string[]>([]);
   const [phone, setPhone] = useState(normalizedPhone);
-  const [price, setPrice] = useState(prefill.price || sessionStorage.getItem("lastPrice") || "");
+  const [price, setPrice] = useState(() => {
+    if (prefill.price) return prefill.price;
+    return sessionStorage.getItem("lastPrice") || "";
+  });
   const [paid, setPaid] = useState(prefill.paid || "");
   const [notes, setNotes] = useState(() => {
     if (prefill.notes) return prefill.notes;
@@ -163,6 +168,11 @@ const Index = () => {
   };
 
   const handleSave = () => {
+    if (isEditMode && !showConfirm) {
+      setShowConfirm(true);
+      return;
+    }
+    setShowConfirm(false);
     
     if (isFullRoom) {
       setGuests([createEmptyGuest(1)]);
@@ -173,6 +183,7 @@ const Index = () => {
       setNotes("");
       setPhotos([]);
     }
+    navigate(-1);
   };
 
   const handleBack = () => {
@@ -210,6 +221,9 @@ const Index = () => {
             Ortga
           </button>
           <h1 className="text-lg font-extrabold text-primary">{hostelName}</h1>
+          {isEditMode && (
+            <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-warning/20 text-warning">Tahrirlash</span>
+          )}
           {prefill.roomName && (
             <span className="text-xs text-muted-foreground">
               · {prefill.roomName}{prefill.bedId ? ` · K${prefill.bedId}` : ""}
@@ -326,10 +340,38 @@ const Index = () => {
             onClick={handleSave}
             className="h-14 rounded-xl font-bold text-base bg-primary text-primary-foreground shadow-lg transition-all active:scale-[0.98]"
           >
-            Saqlash
+            {isEditMode ? "O'zgartirish" : "Saqlash"}
           </button>
         </div>
       </div>
+
+      {/* Confirm Dialog */}
+      {showConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" style={{ paddingTop: "env(safe-area-inset-top)" }}>
+          <div className="bg-card rounded-2xl mx-6 p-6 w-full max-w-sm shadow-xl animate-fade-in">
+            <h2 className="text-lg font-extrabold text-foreground mb-2">O'zgartirishni tasdiqlang</h2>
+            <p className="text-sm text-muted-foreground mb-5">
+              Mehmon ma'lumotlari o'zgartiriladi. Davom etasizmi?
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setShowConfirm(false)}
+                className="h-12 rounded-xl font-bold text-sm bg-muted text-foreground border border-border transition-all active:scale-[0.98]"
+              >
+                Bekor qilish
+              </button>
+              <button
+                type="button"
+                onClick={handleSave}
+                className="h-12 rounded-xl font-bold text-sm bg-primary text-primary-foreground shadow-lg transition-all active:scale-[0.98]"
+              >
+                Tasdiqlash
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
