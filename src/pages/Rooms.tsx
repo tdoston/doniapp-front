@@ -221,6 +221,8 @@ const RoomsPage = () => {
     const room = currentRooms.find((r) => r.id === roomId);
     const bed = room?.beds.find((b) => b.id === bedId);
     if (bed?.status === "booked") {
+      const phoneClean = (bed.guestPhone || "").replace(/\D/g, "");
+      const guestData = RECENT_GUESTS.find(g => g.phone === phoneClean);
       navigate("/booking", {
         state: {
           mode: "edit",
@@ -231,6 +233,8 @@ const RoomsPage = () => {
           bedId: bed.id,
           guestName: bed.guestName,
           guestPhone: bed.guestPhone,
+          price: guestData ? String(guestData.price) : "",
+          notes: guestData?.notes || "",
         },
       });
     } else {
