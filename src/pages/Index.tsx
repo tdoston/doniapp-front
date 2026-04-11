@@ -1,7 +1,6 @@
 import { useState, useCallback } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { ChevronLeft, Copy, Plus, Trash2, UserPlus } from "lucide-react";
-import { toast } from "sonner";
 import PhotoUpload from "@/components/booking/PhotoUpload";
 import PhoneInput from "@/components/booking/PhoneInput";
 import PriceInput from "@/components/booking/PriceInput";
@@ -123,7 +122,7 @@ const Index = () => {
       setPrice(String(guest.price));
       setNotes(guest.notes);
     }
-    toast.success("Ma'lumotlar to'ldirildi");
+    
   };
 
   const handleRecentGuestSelect = (guest: RecentGuest) => {
@@ -138,7 +137,7 @@ const Index = () => {
       setPrice(String(guest.price));
       if (guest.notes) setNotes(guest.notes);
     }
-    toast.success(`${guest.name} tanlandi`);
+    
   };
 
   const updateGuest = (idx: number, data: Partial<GuestEntry>) => {
@@ -158,7 +157,7 @@ const Index = () => {
   };
 
   const handleSave = () => {
-    toast.success(prefill.mode === "edit" ? "Bron ma'lumotlari yangilandi!" : "Mehmon saqlandi!");
+    
     if (isFullRoom) {
       setGuests([createEmptyGuest(1)]);
       setActiveGuestIdx(0);
@@ -182,7 +181,6 @@ const Index = () => {
     const p = isFullRoom ? guests[activeGuestIdx]?.phone : phone;
     if (p) {
       navigator.clipboard.writeText(`+${p}`);
-      toast.success("Telefon nusxalandi!");
     }
   };
 
