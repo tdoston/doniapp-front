@@ -26,6 +26,7 @@ interface BookingPrefillState {
   price?: string;
   paid?: string;
   notes?: string;
+  checkedInBy?: string;
   roomOptions?: Array<{ id: string; name: string; totalBeds: number }>;
 }
 
@@ -230,6 +231,11 @@ const Index = () => {
             </span>
           )}
         </div>
+        {isEditMode && prefill.checkedInBy && (
+          <p className="text-xs text-muted-foreground mt-1 px-1">
+            Check-in qilgan: <span className="font-semibold text-foreground">{prefill.checkedInBy}</span>
+          </p>
+        )}
         {isFullRoom && (
           <p className="text-xs text-muted-foreground mt-1 px-1">
             To'liq xona bron · {guests.length} mehmon
