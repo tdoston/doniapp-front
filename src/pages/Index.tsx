@@ -6,11 +6,13 @@ import PhoneInput from "@/components/booking/PhoneInput";
 import PriceInput from "@/components/booking/PriceInput";
 import PaymentBlock from "@/components/booking/PaymentBlock";
 import NotesInput from "@/components/booking/NotesInput";
-import RecentGuests, { RecentGuest } from "@/components/booking/RecentGuests";
+import RecentGuests, { RecentGuest, RECENT_GUESTS } from "@/components/booking/RecentGuests";
 
-const MOCK_GUESTS: Record<string, { lastVisit: string; price: number; notes: string; gender: "male" | "female" }> = {
-  "998901234567": { lastVisit: "2024-03-15", price: 80000, notes: "oilali", gender: "male" },
-};
+// Build phone lookup from recent guests
+const GUEST_LOOKUP: Record<string, { name: string; lastVisit: string; price: number; notes: string; gender: "male" | "female" }> = {};
+RECENT_GUESTS.forEach((g) => {
+  GUEST_LOOKUP[g.phone] = { name: g.name, lastVisit: g.lastVisit, price: g.price, notes: g.notes || "", gender: "male" };
+});
 
 interface BookingPrefillState {
   mode?: "create" | "edit";
@@ -71,7 +73,7 @@ const Index = () => {
   const [guests, setGuests] = useState<GuestEntry[]>(() => [createEmptyGuest(1)]);
   const [activeGuestIdx, setActiveGuestIdx] = useState(0);
 
-  const repeatGuest = MOCK_GUESTS[isFullRoom ? guests[activeGuestIdx]?.phone || "" : phone] || null;
+  const repeatGuest = GUEST_LOOKUP[isFullRoom ? guests[activeGuestIdx]?.phone || "" : phone] || null;
 
   const handlePhotos = useCallback((files: FileList) => {
     if (isFullRoom) {
@@ -119,7 +121,7 @@ const Index = () => {
     }
   };
 
-  const handleAutoFill = (guest: typeof MOCK_GUESTS[string]) => {
+  const handleAutoFill = (guest: typeof GUEST_LOOKUP[string]) => {
     if (isFullRoom) {
       updateGuest(activeGuestIdx, { price: String(guest.price), notes: guest.notes });
     } else {
