@@ -1,7 +1,6 @@
 import { useState, useCallback } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { ChevronLeft, Copy, Plus, Trash2, UserPlus } from "lucide-react";
-import { toast } from "sonner";
 import PhotoUpload from "@/components/booking/PhotoUpload";
 import PhoneInput from "@/components/booking/PhoneInput";
 import PriceInput from "@/components/booking/PriceInput";
