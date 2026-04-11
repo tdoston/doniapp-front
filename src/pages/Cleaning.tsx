@@ -162,9 +162,11 @@ const CleaningPage = ({ activeHostel }: CleaningPageProps) => {
     const file = e.target.files?.[0];
     if (!file || !gallery) return;
     const url = URL.createObjectURL(file);
-    const key = gallery.type === "before" ? "photosBefore" : "photosAfter";
+    const currentType = getGalleryCurrentType();
+    const localIdx = getGalleryCurrentLocalIdx();
+    const key = currentType === "before" ? "photosBefore" : "photosAfter";
     setRooms(prev => prev.map(r =>
-      r.id === gallery.roomId ? { ...r, [key]: r[key].map((p, i) => i === gallery.activeIdx ? url : p) } : r
+      r.id === gallery.roomId ? { ...r, [key]: r[key].map((p, i) => i === localIdx ? url : p) } : r
     ));
     e.target.value = "";
   };
