@@ -55,6 +55,7 @@ const Index = () => {
   const isFullRoom = prefill.bookingScope === "full-room";
 
   // Single guest state
+  const [showRecentGuests, setShowRecentGuests] = useState(false);
   const [photos, setPhotos] = useState<string[]>([]);
   const [phone, setPhone] = useState(normalizedPhone);
   const [price, setPrice] = useState(prefill.price || sessionStorage.getItem("lastPrice") || "");
@@ -271,13 +272,16 @@ const Index = () => {
             onRemove={removePhoto}
           />
 
-          <RecentGuests onSelect={handleRecentGuestSelect} />
+          {showRecentGuests && (
+            <RecentGuests onSelect={(guest) => { handleRecentGuestSelect(guest); setShowRecentGuests(false); }} />
+          )}
           
           <PhoneInput
             value={isFullRoom ? activeGuest?.phone || "" : phone}
             onChange={(v) => isFullRoom ? updateGuest(activeGuestIdx, { phone: v }) : setPhone(v)}
             repeatGuest={repeatGuest}
             onAutoFill={handleAutoFill}
+            onGuestsOpen={() => setShowRecentGuests(!showRecentGuests)}
             autoFocus
           />
           <PriceInput
