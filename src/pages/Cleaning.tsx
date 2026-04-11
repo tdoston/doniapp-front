@@ -41,11 +41,9 @@ const HOSTELS_LIST = ["Vodnik", "Zargarlik", "Tabarruk"];
 // Returns max photos allowed for a room
 const getMaxPhotos = (room: CleaningRoom): number => {
   if (room.type === "bathroom") return 4;
-  // Lux rooms
   if (room.name.toLowerCase().includes("lux")) return 4;
-  // Tabarruk xona 1 & 2
   if (room.hostel === "Tabarruk" && (room.name === "Xona 1" || room.name === "Xona 2")) return 4;
-  return 2;
+  return 1;
 };
 
 interface GalleryState {
