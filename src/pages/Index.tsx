@@ -6,7 +6,6 @@ import PhoneInput from "@/components/booking/PhoneInput";
 import PriceInput from "@/components/booking/PriceInput";
 import PaymentBlock from "@/components/booking/PaymentBlock";
 import NotesInput from "@/components/booking/NotesInput";
-import NightsSelector from "@/components/booking/NightsSelector";
 import RecentGuests, { RecentGuest } from "@/components/booking/RecentGuests";
 
 const MOCK_GUESTS: Record<string, { lastVisit: string; price: number; notes: string; gender: "male" | "female" }> = {
