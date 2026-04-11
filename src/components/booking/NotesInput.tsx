@@ -20,6 +20,13 @@ const NotesInput = ({ value, onChange }: NotesInputProps) => {
   return (
     <div className="space-y-2">
       <label className="text-sm font-medium text-muted-foreground">Izoh</label>
+      <textarea
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder="Masalan: qarz bo'ldi 20 000, oilali…"
+        rows={2}
+        className="w-full px-4 py-3 rounded-lg border border-input bg-card text-foreground text-sm resize-none focus:outline-none focus:ring-2 focus:ring-ring transition-all"
+      />
       <div className="flex gap-2 flex-wrap">
         {CHIPS.map((c) => (
           <button
@@ -32,13 +39,6 @@ const NotesInput = ({ value, onChange }: NotesInputProps) => {
           </button>
         ))}
       </div>
-      <textarea
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder="Masalan: qarz bo'ldi 20 000, oilali…"
-        rows={2}
-        className="w-full px-4 py-3 rounded-lg border border-input bg-card text-foreground text-sm resize-none focus:outline-none focus:ring-2 focus:ring-ring transition-all"
-      />
     </div>
   );
 };
