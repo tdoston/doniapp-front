@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { RECENT_GUESTS } from "@/components/booking/RecentGuests";
 import DateSelector from "@/components/rooms/DateSelector";
 import StatCards from "@/components/rooms/StatCards";
 import RoomCard, { RoomData } from "@/components/rooms/RoomCard";
@@ -185,6 +186,8 @@ const RoomsPage = () => {
     if (!bed) return;
 
     if (bed.status === "booked") {
+      const phoneClean = (bed.guestPhone || "").replace(/\D/g, "");
+      const guestData = RECENT_GUESTS.find(g => g.phone === phoneClean);
       navigate("/booking", {
         state: {
           mode: "edit",
@@ -195,6 +198,8 @@ const RoomsPage = () => {
           bedId: bed.id,
           guestName: bed.guestName,
           guestPhone: bed.guestPhone,
+          price: guestData ? String(guestData.price) : "",
+          notes: guestData?.notes || "",
         },
       });
       return;
