@@ -204,14 +204,14 @@ const CleaningPage = ({ activeHostel }: CleaningPageProps) => {
     <div className="pb-4">
 
       {/* Stats */}
-      <div className="grid grid-cols-2 gap-2.5 px-4 pt-1 pb-2.5">
-        <div className="bg-destructive/10 rounded-xl py-2.5 px-3 text-center">
-          <span className="text-2xl font-black text-destructive">{dirtyCount}</span>
-          <p className="text-[10px] font-semibold text-destructive/70 mt-0.5">Tozalanmagan</p>
+      <div className="grid grid-cols-2 gap-3 px-4 py-3">
+        <div className="bg-destructive/10 rounded-xl p-4 flex flex-col items-center justify-center min-h-[80px]">
+          <span className="text-3xl font-extrabold text-destructive">{dirtyCount}</span>
+          <span className="text-xs font-semibold text-destructive/70">Tozalanmagan</span>
         </div>
-        <div className="bg-green-500/10 rounded-xl py-2.5 px-3 text-center">
-          <span className="text-2xl font-black text-green-600">{cleanedCount}</span>
-          <p className="text-[10px] font-semibold text-green-600/70 mt-0.5">Tozalangan</p>
+        <div className="bg-green-500/10 rounded-xl p-4 flex flex-col items-center justify-center min-h-[80px]">
+          <span className="text-3xl font-extrabold text-green-600">{cleanedCount}</span>
+          <span className="text-xs font-semibold text-green-600/70">Tozalangan</span>
         </div>
       </div>
 
@@ -219,7 +219,7 @@ const CleaningPage = ({ activeHostel }: CleaningPageProps) => {
       <input ref={fileRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFileChange} />
 
       {/* Room list */}
-      <div className="space-y-1.5 px-4">
+      <div className="space-y-2 px-4 pt-1">
         {filtered.map((room) => {
           const isExpanded = expandedRoom === room.id;
           const isDirty = room.status === "dirty";
@@ -235,7 +235,7 @@ const CleaningPage = ({ activeHostel }: CleaningPageProps) => {
             >
               <button
                 onClick={() => setExpandedRoom(isExpanded ? null : room.id)}
-                className="flex items-center justify-between w-full px-3 py-2.5"
+                className="flex items-center justify-between w-full px-4 py-3"
               >
                 <div className="flex items-center gap-3">
                   {isBathroom ? (
@@ -286,7 +286,7 @@ const CleaningPage = ({ activeHostel }: CleaningPageProps) => {
               </button>
 
               {isExpanded && (
-                <div className="px-4 pb-3 space-y-2">
+                <div className="px-4 pb-4 space-y-3">
                   {maxPhotos === 1 ? (
                     /* Side-by-side layout for single-photo rooms */
                     <div className="grid grid-cols-2 gap-3">
