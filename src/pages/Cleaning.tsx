@@ -219,7 +219,7 @@ const CleaningPage = ({ activeHostel }: CleaningPageProps) => {
       <input ref={fileRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFileChange} />
 
       {/* Room list */}
-      <div className="space-y-1.5 px-4">
+      <div className="space-y-2 px-4 pt-1">
         {filtered.map((room) => {
           const isExpanded = expandedRoom === room.id;
           const isDirty = room.status === "dirty";
