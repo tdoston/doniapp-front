@@ -122,7 +122,7 @@ const Index = () => {
       setPrice(String(guest.price));
       setNotes(guest.notes);
     }
-    toast.success("Ma'lumotlar to'ldirildi");
+    
   };
 
   const handleRecentGuestSelect = (guest: RecentGuest) => {
