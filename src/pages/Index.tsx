@@ -269,7 +269,7 @@ const Index = () => {
             onAdd={handlePhotos}
             onRemove={removePhoto}
           />
-          <RecentGuests onSelect={handleRecentGuestSelect} />
+          
           <PhoneInput
             value={isFullRoom ? activeGuest?.phone || "" : phone}
             onChange={(v) => isFullRoom ? updateGuest(activeGuestIdx, { phone: v }) : setPhone(v)}
