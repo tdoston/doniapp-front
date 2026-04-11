@@ -18,8 +18,8 @@ const MOCK_ROOMS: Record<string, RoomData[]> = {
       beds: [
         { id: 1, status: "empty" },
         { id: 2, status: "empty" },
-        { id: 3, status: "booked", guestName: "Miroj", guestPhone: "+998901234567" },
-        { id: 4, status: "booked", guestName: "Akbar", guestPhone: "+998911234567" },
+        { id: 3, status: "booked", guestName: "Miroj", guestPhone: "+998901234567", checkedInBy: "Doston" },
+        { id: 4, status: "booked", guestName: "Akbar", guestPhone: "+998911234567", checkedInBy: "Doston" },
       ],
     },
     {
