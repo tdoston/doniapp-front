@@ -311,6 +311,7 @@ const Index = () => {
             photos={isFullRoom ? activeGuest?.photos || [] : photos}
             onAdd={handlePhotos}
             onRemove={removePhoto}
+            onReplace={replacePhoto}
           />
 
           <RecentGuests
