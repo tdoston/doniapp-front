@@ -137,7 +137,7 @@ const Index = () => {
       setPrice(String(guest.price));
       if (guest.notes) setNotes(guest.notes);
     }
-    toast.success(`${guest.name} tanlandi`);
+    
   };
 
   const updateGuest = (idx: number, data: Partial<GuestEntry>) => {
@@ -157,7 +157,7 @@ const Index = () => {
   };
 
   const handleSave = () => {
-    toast.success(prefill.mode === "edit" ? "Bron ma'lumotlari yangilandi!" : "Mehmon saqlandi!");
+    
     if (isFullRoom) {
       setGuests([createEmptyGuest(1)]);
       setActiveGuestIdx(0);
@@ -181,7 +181,6 @@ const Index = () => {
     const p = isFullRoom ? guests[activeGuestIdx]?.phone : phone;
     if (p) {
       navigator.clipboard.writeText(`+${p}`);
-      toast.success("Telefon nusxalandi!");
     }
   };
 
