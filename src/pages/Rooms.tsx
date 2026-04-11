@@ -25,7 +25,7 @@ const MOCK_ROOMS: Record<string, RoomData[]> = {
     {
       id: "v2", name: "1-qavat Lux", totalBeds: 2,
       beds: [
-        { id: 1, status: "booked", guestName: "Fatima", guestPhone: "+998921234567" },
+        { id: 1, status: "booked", guestName: "Fatima", guestPhone: "+998921234567", checkedInBy: "Sardor" },
         { id: 2, status: "empty" },
       ],
     },
@@ -39,8 +39,8 @@ const MOCK_ROOMS: Record<string, RoomData[]> = {
     {
       id: "v4", name: "2-qavat Zal", totalBeds: 4,
       beds: [
-        { id: 1, status: "booked", guestName: "Sherzod", guestPhone: "+998931234567" },
-        { id: 2, status: "booked", guestName: "Gulnora", guestPhone: "+998941234567" },
+        { id: 1, status: "booked", guestName: "Sherzod", guestPhone: "+998931234567", checkedInBy: "Doston" },
+        { id: 2, status: "booked", guestName: "Gulnora", guestPhone: "+998941234567", checkedInBy: "Doston" },
         { id: 3, status: "empty" },
         { id: 4, status: "empty" },
       ],
@@ -48,8 +48,8 @@ const MOCK_ROOMS: Record<string, RoomData[]> = {
     {
       id: "v5", name: "2-qavat Dvuxspalniy", totalBeds: 2,
       beds: [
-        { id: 1, status: "booked", guestName: "Alisher", guestPhone: "+998951234567" },
-        { id: 2, status: "booked", guestName: "Nodira", guestPhone: "+998961234567" },
+        { id: 1, status: "booked", guestName: "Alisher", guestPhone: "+998951234567", checkedInBy: "Sardor" },
+        { id: 2, status: "booked", guestName: "Nodira", guestPhone: "+998961234567", checkedInBy: "Sardor" },
       ],
     },
     {
@@ -62,7 +62,7 @@ const MOCK_ROOMS: Record<string, RoomData[]> = {
     {
       id: "v7", name: "2-qavat Koridor", totalBeds: 1,
       beds: [
-        { id: 1, status: "booked", guestName: "Rustam", guestPhone: "+998971234567" },
+        { id: 1, status: "booked", guestName: "Rustam", guestPhone: "+998971234567", checkedInBy: "Doston" },
       ],
     },
   ],
@@ -70,8 +70,8 @@ const MOCK_ROOMS: Record<string, RoomData[]> = {
     {
       id: "z1", name: "Xona 1", totalBeds: 3,
       beds: [
-        { id: 1, status: "booked", guestName: "Javohir", guestPhone: "+998981234567" },
-        { id: 2, status: "booked", guestName: "Sevara", guestPhone: "+998991234567" },
+        { id: 1, status: "booked", guestName: "Javohir", guestPhone: "+998981234567", checkedInBy: "Sardor" },
+        { id: 2, status: "booked", guestName: "Sevara", guestPhone: "+998991234567", checkedInBy: "Sardor" },
         { id: 3, status: "empty" },
       ],
     },
@@ -86,21 +86,21 @@ const MOCK_ROOMS: Record<string, RoomData[]> = {
     {
       id: "z3", name: "Xona 3", totalBeds: 8,
       beds: [
-        { id: 1, status: "booked", guestName: "Hamid", guestPhone: "+998901111111" },
-        { id: 2, status: "booked", guestName: "Zainab", guestPhone: "+998902222222" },
+        { id: 1, status: "booked", guestName: "Hamid", guestPhone: "+998901111111", checkedInBy: "Doston" },
+        { id: 2, status: "booked", guestName: "Zainab", guestPhone: "+998902222222", checkedInBy: "Doston" },
         { id: 3, status: "empty" },
         { id: 4, status: "empty" },
         { id: 5, status: "empty" },
         { id: 6, status: "empty" },
-        { id: 7, status: "booked", guestName: "Karim", guestPhone: "+998903333333" },
-        { id: 8, status: "booked", guestName: "Leila", guestPhone: "+998904444444" },
+        { id: 7, status: "booked", guestName: "Karim", guestPhone: "+998903333333", checkedInBy: "Sardor" },
+        { id: 8, status: "booked", guestName: "Leila", guestPhone: "+998904444444", checkedInBy: "Sardor" },
       ],
     },
     {
       id: "z4", name: "Xona 4", totalBeds: 2,
       beds: [
         { id: 1, status: "empty" },
-        { id: 2, status: "booked", guestName: "Timur", guestPhone: "+998905555555" },
+        { id: 2, status: "booked", guestName: "Timur", guestPhone: "+998905555555", checkedInBy: "Doston" },
       ],
     },
   ],
@@ -108,7 +108,7 @@ const MOCK_ROOMS: Record<string, RoomData[]> = {
     {
       id: "t1", name: "Xona 1", totalBeds: 1,
       beds: [
-        { id: 1, status: "booked", guestName: "Aziz", guestPhone: "+998906666666" },
+        { id: 1, status: "booked", guestName: "Aziz", guestPhone: "+998906666666", checkedInBy: "Sardor" },
       ],
     },
     {
@@ -120,7 +120,7 @@ const MOCK_ROOMS: Record<string, RoomData[]> = {
     {
       id: "t3", name: "Xona 3", totalBeds: 2,
       beds: [
-        { id: 1, status: "booked", guestName: "Bahor", guestPhone: "+998907777777" },
+        { id: 1, status: "booked", guestName: "Bahor", guestPhone: "+998907777777", checkedInBy: "Doston" },
         { id: 2, status: "empty" },
       ],
     },
@@ -134,8 +134,8 @@ const MOCK_ROOMS: Record<string, RoomData[]> = {
     {
       id: "t5", name: "Xona 5", totalBeds: 2,
       beds: [
-        { id: 1, status: "booked", guestName: "Daler", guestPhone: "+998908888888" },
-        { id: 2, status: "booked", guestName: "Elina", guestPhone: "+998909999999" },
+        { id: 1, status: "booked", guestName: "Daler", guestPhone: "+998908888888", checkedInBy: "Sardor" },
+        { id: 2, status: "booked", guestName: "Elina", guestPhone: "+998909999999", checkedInBy: "Sardor" },
       ],
     },
     {
@@ -149,14 +149,14 @@ const MOCK_ROOMS: Record<string, RoomData[]> = {
       id: "t7", name: "Xona 7", totalBeds: 3,
       beds: [
         { id: 1, status: "empty" },
-        { id: 2, status: "booked", guestName: "Farkhod", guestPhone: "+998910101010" },
+        { id: 2, status: "booked", guestName: "Farkhod", guestPhone: "+998910101010", checkedInBy: "Doston" },
         { id: 3, status: "empty" },
       ],
     },
     {
       id: "t8", name: "Xona 8", totalBeds: 3,
       beds: [
-        { id: 1, status: "booked", guestName: "Gulzira", guestPhone: "+998911111111" },
+        { id: 1, status: "booked", guestName: "Gulzira", guestPhone: "+998911111111", checkedInBy: "Sardor" },
         { id: 2, status: "empty" },
         { id: 3, status: "empty" },
       ],
