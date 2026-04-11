@@ -265,7 +265,7 @@ const CleaningPage = ({ activeHostel }: CleaningPageProps) => {
                       {room.photosBefore.map((url, i) => (
                         <button
                           key={i}
-                          onClick={() => openGallery(room.photosBefore, `${room.name} — Oldin`)}
+                          onClick={() => openGallery(room.id, "before", `${room.name} — Oldin`)}
                           className="w-full h-16 rounded-lg overflow-hidden border border-border"
                         >
                           <img src={url} alt={`Before ${i + 1}`} className="w-full h-full object-cover" />
@@ -290,7 +290,7 @@ const CleaningPage = ({ activeHostel }: CleaningPageProps) => {
                       {room.photosAfter.map((url, i) => (
                         <button
                           key={i}
-                          onClick={() => openGallery(room.photosAfter, `${room.name} — Keyin`)}
+                          onClick={() => openGallery(room.id, "after", `${room.name} — Keyin`)}
                           className="w-full h-16 rounded-lg overflow-hidden border border-border"
                         >
                           <img src={url} alt={`After ${i + 1}`} className="w-full h-full object-cover" />
@@ -332,7 +332,9 @@ const CleaningPage = ({ activeHostel }: CleaningPageProps) => {
       </div>
 
       {/* Photo Gallery Modal */}
-      {gallery && (
+      {gallery && (() => {
+        const photos = getGalleryPhotos();
+        return (
         <div className="fixed inset-0 z-50 bg-black/90 flex flex-col animate-fade-in">
           <div className="flex items-center justify-between px-4 py-3 shrink-0">
             <h3 className="text-white font-bold text-sm">{gallery.title}</h3>
@@ -354,7 +356,7 @@ const CleaningPage = ({ activeHostel }: CleaningPageProps) => {
             <div className="relative w-full max-w-sm">
               <div className="w-full aspect-[4/3] rounded-2xl overflow-hidden bg-white/5">
                 <img
-                  src={gallery.photos[gallery.activeIdx]}
+                  src={photos[gallery.activeIdx]}
                   alt={`${gallery.title} ${gallery.activeIdx + 1}`}
                   className="w-full h-full object-cover"
                 />
@@ -368,7 +370,7 @@ const CleaningPage = ({ activeHostel }: CleaningPageProps) => {
                   <ChevronLeft className="w-5 h-5" />
                 </button>
               )}
-              {gallery.activeIdx < gallery.photos.length - 1 && (
+              {gallery.activeIdx < photos.length - 1 && (
                 <button
                   onClick={() => setGallery({ ...gallery, activeIdx: gallery.activeIdx + 1 })}
                   className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full bg-black/50 text-white"
@@ -377,9 +379,9 @@ const CleaningPage = ({ activeHostel }: CleaningPageProps) => {
                 </button>
               )}
 
-              {gallery.photos.length > 1 && (
+              {photos.length > 1 && (
                 <div className="flex justify-center gap-1.5 mt-3">
-                  {gallery.photos.map((_, i) => (
+                  {photos.map((_, i) => (
                     <div
                       key={i}
                       className={`w-2 h-2 rounded-full transition-all ${
@@ -391,8 +393,29 @@ const CleaningPage = ({ activeHostel }: CleaningPageProps) => {
               )}
             </div>
           </div>
+
+          {/* Bottom edit actions */}
+          <div className="px-4 pb-6 shrink-0 flex justify-center gap-3">
+            <button
+              onClick={() => replaceRef.current?.click()}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/10 text-white text-sm font-semibold"
+            >
+              <RefreshCw className="w-4 h-4" />
+              Almashtirish
+            </button>
+            <button
+              onClick={handleGalleryDelete}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-destructive/20 text-destructive text-sm font-semibold"
+            >
+              <Trash2 className="w-4 h-4" />
+              O'chirish
+            </button>
+          </div>
+
+          <input ref={replaceRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleGalleryReplace} />
         </div>
-      )}
+        );
+      })()}
     </div>
   );
 };
