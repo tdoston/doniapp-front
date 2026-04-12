@@ -7,7 +7,6 @@ interface RepeatGuest {
   lastVisit: string;
   price: number;
   notes: string;
-  gender: "male" | "female";
 }
 
 interface PhoneInputProps {

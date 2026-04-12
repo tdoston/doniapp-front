@@ -141,3 +141,9 @@
 .phone-input-wrapper .PhoneInputInput::placeholder {
   color: hsl(var(--muted-foreground));
 }
+
+/* Telegram Mini App */
+body.tg-mini-app {
+  min-height: 100dvh;
+  -webkit-tap-highlight-color: transparent;
+}

@@ -1,5 +1,5 @@
 import React from "react";
-import { BedDouble, Users, Receipt, Sparkles } from "lucide-react";
+import { BedDouble, Users, Receipt, Sparkles, UserCog } from "lucide-react";
 
 interface BottomNavProps {
   active: string;
@@ -11,6 +11,7 @@ const TABS = [
   { id: "guests", label: "Mehmonlar", icon: Users },
   { id: "payments", label: "To'lov", icon: Receipt },
   { id: "cleaning", label: "Tozalik", icon: Sparkles },
+  { id: "staff", label: "Jamoa", icon: UserCog },
 ];
 
 const BottomNav = ({ active, onSelect }: BottomNavProps) => {
@@ -19,7 +20,7 @@ const BottomNav = ({ active, onSelect }: BottomNavProps) => {
       className="fixed bottom-0 left-0 right-0 bg-card border-t border-border z-20"
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
-      <div className="grid grid-cols-4">
+      <div className="grid grid-cols-5">
         {TABS.map((tab) => {
           const Icon = tab.icon;
           const isActive = active === tab.id;

@@ -1,0 +1,22 @@
+# Asosiy ish: SQLite (django_backend/data/). Postgres ixtiyoriy:
+#   docker compose --profile postgres up -d
+services:
+  db:
+    image: postgres:16-alpine
+    profiles: ["postgres"]
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: swift_bookings
+    ports:
+      - "5432:5432"
+    volumes:
+      - swift_bookings_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d swift_bookings"]
+      interval: 3s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  swift_bookings_pg:
