@@ -397,19 +397,25 @@ const Index = () => {
   };
 
   const handleRecentGuestSelect = (guest: RecentGuest) => {
+    const guestNotes = guest.notes
+      ? guest.notes
+      : guest.name
+        ? `Mijoz: ${guest.name}`
+        : "";
     if (isFullRoom) {
       updateGuest(activeGuestIdx, {
         phone: guest.phone,
         passportSeries: guest.passportSeries || "",
         price: String(guest.price),
-        notes: guest.notes || "",
+        notes: guestNotes,
       });
     } else {
       setPhone(guest.phone);
       setPassportSeries(guest.passportSeries || "");
       setPrice(String(guest.price));
-      if (guest.notes) setNotes(guest.notes);
+      setNotes(guestNotes);
     }
+    toast.success(`Mehmon tanlandi: ${guest.name}`);
   };
 
   const updateGuest = (idx: number, data: Partial<GuestEntry>) => {
