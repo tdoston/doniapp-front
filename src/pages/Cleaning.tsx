@@ -1,42 +1,10 @@
 import React, { useState, useRef } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Camera, Check, ChevronDown, ChevronUp, ImagePlus, DoorClosed, ShowerHead, BedDouble, Users, X, ChevronLeft, ChevronRight, Share2, Trash2, RefreshCw } from "lucide-react";
+import { fetchCleaning, patchCleaning, type CleaningRoomDto } from "@/lib/api";
+import { readFileAsDataUrl } from "@/lib/files";
 
-type CleaningStatus = "dirty" | "cleaned";
-type RoomType = "room" | "bathroom";
-
-interface CleaningRoom {
-  id: string;
-  name: string;
-  hostel: string;
-  guestName: string;
-  status: CleaningStatus;
-  type: RoomType;
-  totalBeds: number;
-  occupiedBeds: number;
-  photosBefore: string[];
-  photosAfter: string[];
-}
-
-const MOCK_CLEANING: CleaningRoom[] = [
-  { id: "v1", name: "1-qavat Zal", hostel: "Vodnik", guestName: "Miroj", status: "dirty", type: "room", totalBeds: 4, occupiedBeds: 2, photosBefore: [], photosAfter: [] },
-  { id: "v2", name: "1-qavat Lux", hostel: "Vodnik", guestName: "Fatima", status: "dirty", type: "room", totalBeds: 2, occupiedBeds: 1, photosBefore: [], photosAfter: [] },
-  { id: "v4", name: "2-qavat Zal", hostel: "Vodnik", guestName: "Sherzod", status: "dirty", type: "room", totalBeds: 4, occupiedBeds: 2, photosBefore: [], photosAfter: [] },
-  { id: "v5", name: "2-qavat Dvuxspalniy", hostel: "Vodnik", guestName: "Alisher", status: "dirty", type: "room", totalBeds: 2, occupiedBeds: 2, photosBefore: [], photosAfter: [] },
-  { id: "v7", name: "2-qavat Koridor", hostel: "Vodnik", guestName: "Rustam", status: "dirty", type: "room", totalBeds: 1, occupiedBeds: 1, photosBefore: [], photosAfter: [] },
-  { id: "v-bath", name: "Umumiy dush va hojatxona", hostel: "Vodnik", guestName: "", status: "dirty", type: "bathroom", totalBeds: 0, occupiedBeds: 0, photosBefore: [], photosAfter: [] },
-  { id: "z1", name: "Xona 1", hostel: "Zargarlik", guestName: "Javohir", status: "dirty", type: "room", totalBeds: 3, occupiedBeds: 2, photosBefore: [], photosAfter: [] },
-  { id: "z3", name: "Xona 3", hostel: "Zargarlik", guestName: "Hamid", status: "dirty", type: "room", totalBeds: 8, occupiedBeds: 4, photosBefore: [], photosAfter: [] },
-  { id: "z4", name: "Xona 4", hostel: "Zargarlik", guestName: "Timur", status: "dirty", type: "room", totalBeds: 2, occupiedBeds: 1, photosBefore: [], photosAfter: [] },
-  { id: "z-bath", name: "Umumiy dush va hojatxona", hostel: "Zargarlik", guestName: "", status: "dirty", type: "bathroom", totalBeds: 0, occupiedBeds: 0, photosBefore: [], photosAfter: [] },
-  { id: "t1", name: "Xona 1", hostel: "Tabarruk", guestName: "Aziz", status: "dirty", type: "room", totalBeds: 1, occupiedBeds: 1, photosBefore: [], photosAfter: [] },
-  { id: "t3", name: "Xona 3", hostel: "Tabarruk", guestName: "Bahor", status: "dirty", type: "room", totalBeds: 2, occupiedBeds: 1, photosBefore: [], photosAfter: [] },
-  { id: "t5", name: "Xona 5", hostel: "Tabarruk", guestName: "Daler", status: "dirty", type: "room", totalBeds: 2, occupiedBeds: 2, photosBefore: [], photosAfter: [] },
-  { id: "t7", name: "Xona 7", hostel: "Tabarruk", guestName: "Farkhod", status: "dirty", type: "room", totalBeds: 3, occupiedBeds: 1, photosBefore: [], photosAfter: [] },
-  { id: "t8", name: "Xona 8", hostel: "Tabarruk", guestName: "Gulzira", status: "dirty", type: "room", totalBeds: 3, occupiedBeds: 1, photosBefore: [], photosAfter: [] },
-  { id: "t-bath", name: "Umumiy dush va hojatxona", hostel: "Tabarruk", guestName: "", status: "dirty", type: "bathroom", totalBeds: 0, occupiedBeds: 0, photosBefore: [], photosAfter: [] },
-];
-
-const HOSTELS_LIST = ["Vodnik", "Zargarlik", "Tabarruk"];
+type CleaningRoom = CleaningRoomDto;
 
 // Returns max photos allowed for a room
 const getMaxPhotos = (room: CleaningRoom): number => {
@@ -55,10 +23,33 @@ interface GalleryState {
 
 interface CleaningPageProps {
   activeHostel: string;
+  stayDateIso: string;
 }
 
-const CleaningPage = ({ activeHostel }: CleaningPageProps) => {
-  const [rooms, setRooms] = useState<CleaningRoom[]>(MOCK_CLEANING);
+const CleaningPage = ({ activeHostel, stayDateIso }: CleaningPageProps) => {
+  const queryClient = useQueryClient();
+  const cleaningQueryKey = ["cleaning", activeHostel, stayDateIso] as const;
+
+  const cleaningQuery = useQuery({
+    queryKey: cleaningQueryKey,
+    queryFn: () => fetchCleaning(activeHostel, stayDateIso),
+  });
+
+  const patchMut = useMutation({
+    mutationFn: ({
+      code,
+      patch,
+    }: {
+      code: string;
+      patch: { hostel: string; status?: "dirty" | "cleaned"; photosBefore?: string[]; photosAfter?: string[] };
+    }) => patchCleaning(code, patch),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: cleaningQueryKey });
+    },
+  });
+
+  const rooms = cleaningQuery.data?.rooms ?? [];
+
   const [expandedRoom, setExpandedRoom] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const replaceRef = useRef<HTMLInputElement>(null);
@@ -66,39 +57,38 @@ const CleaningPage = ({ activeHostel }: CleaningPageProps) => {
   const [gallery, setGallery] = useState<GalleryState | null>(null);
   const touchStartX = useRef(0);
 
-  const filtered = rooms.filter((r) => r.hostel === activeHostel);
+  const filtered = rooms;
   const dirtyCount = filtered.filter((r) => r.status === "dirty").length;
   const cleanedCount = filtered.filter((r) => r.status === "cleaned").length;
+
+  const getRoomSnapshot = (roomId: string) => rooms.find((r) => r.id === roomId);
 
   const handlePhotoUpload = (roomId: string, type: "before" | "after") => {
     setActiveUpload({ roomId, type });
     fileRef.current?.click();
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !activeUpload) return;
-    const room = rooms.find((r) => r.id === activeUpload.roomId);
+    const room = getRoomSnapshot(activeUpload.roomId);
     if (!room) return;
 
     const maxPhotos = getMaxPhotos(room);
-    const url = URL.createObjectURL(file);
     const key = activeUpload.type === "before" ? "photosBefore" : "photosAfter";
-    setRooms((prev) =>
-      prev.map((r) =>
-        r.id === activeUpload.roomId
-          ? { ...r, [key]: [...r[key], url].slice(0, maxPhotos) }
-          : r
-      )
-    );
+    try {
+      const dataUrl = await readFileAsDataUrl(file);
+      const next = [...room[key], dataUrl].slice(0, maxPhotos);
+      patchMut.mutate({ code: room.id, patch: { hostel: activeHostel, [key]: next } });
+    } catch {
+      /* ignore */
+    }
     setActiveUpload(null);
     e.target.value = "";
   };
 
   const markCleaned = (roomId: string) => {
-    setRooms((prev) =>
-      prev.map((r) => (r.id === roomId ? { ...r, status: "cleaned" as CleaningStatus } : r))
-    );
+    patchMut.mutate({ code: roomId, patch: { hostel: activeHostel, status: "cleaned" } });
   };
 
   const openGallery = (roomId: string, type: "before" | "after", title: string) => {
@@ -144,30 +134,42 @@ const CleaningPage = ({ activeHostel }: CleaningPageProps) => {
 
   const handleGalleryDelete = () => {
     if (!gallery) return;
+    const room = getRoomSnapshot(gallery.roomId);
+    if (!room) return;
     const currentType = getGalleryCurrentType();
     const localIdx = getGalleryCurrentLocalIdx();
-    const key = currentType === "before" ? "photosBefore" : "photosAfter";
-    setRooms(prev => prev.map(r =>
-      r.id === gallery.roomId ? { ...r, [key]: r[key].filter((_, i) => i !== localIdx) } : r
-    ));
-    const photos = getGalleryPhotos();
-    if (photos.length <= 1) {
+    const photosBefore =
+      currentType === "before" ? room.photosBefore.filter((_, i) => i !== localIdx) : [...room.photosBefore];
+    const photosAfter =
+      currentType === "after" ? room.photosAfter.filter((_, i) => i !== localIdx) : [...room.photosAfter];
+    const total = photosBefore.length + photosAfter.length;
+    patchMut.mutate({ code: gallery.roomId, patch: { hostel: activeHostel, photosBefore, photosAfter } });
+    if (total <= 0) {
       setGallery(null);
-    } else if (gallery.activeIdx >= photos.length - 1) {
-      setGallery({ ...gallery, activeIdx: Math.max(0, gallery.activeIdx - 1) });
+      return;
+    }
+    if (gallery.activeIdx >= total) {
+      setGallery({ ...gallery, activeIdx: Math.max(0, total - 1) });
     }
   };
 
-  const handleGalleryReplace = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleGalleryReplace = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !gallery) return;
-    const url = URL.createObjectURL(file);
+    const room = getRoomSnapshot(gallery.roomId);
+    if (!room) return;
     const currentType = getGalleryCurrentType();
     const localIdx = getGalleryCurrentLocalIdx();
-    const key = currentType === "before" ? "photosBefore" : "photosAfter";
-    setRooms(prev => prev.map(r =>
-      r.id === gallery.roomId ? { ...r, [key]: r[key].map((p, i) => i === localIdx ? url : p) } : r
-    ));
+    const photosBefore = [...room.photosBefore];
+    const photosAfter = [...room.photosAfter];
+    try {
+      const dataUrl = await readFileAsDataUrl(file);
+      if (currentType === "before") photosBefore[localIdx] = dataUrl;
+      else photosAfter[localIdx] = dataUrl;
+      patchMut.mutate({ code: gallery.roomId, patch: { hostel: activeHostel, photosBefore, photosAfter } });
+    } catch {
+      /* ignore */
+    }
     e.target.value = "";
   };
 
@@ -194,7 +196,9 @@ const CleaningPage = ({ activeHostel }: CleaningPageProps) => {
     if (navigator.share) {
       try {
         await navigator.share({ title: gallery.title, url: window.location.href });
-      } catch {}
+      } catch {
+        void 0;
+      }
     } else {
       await navigator.clipboard.writeText(window.location.href);
     }
@@ -202,6 +206,12 @@ const CleaningPage = ({ activeHostel }: CleaningPageProps) => {
 
   return (
     <div className="pb-4">
+      {cleaningQuery.isLoading && (
+        <p className="text-center text-sm text-muted-foreground py-4 px-4">Tozalash ro&apos;yxati yuklanmoqda…</p>
+      )}
+      {cleaningQuery.isError && (
+        <p className="text-center text-sm text-destructive py-4 px-4">Ma&apos;lumot olinmadi. API va Postgresni tekshiring.</p>
+      )}
 
       {/* Stats */}
       <div className="grid grid-cols-2 gap-3 px-4 py-3">

@@ -11,6 +11,17 @@ node_modules
 dist
 dist-ssr
 *.local
+.env
+.env.*
+!.env.example
+django_backend/.env
+django_backend/.env.*
+
+django_backend/data/*.sqlite
+django_backend/data/*.sqlite-*
+django_backend/.venv
+django_backend/**/__pycache__
+*.pyc
 
 # Editor directories and files
 .vscode/*
@@ -22,3 +33,4 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+notes

@@ -1,34 +1,22 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { differenceInCalendarDays, isToday, isYesterday, parseISO } from "date-fns";
 import { Users, Clock, Search, ChevronLeft } from "lucide-react";
+import { fetchRecentGuests, recentGuestsQueryKey } from "@/lib/api";
+import { checkInLabel } from "@/lib/dates";
 
 export interface RecentGuest {
+  lookupKey?: string;
   name: string;
   phone: string;
+  passportSeries?: string;
   lastVisit: string;
   price: number;
+  paid?: number;
   notes?: string;
   hostel?: string;
   room?: string;
 }
-
-export const RECENT_GUESTS: RecentGuest[] = [
-  { name: "Miroj", phone: "998901234567", lastVisit: "Bugun", price: 80000, notes: "oilali", hostel: "Vodnik", room: "1-qavat Zal" },
-  { name: "Akbar", phone: "998911234567", lastVisit: "Bugun", price: 75000, hostel: "Vodnik", room: "1-qavat Zal" },
-  { name: "Fatima", phone: "998921234567", lastVisit: "Bugun", price: 90000, hostel: "Vodnik", room: "1-qavat Lux" },
-  { name: "Sherzod", phone: "998931234567", lastVisit: "Kecha", price: 70000, hostel: "Vodnik", room: "2-qavat Zal" },
-  { name: "Gulnora", phone: "998941234567", lastVisit: "Kecha", price: 70000, hostel: "Vodnik", room: "2-qavat Zal" },
-  { name: "Alisher", phone: "998951234567", lastVisit: "Kecha", price: 120000, notes: "juftlik", hostel: "Vodnik", room: "2-qavat Dvuxspalniy" },
-  { name: "Nodira", phone: "998961234567", lastVisit: "Kecha", price: 120000, hostel: "Vodnik", room: "2-qavat Dvuxspalniy" },
-  { name: "Rustam", phone: "998971234567", lastVisit: "2 kun oldin", price: 50000, hostel: "Vodnik", room: "2-qavat Koridor" },
-  { name: "Javohir", phone: "998981234567", lastVisit: "2 kun oldin", price: 65000, hostel: "Zargarlik", room: "Xona 1" },
-  { name: "Sevara", phone: "998991234567", lastVisit: "2 kun oldin", price: 65000, hostel: "Zargarlik", room: "Xona 1" },
-  { name: "Hamid", phone: "998901111111", lastVisit: "3 kun oldin", price: 60000, hostel: "Zargarlik", room: "Xona 3" },
-  { name: "Zainab", phone: "998902222222", lastVisit: "3 kun oldin", price: 60000, hostel: "Zargarlik", room: "Xona 3" },
-  { name: "Karim", phone: "998903333333", lastVisit: "3 kun oldin", price: 60000, hostel: "Zargarlik", room: "Xona 3" },
-  { name: "Aziz", phone: "998906666666", lastVisit: "3 kun oldin", price: 100000, hostel: "Tabarruk", room: "Xona 1" },
-  { name: "Bahor", phone: "998907777777", lastVisit: "4 kun oldin", price: 85000, hostel: "Tabarruk", room: "Xona 3" },
-  { name: "Daler", phone: "998908888888", lastVisit: "5 kun oldin", price: 85000, hostel: "Tabarruk", room: "Xona 5" },
-];
 
 interface RecentGuestsProps {
   open: boolean;
@@ -42,26 +30,51 @@ const RecentGuests = ({ open, onClose, onSelect }: RecentGuestsProps) => {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("Hammasi");
 
-  const filtered = RECENT_GUESTS.filter((g) => {
+  const limit = 120;
+  const { data, isLoading, isError, refetch } = useQuery({
+    queryKey: recentGuestsQueryKey(limit),
+    queryFn: () => fetchRecentGuests(limit),
+    enabled: open,
+    staleTime: 30_000,
+  });
+
+  type GuestRow = RecentGuest & { checkInIso: string };
+
+  const guests: GuestRow[] = useMemo(() => {
+    return (data?.guests ?? []).map((g) => ({
+      ...g,
+      checkInIso: g.lastVisit,
+      lastVisit: checkInLabel(g.lastVisit),
+    }));
+  }, [data]);
+
+  const filtered = guests.filter((g) => {
     const matchesSearch =
       !search ||
       g.name.toLowerCase().includes(search.toLowerCase()) ||
-      g.phone.includes(search);
+      g.phone.includes(search) ||
+      (g.passportSeries || "").toLowerCase().includes(search.toLowerCase());
 
-    const matchesFilter =
-      filter === "Hammasi" ||
-      (filter === "Bugun" && g.lastVisit === "Bugun") ||
-      (filter === "Kecha" && g.lastVisit === "Kecha") ||
-      (filter === "2-3 kun" && (g.lastVisit === "2 kun oldin" || g.lastVisit === "3 kun oldin"));
+    if (filter === "Hammasi") return matchesSearch;
 
-    return matchesSearch && matchesFilter;
+    try {
+      const d = parseISO(g.checkInIso);
+      if (filter === "Bugun") return matchesSearch && isToday(d);
+      if (filter === "Kecha") return matchesSearch && isYesterday(d);
+      if (filter === "2-3 kun") {
+        const days = differenceInCalendarDays(new Date(), d);
+        return matchesSearch && days >= 2 && days <= 3;
+      }
+    } catch {
+      return false;
+    }
+    return matchesSearch;
   });
 
   if (!open) return null;
 
   return (
     <div className="fixed inset-0 z-50 bg-background flex flex-col" style={{ paddingTop: "env(safe-area-inset-top)" }}>
-      {/* Header */}
       <div className="bg-card border-b border-border px-4 py-2 shrink-0">
         <div className="flex items-center gap-2">
           <button
@@ -79,7 +92,6 @@ const RecentGuests = ({ open, onClose, onSelect }: RecentGuestsProps) => {
         </div>
       </div>
 
-      {/* Search */}
       <div className="px-4 pt-3 shrink-0">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -87,14 +99,13 @@ const RecentGuests = ({ open, onClose, onSelect }: RecentGuestsProps) => {
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Ism yoki telefon qidirish..."
+            placeholder="Ism, telefon yoki pasport qidirish..."
             autoFocus
             className="w-full h-11 pl-9 pr-4 rounded-xl border border-input bg-card text-sm font-medium focus:outline-none focus:ring-2 focus:ring-ring"
           />
         </div>
       </div>
 
-      {/* Filter chips */}
       <div className="flex gap-2 px-4 py-2 shrink-0">
         {filters.map((f) => (
           <button
@@ -102,9 +113,7 @@ const RecentGuests = ({ open, onClose, onSelect }: RecentGuestsProps) => {
             type="button"
             onClick={() => setFilter(f)}
             className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${
-              filter === f
-                ? "bg-primary text-primary-foreground"
-                : "bg-secondary text-muted-foreground"
+              filter === f ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"
             }`}
           >
             {f}
@@ -112,16 +121,39 @@ const RecentGuests = ({ open, onClose, onSelect }: RecentGuestsProps) => {
         ))}
       </div>
 
-      {/* Guest list */}
       <div className="flex-1 overflow-y-auto">
-        {filtered.length === 0 ? (
+        {isLoading && <p className="text-center text-sm text-muted-foreground py-12">Yuklanmoqda…</p>}
+        {isError && (
+          <div className="text-center py-8 px-4">
+            <p className="text-sm text-destructive mb-2">Yuklab bo'lmadi</p>
+            <button type="button" onClick={() => refetch()} className="text-xs font-semibold text-primary underline">
+              Qayta urinish
+            </button>
+          </div>
+        )}
+        {!isLoading && !isError && filtered.length === 0 && (
           <p className="text-center text-sm text-muted-foreground py-12">Mehmon topilmadi</p>
-        ) : (
+        )}
+        {!isLoading &&
+          !isError &&
           filtered.map((guest) => (
             <button
-              key={guest.phone}
+              key={`${guest.lookupKey || guest.phone || "g"}-${guest.checkInIso}`}
               type="button"
-              onClick={() => onSelect(guest)}
+              onClick={() =>
+                onSelect({
+                  lookupKey: guest.lookupKey,
+                  name: guest.name,
+                  phone: guest.phone,
+                  passportSeries: guest.passportSeries,
+                  lastVisit: guest.lastVisit,
+                  price: guest.price,
+                  paid: guest.paid,
+                  notes: guest.notes,
+                  hostel: guest.hostel,
+                  room: guest.room,
+                })
+              }
               className="w-full flex items-center gap-3 px-4 py-3 hover:bg-muted/60 active:bg-muted transition-colors text-left border-b border-border/50"
             >
               <div className="w-11 h-11 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
@@ -136,17 +168,24 @@ const RecentGuests = ({ open, onClose, onSelect }: RecentGuestsProps) => {
                   </span>
                 </div>
                 <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
-                  <span>+{guest.phone.replace(/(\d{3})(\d{2})(\d{3})(\d{2})(\d{2})/, "$1 $2 $3 $4 $5")}</span>
+                  <span className="truncate">
+                    {(() => {
+                      const d = guest.phone.replace(/\D/g, "");
+                      if (d.length >= 9) return `+${d}`;
+                      return guest.passportSeries || guest.phone || "—";
+                    })()}
+                  </span>
                   <span>·</span>
                   <span className="font-semibold">{guest.price.toLocaleString()} so'm</span>
                 </div>
                 {guest.hostel && (
-                  <span className="text-[10px] text-muted-foreground/70 mt-0.5 block">{guest.hostel} · {guest.room}</span>
+                  <span className="text-[10px] text-muted-foreground/70 mt-0.5 block">
+                    {guest.hostel} · {guest.room}
+                  </span>
                 )}
               </div>
             </button>
-          ))
-        )}
+          ))}
       </div>
     </div>
   );
