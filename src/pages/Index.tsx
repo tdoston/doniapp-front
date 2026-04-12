@@ -176,17 +176,27 @@ const Index = () => {
               rawPreview: raw,
             });
           }
-          if (name) {
+          if (name || doc) {
             if (isFullRoom) {
               setGuests((prev) => {
                 const gi = prev.findIndex((g) => g.photos.includes(last));
                 if (gi < 0) return prev;
-                return prev.map((g, i) => (i === gi ? { ...g, notes: applyMijozNameToNotes(g.notes, name) } : g));
+                return prev.map((g, i) => {
+                  if (i !== gi) return g;
+                  const updates: Partial<GuestEntry> = {};
+                  if (name) updates.notes = applyMijozNameToNotes(g.notes, name);
+                  if (doc && !g.passportSeries) updates.passportSeries = doc;
+                  return { ...g, ...updates };
+                });
               });
             } else {
-              setNotes((n) => applyMijozNameToNotes(n, name));
+              if (name) setNotes((n) => applyMijozNameToNotes(n, name));
+              if (doc && !passportSeries) setPassportSeries(doc);
             }
-            toast.success(`Ism hujjatdan o‘qildi: ${name}`);
+            const parts: string[] = [];
+            if (name) parts.push(`Ism: ${name}`);
+            if (doc) parts.push(`Hujjat: ${doc}`);
+            toast.success(`Hujjatdan o‘qildi: ${parts.join(" · ")}`);
           } else if (raw) {
             toast.message("Hujjat matni o‘qildi — ism avtomatik aniqlanmadi", { duration: 4500 });
           }
@@ -387,19 +397,25 @@ const Index = () => {
   };
 
   const handleRecentGuestSelect = (guest: RecentGuest) => {
+    const guestNotes = guest.notes
+      ? guest.notes
+      : guest.name
+        ? `Mijoz: ${guest.name}`
+        : "";
     if (isFullRoom) {
       updateGuest(activeGuestIdx, {
         phone: guest.phone,
         passportSeries: guest.passportSeries || "",
         price: String(guest.price),
-        notes: guest.notes || "",
+        notes: guestNotes,
       });
     } else {
       setPhone(guest.phone);
       setPassportSeries(guest.passportSeries || "");
       setPrice(String(guest.price));
-      if (guest.notes) setNotes(guest.notes);
+      setNotes(guestNotes);
     }
+    toast.success(`Mehmon tanlandi: ${guest.name}`);
   };
 
   const updateGuest = (idx: number, data: Partial<GuestEntry>) => {
