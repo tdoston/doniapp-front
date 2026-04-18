@@ -251,11 +251,11 @@ const Index = () => {
       if (isFullRoom) {
         const filled = guests.filter((g) => lineHasValidGuestIdentity(g.phone, g.passportSeries));
         if (filled.length === 0) {
-          throw new Error("Kamida bitta mehmon: telefon (9+ raqam) yoki pasport seriyasi (4+ belgi)");
+          throw new Error("Kamida bitta mehmon: hujjat seriyasi (4+ belgi) kiriting");
         }
         const keys = filled.map((g) => computeGuestLookupKey(g.phone, g.passportSeries));
         if (new Set(keys).size !== keys.length) {
-          throw new Error("Bir xil telefon/pasport ikki mehmonda takrorlanmasin");
+          throw new Error("Bir xil hujjat seriyasi ikki mehmonda takrorlanmasin");
         }
         const beds = prefill.emptyBedIds ?? [];
         if (beds.length < filled.length) throw new Error("Bo'sh karavotlar soni yetarli emas");
