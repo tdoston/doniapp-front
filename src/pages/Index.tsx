@@ -406,6 +406,8 @@ const Index = () => {
       setPrice(String(guest.price));
       setNotes(guest.notes);
     }
+    setAppliedRepeatKey(currentRepeatKey);
+    toast.success(`${guest.name} ma'lumotlari to'ldirildi`);
   };
 
   const handleRecentGuestSelect = (guest: RecentGuest) => {
