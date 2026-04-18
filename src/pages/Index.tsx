@@ -150,12 +150,10 @@ const Index = () => {
     setIdOcrPreview(null);
   }, [activeGuestIdx, isFullRoom]);
 
-  const repeatGuest =
-    guestLookup[
-      isFullRoom
-        ? computeGuestLookupKey(guests[activeGuestIdx]?.phone || "", guests[activeGuestIdx]?.passportSeries || "")
-        : computeGuestLookupKey(phone, passportSeries)
-    ] || null;
+  const currentRepeatKey = isFullRoom
+    ? computeGuestLookupKey(guests[activeGuestIdx]?.phone || "", guests[activeGuestIdx]?.passportSeries || "")
+    : computeGuestLookupKey(phone, passportSeries);
+  const repeatGuest = guestLookup[currentRepeatKey] || null;
 
   const photoListKey = isFullRoom
     ? `${activeGuestIdx}:${JSON.stringify(guests[activeGuestIdx]?.photos ?? [])}`
