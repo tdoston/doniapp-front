@@ -3,10 +3,11 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { toast } from "sonner";
-import { Camera, ChevronLeft, Copy, Plus, Trash2, UserPlus, Users } from "lucide-react";
+import { Camera, ChevronDown, ChevronLeft, Copy, Plus, Trash2, UserPlus, Users } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import PhotoUpload from "@/components/booking/PhotoUpload";
 import PhoneInput from "@/components/booking/PhoneInput";
 import PriceInput from "@/components/booking/PriceInput";
@@ -116,6 +117,7 @@ const Index = () => {
   const [deleting, setDeleting] = useState(false);
   /** Yangi bron uchun: "choose" — Yangi mehmon (scan) yoki Avval kelgan; "form" — to‘liq forma. */
   const [step, setStep] = useState<"choose" | "form">(isEditMode ? "form" : "choose");
+  const [notesOpen, setNotesOpen] = useState(false);
   const photoInputRef = useRef<HTMLInputElement | null>(null);
 
   const [photos, setPhotos] = useState<string[]>(() =>
@@ -171,6 +173,8 @@ const Index = () => {
           const name = (data.full_name || "").trim();
           const raw = (data.raw_text_preview || "").trim().slice(0, 2500);
           const doc = (data.document_number || "").trim();
+          const passFromOcr = normalizePassportSeries(doc);
+          const canApplyPassport = passFromOcr.length >= 4;
           if (name || doc || raw) {
             setIdOcrPreview({
               photoDataUrl: last,
@@ -179,7 +183,7 @@ const Index = () => {
               rawPreview: raw,
             });
           }
-          if (name || doc) {
+          if (name || canApplyPassport) {
             if (isFullRoom) {
               setGuests((prev) => {
                 const gi = prev.findIndex((g) => g.photos.includes(last));
@@ -188,18 +192,22 @@ const Index = () => {
                   if (i !== gi) return g;
                   const updates: Partial<GuestEntry> = {};
                   if (name) updates.notes = applyMijozNameToNotes(g.notes, name);
-                  if (doc && !g.passportSeries) updates.passportSeries = doc;
+                  if (canApplyPassport && !normalizePassportSeries(g.passportSeries)) {
+                    updates.passportSeries = passFromOcr;
+                  }
                   return { ...g, ...updates };
                 });
               });
             } else {
               if (name) setNotes((n) => applyMijozNameToNotes(n, name));
-              if (doc && !passportSeries) setPassportSeries(doc);
+              if (canApplyPassport) {
+                setPassportSeries((p) => (normalizePassportSeries(p) ? p : passFromOcr));
+              }
             }
             const parts: string[] = [];
             if (name) parts.push(`Ism: ${name}`);
-            if (doc) parts.push(`Hujjat: ${doc}`);
-            toast.success(`Hujjatdan o‘qildi: ${parts.join(" · ")}`);
+            if (canApplyPassport) parts.push(`Seriya: ${passFromOcr}`);
+            if (parts.length) toast.success(`Hujjatdan o‘qildi: ${parts.join(" · ")}`);
           } else if (raw) {
             toast.message("Hujjat matni o‘qildi — ism avtomatik aniqlanmadi", { duration: 4500 });
           }
@@ -459,7 +467,7 @@ const Index = () => {
     try {
       await saveMutation.mutateAsync();
       if (price && !isFullRoom) sessionStorage.setItem("lastPrice", price);
-      toast.success(isEditMode ? "O'zgarishlar saqlandi" : "Bron saqlandi");
+      toast.success(isEditMode ? "O'zgarishlar saqlandi" : "Check-in qilindi");
       setShowConfirm(false);
       if (isFullRoom) {
         setGuests([createEmptyGuest(1)]);
@@ -582,33 +590,34 @@ const Index = () => {
         <div className="bg-card border-b border-border px-3 py-2 shrink-0">
           <div className="flex items-center gap-2 overflow-x-auto">
             {guests.map((g, idx) => (
-              <button
+              <div
                 key={g.id}
-                onClick={() => setActiveGuestIdx(idx)}
-                className={`relative flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
+                className={`flex items-center gap-0.5 rounded-xl pl-3 pr-1 py-1 text-xs font-bold whitespace-nowrap transition-all ${
                   idx === activeGuestIdx
                     ? "bg-primary text-primary-foreground shadow-md"
                     : "bg-secondary text-muted-foreground"
                 }`}
               >
-                Mehmon {idx + 1}
-                {(g.phone || g.passportSeries) && (
-                  <span className="opacity-70">·{(g.phone || g.passportSeries).slice(-4)}</span>
-                )}
+                <button type="button" onClick={() => setActiveGuestIdx(idx)} className="flex items-center gap-1.5 py-1 pr-1">
+                  Mehmon {idx + 1}
+                  {(g.phone || g.passportSeries) && (
+                    <span className="opacity-70">·{(g.phone || g.passportSeries).slice(-4)}</span>
+                  )}
+                </button>
                 {guests.length > 1 && idx === activeGuestIdx && (
                   <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      removeGuest(idx);
-                    }}
-                    className="ml-1 p-0.5 rounded-full bg-destructive/20 text-destructive hover:bg-destructive/40"
+                    type="button"
+                    aria-label="Mehmonni olib tashlash"
+                    onClick={() => removeGuest(idx)}
+                    className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary-foreground/15 text-primary-foreground hover:bg-primary-foreground/25"
                   >
                     <Trash2 className="w-3 h-3" />
                   </button>
                 )}
-              </button>
+              </div>
             ))}
             <button
+              type="button"
               onClick={addGuest}
               className="flex items-center gap-1 px-3 py-2 rounded-xl text-xs font-bold bg-primary/10 text-primary whitespace-nowrap active:bg-primary/20"
             >
@@ -674,88 +683,94 @@ const Index = () => {
             </button>
           </div>
         ) : (
-          <div className="max-w-lg mx-auto px-4 py-3 space-y-3">
-            <PhotoUpload
-              photos={isFullRoom ? activeGuest?.photos || [] : photos}
-              onAdd={handlePhotos}
-              onRemove={removePhoto}
-              onReplace={replacePhoto}
-            />
+          <div className="max-w-lg mx-auto px-4 py-4 pb-6 space-y-4">
+              <PhotoUpload
+                hideLabel
+                variant={isEditMode ? "default" : "express"}
+                photos={isFullRoom ? activeGuest?.photos || [] : photos}
+                onAdd={handlePhotos}
+                onRemove={removePhoto}
+                onReplace={replacePhoto}
+              />
 
-            {(() => {
-              const urls = isFullRoom ? activeGuest?.photos ?? [] : photos;
-              const o = idOcrPreview;
-              if (!o || !urls.includes(o.photoDataUrl)) return null;
-              if (!o.fullName && !o.documentNumber && !o.rawPreview) return null;
-              return (
-                <div className="rounded-xl border border-border bg-muted/40 px-3 py-2.5 space-y-2">
-                  <p className="text-xs font-bold text-foreground">Hujjatdan o‘qilgan</p>
-                  {o.fullName ? (
-                    <p className="text-sm">
-                      <span className="text-muted-foreground font-medium">Ism: </span>
-                      <span className="font-semibold text-foreground">{o.fullName}</span>
-                    </p>
-                  ) : null}
-                  {o.documentNumber ? (
-                    <p className="text-sm">
-                      <span className="text-muted-foreground font-medium">Hujjat / seriya: </span>
-                      <span className="font-mono text-foreground">{o.documentNumber}</span>
-                    </p>
-                  ) : null}
-                  {o.rawPreview ? (
-                    <div className="space-y-1">
-                      <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
-                        O‘qilgan matn
+              {(() => {
+                const urls = isFullRoom ? activeGuest?.photos ?? [] : photos;
+                const o = idOcrPreview;
+                if (!o || !urls.includes(o.photoDataUrl)) return null;
+                if (!o.fullName && !o.documentNumber && !o.rawPreview) return null;
+                return (
+                  <div className="rounded-xl bg-muted/30 px-3 py-2.5 space-y-1.5">
+                    <p className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Rasmdan</p>
+                    {o.fullName ? (
+                      <p className="text-sm">
+                        <span className="text-muted-foreground font-medium">Ism: </span>
+                        <span className="font-semibold text-foreground">{o.fullName}</span>
                       </p>
-                      <pre className="text-[11px] leading-snug text-muted-foreground whitespace-pre-wrap break-words max-h-44 overflow-y-auto font-mono bg-background/90 rounded-lg p-2.5 border border-border/60">
+                    ) : null}
+                    {o.documentNumber ? (
+                      <p className="text-sm">
+                        <span className="text-muted-foreground font-medium">Seriya: </span>
+                        <span className="font-mono font-medium text-foreground">{o.documentNumber}</span>
+                      </p>
+                    ) : null}
+                    {o.rawPreview ? (
+                      <pre className="text-[10px] leading-snug text-muted-foreground whitespace-pre-wrap break-words max-h-24 overflow-y-auto font-mono rounded-lg bg-muted/40 p-2">
                         {o.rawPreview}
                       </pre>
-                    </div>
-                  ) : null}
-                </div>
-              );
-            })()}
+                    ) : null}
+                  </div>
+                );
+              })()}
 
-            <div className="space-y-2">
-              <Label className="text-sm font-medium text-muted-foreground">Hujjat seriyasi</Label>
-              <Input
-                value={isFullRoom ? activeGuest?.passportSeries ?? "" : passportSeries}
-                onChange={(e) =>
-                  isFullRoom
-                    ? updateGuest(activeGuestIdx, { passportSeries: e.target.value.toUpperCase() })
-                    : setPassportSeries(e.target.value.toUpperCase())
-                }
-                placeholder="AB1234567"
-                className="h-12 rounded-lg border border-input bg-card text-base font-medium"
-                autoCapitalize="characters"
-                autoFocus={!isEditMode}
+              <div className="space-y-2">
+                <Label className="text-sm font-semibold text-foreground">Hujjat seriyasi</Label>
+                <Input
+                  value={isFullRoom ? activeGuest?.passportSeries ?? "" : passportSeries}
+                  onChange={(e) =>
+                    isFullRoom
+                      ? updateGuest(activeGuestIdx, { passportSeries: e.target.value.toUpperCase() })
+                      : setPassportSeries(e.target.value.toUpperCase())
+                  }
+                  placeholder="AB1234567"
+                  className="h-12 rounded-xl border-border/80 bg-background/50 text-base font-semibold tracking-wide"
+                  autoCapitalize="characters"
+                />
+              </div>
+
+              <PhoneInput
+                value={isFullRoom ? activeGuest?.phone || "" : phone}
+                onChange={(v) => (isFullRoom ? updateGuest(activeGuestIdx, { phone: v }) : setPhone(v))}
+                repeatGuest={repeatGuest}
+                onAutoFill={handleAutoFill}
+                onGuestsOpen={() => setShowRecentGuests(!showRecentGuests)}
               />
-            </div>
 
-            <PhoneInput
-              value={isFullRoom ? activeGuest?.phone || "" : phone}
-              onChange={(v) => (isFullRoom ? updateGuest(activeGuestIdx, { phone: v }) : setPhone(v))}
-              repeatGuest={repeatGuest}
-              onAutoFill={handleAutoFill}
-              onGuestsOpen={() => setShowRecentGuests(!showRecentGuests)}
-            />
+              <PriceInput
+                value={isFullRoom ? activeGuest?.price || "" : price}
+                onChange={(v) => (isFullRoom ? updateGuest(activeGuestIdx, { price: v }) : setPrice(v))}
+                nights={isFullRoom ? activeGuest?.nights || 1 : nights}
+                onNightsChange={(v) => (isFullRoom ? updateGuest(activeGuestIdx, { nights: v }) : setNights(v))}
+              />
+              <PaymentBlock
+                price={isFullRoom ? activeGuest?.price || "" : price}
+                paid={isFullRoom ? activeGuest?.paid || "" : paid}
+                nights={isFullRoom ? activeGuest?.nights || 1 : nights}
+                onPaidChange={(v) => (isFullRoom ? updateGuest(activeGuestIdx, { paid: v }) : setPaid(v))}
+              />
 
-            <PriceInput
-              value={isFullRoom ? activeGuest?.price || "" : price}
-              onChange={(v) => (isFullRoom ? updateGuest(activeGuestIdx, { price: v }) : setPrice(v))}
-              nights={isFullRoom ? activeGuest?.nights || 1 : nights}
-              onNightsChange={(v) => (isFullRoom ? updateGuest(activeGuestIdx, { nights: v }) : setNights(v))}
-            />
-            <PaymentBlock
-              price={isFullRoom ? activeGuest?.price || "" : price}
-              paid={isFullRoom ? activeGuest?.paid || "" : paid}
-              nights={isFullRoom ? activeGuest?.nights || 1 : nights}
-              onPaidChange={(v) => (isFullRoom ? updateGuest(activeGuestIdx, { paid: v }) : setPaid(v))}
-            />
-            <NotesInput
-              value={isFullRoom ? activeGuest?.notes || "" : notes}
-              onChange={(v) => (isFullRoom ? updateGuest(activeGuestIdx, { notes: v }) : setNotes(v))}
-            />
+              <Collapsible open={notesOpen} onOpenChange={setNotesOpen}>
+                <CollapsibleTrigger className="flex w-full items-center justify-between rounded-xl bg-muted/25 px-3 py-2.5 text-left text-sm font-semibold text-muted-foreground hover:bg-muted/40 transition-colors">
+                  <span>Izoh (ixtiyoriy)</span>
+                  <ChevronDown className={`h-4 w-4 shrink-0 transition-transform ${notesOpen ? "rotate-180" : ""}`} />
+                </CollapsibleTrigger>
+                <CollapsibleContent className="overflow-hidden pt-2 data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
+                  <NotesInput
+                    hideLabel
+                    value={isFullRoom ? activeGuest?.notes || "" : notes}
+                    onChange={(v) => (isFullRoom ? updateGuest(activeGuestIdx, { notes: v }) : setNotes(v))}
+                  />
+                </CollapsibleContent>
+              </Collapsible>
           </div>
         )}
       </div>
@@ -791,12 +806,12 @@ const Index = () => {
             </button>
           </div>
         ) : (
-          <div className="max-w-lg mx-auto grid grid-cols-2 gap-2">
+          <div className="max-w-lg mx-auto grid grid-cols-2 gap-3">
             <button
               type="button"
               onClick={() => (isEditMode ? handleBack() : setStep("choose"))}
               disabled={saving}
-              className="h-14 rounded-xl font-bold text-base bg-muted text-foreground border border-border transition-all active:scale-[0.98] flex items-center justify-center gap-1.5 disabled:opacity-50"
+              className="h-14 rounded-2xl font-bold text-base bg-muted text-foreground border border-border/80 transition-all active:scale-[0.98] flex items-center justify-center gap-1.5 disabled:opacity-50"
             >
               <ChevronLeft className="h-5 w-5" />
               {isEditMode ? "Ortga" : "Boshqa usul"}
@@ -805,9 +820,9 @@ const Index = () => {
               type="button"
               onClick={handleSave}
               disabled={saving}
-              className="h-14 rounded-xl font-bold text-base bg-primary text-primary-foreground shadow-lg transition-all active:scale-[0.98] disabled:opacity-50"
+              className="h-14 rounded-2xl font-bold text-base bg-primary text-primary-foreground shadow-lg shadow-primary/25 transition-all active:scale-[0.98] disabled:opacity-50"
             >
-              {saving ? "Saqlanmoqda…" : isEditMode ? "O'zgartirish" : "Saqlash"}
+              {saving ? "Saqlanmoqda…" : isEditMode ? "O'zgartirish" : "Check-in"}
             </button>
           </div>
         )}

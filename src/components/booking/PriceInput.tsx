@@ -32,14 +32,14 @@ const PriceInput = ({ value, onChange, nights, onNightsChange }: PriceInputProps
 
   return (
     <div className="space-y-2">
-      <label className="text-sm font-medium text-muted-foreground">Narx / kecha</label>
+      <label className="text-sm font-semibold text-foreground">Narx / kecha</label>
       <input
         type="text"
         inputMode="numeric"
         value={formatNumber(value)}
         onChange={handleInput}
         placeholder="Narxni kiriting"
-        className="w-full h-12 px-4 rounded-lg border border-input bg-card text-foreground text-lg font-bold focus:outline-none focus:ring-2 focus:ring-ring transition-all"
+        className="w-full h-12 px-4 rounded-xl border border-input bg-card text-foreground text-base font-semibold focus:outline-none focus:ring-2 focus:ring-ring transition-all placeholder:text-muted-foreground/70 placeholder:font-normal"
       />
       <div className="flex gap-2 flex-wrap">
         {CHIPS.map((c) => (
@@ -47,10 +47,10 @@ const PriceInput = ({ value, onChange, nights, onNightsChange }: PriceInputProps
             key={c}
             type="button"
             onClick={() => handleChip(c)}
-            className={`px-4 py-2 rounded-full text-sm font-semibold transition-all ${
+            className={`px-4 py-2 rounded-full text-sm font-bold transition-all ${
               value === String(c)
-                ? "bg-primary text-primary-foreground shadow-sm"
-                : "bg-secondary text-secondary-foreground"
+                ? "bg-primary text-primary-foreground shadow-sm ring-1 ring-primary/20"
+                : "bg-muted text-foreground border border-border/80 hover:bg-muted/80"
             }`}
           >
             {(c / 1000)}k
@@ -60,7 +60,7 @@ const PriceInput = ({ value, onChange, nights, onNightsChange }: PriceInputProps
 
       {/* Nights + Total */}
       <div className="flex items-center gap-3 mt-1">
-        <div className="flex items-center border border-border rounded-xl overflow-hidden bg-card">
+        <div className="flex items-center border border-border rounded-xl overflow-hidden bg-muted/25">
           <button
             type="button"
             onClick={() => onNightsChange(Math.max(1, nights - 1))}

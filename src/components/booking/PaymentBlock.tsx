@@ -25,7 +25,7 @@ const PaymentBlock = ({ price, paid, nights, onPaidChange }: PaymentBlockProps) 
 
   return (
     <div className="space-y-2">
-      <label className="text-sm font-medium text-muted-foreground">To'langan</label>
+      <label className="text-sm font-semibold text-foreground">To&apos;langan</label>
       <div className="flex items-center gap-2">
         <input
           type="text"
@@ -33,14 +33,14 @@ const PaymentBlock = ({ price, paid, nights, onPaidChange }: PaymentBlockProps) 
           value={formatNumber(paid)}
           onChange={(e) => onPaidChange(e.target.value.replace(/\D/g, ""))}
           placeholder="0"
-          className="flex-1 h-12 px-4 rounded-lg border border-input bg-card text-foreground text-lg font-bold focus:outline-none focus:ring-2 focus:ring-ring transition-all min-w-0"
+          className="flex-1 h-12 px-4 rounded-xl border border-input bg-card text-foreground text-base font-semibold focus:outline-none focus:ring-2 focus:ring-ring transition-all min-w-0"
         />
         <button
           type="button"
           onClick={handleFullPaid}
-          className="h-12 px-3 rounded-lg bg-accent text-accent-foreground font-semibold text-xs whitespace-nowrap transition-all active:scale-[0.97] shrink-0"
+          className="h-12 px-3.5 rounded-xl bg-emerald-600 text-white font-bold text-xs whitespace-nowrap shadow-sm shadow-emerald-600/25 transition-all hover:bg-emerald-700 active:scale-[0.97] shrink-0"
         >
-          To'liq to'landi
+          To&apos;liq to&apos;landi
         </button>
       </div>
 

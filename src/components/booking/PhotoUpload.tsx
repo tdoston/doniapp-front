@@ -6,9 +6,13 @@ interface PhotoUploadProps {
   onAdd: (files: FileList) => void;
   onRemove: (index: number) => void;
   onReplace?: (index: number, file: File) => void;
+  /** Faqat surat qatori (tez check-in forma). */
+  hideLabel?: boolean;
+  /** `express` — katta yuklash zonasi. */
+  variant?: "default" | "express";
 }
 
-const PhotoUpload = ({ photos, onAdd, onRemove, onReplace }: PhotoUploadProps) => {
+const PhotoUpload = ({ photos, onAdd, onRemove, onReplace, hideLabel, variant = "default" }: PhotoUploadProps) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const replaceRef = useRef<HTMLInputElement>(null);
   const [viewIdx, setViewIdx] = useState<number | null>(null);
@@ -24,11 +28,23 @@ const PhotoUpload = ({ photos, onAdd, onRemove, onReplace }: PhotoUploadProps) =
     e.target.value = "";
   };
 
+  const express = variant === "express";
+
   return (
-    <div className="space-y-2">
-      <div className="flex gap-3">
+    <div className={express ? "space-y-3" : "space-y-2"}>
+      {!hideLabel ? (
+        <label className="text-sm font-medium text-muted-foreground">Hujjat rasmi (max 3 ta)</label>
+      ) : null}
+      <div className={`flex gap-3 ${express ? "items-stretch flex-wrap" : ""}`}>
         {photos.map((src, i) => (
-          <div key={i} className="relative w-20 h-20 rounded-lg overflow-hidden border border-border">
+          <div
+            key={i}
+            className={
+              express
+                ? "relative w-[4.5rem] h-[4.5rem] sm:w-24 sm:h-24 rounded-2xl overflow-hidden bg-muted/40 ring-1 ring-black/[0.06]"
+                : "relative w-20 h-20 rounded-xl overflow-hidden bg-muted/40 ring-1 ring-black/[0.06]"
+            }
+          >
             <button
               type="button"
               onClick={() => setViewIdx(i)}
@@ -39,9 +55,10 @@ const PhotoUpload = ({ photos, onAdd, onRemove, onReplace }: PhotoUploadProps) =
             <button
               type="button"
               onClick={() => onRemove(i)}
-              className="absolute top-1 right-1 w-5 h-5 rounded-full bg-foreground/70 flex items-center justify-center"
+              className="absolute top-1 right-1 w-6 h-6 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center shadow-sm active:scale-95"
+              aria-label="Rasmni o‘chirish"
             >
-              <X className="w-3 h-3 text-card" />
+              <X className="w-3.5 h-3.5" />
             </button>
           </div>
         ))}
@@ -49,10 +66,17 @@ const PhotoUpload = ({ photos, onAdd, onRemove, onReplace }: PhotoUploadProps) =
           <button
             type="button"
             onClick={() => inputRef.current?.click()}
-            className="w-20 h-20 rounded-lg border-2 border-dashed border-muted-foreground/30 flex flex-col items-center justify-center gap-1 text-muted-foreground hover:border-primary/50 transition-colors"
+            className={
+              express
+                ? "min-h-[7.5rem] flex-1 min-w-[7rem] rounded-3xl border-0 ring-1 ring-dashed ring-muted-foreground/25 bg-primary/[0.04] flex flex-col items-center justify-center gap-2 text-primary hover:ring-primary/35 hover:bg-primary/[0.07] active:scale-[0.99] transition-all"
+                : "w-20 h-20 rounded-xl border-0 ring-1 ring-dashed ring-muted-foreground/25 flex flex-col items-center justify-center gap-1 text-muted-foreground hover:ring-primary/35 hover:bg-primary/[0.04] transition-colors"
+            }
           >
-            <Camera className="w-5 h-5" />
-            <span className="text-[10px]">Yuklash</span>
+            <Camera className={express ? "w-8 h-8 opacity-90" : "w-5 h-5"} />
+            <span className={express ? "text-sm font-semibold" : "text-[10px]"}>
+              {express ? "Suratga olish" : "Yuklash"}
+            </span>
+            {express ? <span className="text-[11px] text-muted-foreground font-medium px-2">3 tagacha</span> : null}
           </button>
         )}
       </div>
@@ -60,6 +84,7 @@ const PhotoUpload = ({ photos, onAdd, onRemove, onReplace }: PhotoUploadProps) =
         ref={inputRef}
         type="file"
         accept="image/*"
+        capture="environment"
         multiple
         className="hidden"
         onChange={(e) => { if (e.target.files) onAdd(e.target.files); e.target.value = ""; }}
@@ -68,6 +93,7 @@ const PhotoUpload = ({ photos, onAdd, onRemove, onReplace }: PhotoUploadProps) =
         ref={replaceRef}
         type="file"
         accept="image/*"
+        capture="environment"
         className="hidden"
         onChange={handleReplace}
       />
