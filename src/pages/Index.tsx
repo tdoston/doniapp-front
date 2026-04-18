@@ -93,7 +93,7 @@ const Index = () => {
 
   const guestLookup = useMemo(() => {
     const m: Record<string, { name: string; lastVisit: string; price: number; notes: string }> = {};
-    recentData?.guests.forEach((g) => {
+    (recentData?.guests ?? []).forEach((g) => {
       const key = g.lookupKey || computeGuestLookupKey(g.phone, g.passportSeries || "");
       if (!key) return;
       m[key] = {
