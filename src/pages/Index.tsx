@@ -15,6 +15,7 @@ import PaymentBlock from "@/components/booking/PaymentBlock";
 import NotesInput from "@/components/booking/NotesInput";
 import RecentGuests from "@/components/booking/RecentGuests";
 import type { RecentGuest } from "@/components/booking/RecentGuests";
+import RepeatGuestBanner from "@/components/booking/RepeatGuestBanner";
 import type { BookingPrefillState } from "@/types/bookingPrefill";
 import {
   ApiError,
@@ -141,18 +142,18 @@ const Index = () => {
   const [activeGuestIdx, setActiveGuestIdx] = useState(0);
   const ocrProcessedRef = useRef<Set<string>>(new Set());
   const [idOcrPreview, setIdOcrPreview] = useState<IdOcrPreview | null>(null);
+  /** Avval kelgan mehmon qo'llanildi → banner "to'ldirildi" holatiga o'tadi */
+  const [appliedRepeatKey, setAppliedRepeatKey] = useState<string>("");
 
   useEffect(() => {
     if (!isFullRoom) return;
     setIdOcrPreview(null);
   }, [activeGuestIdx, isFullRoom]);
 
-  const repeatGuest =
-    guestLookup[
-      isFullRoom
-        ? computeGuestLookupKey(guests[activeGuestIdx]?.phone || "", guests[activeGuestIdx]?.passportSeries || "")
-        : computeGuestLookupKey(phone, passportSeries)
-    ] || null;
+  const currentRepeatKey = isFullRoom
+    ? computeGuestLookupKey(guests[activeGuestIdx]?.phone || "", guests[activeGuestIdx]?.passportSeries || "")
+    : computeGuestLookupKey(phone, passportSeries);
+  const repeatGuest = guestLookup[currentRepeatKey] || null;
 
   const photoListKey = isFullRoom
     ? `${activeGuestIdx}:${JSON.stringify(guests[activeGuestIdx]?.photos ?? [])}`
@@ -405,6 +406,8 @@ const Index = () => {
       setPrice(String(guest.price));
       setNotes(guest.notes);
     }
+    setAppliedRepeatKey(currentRepeatKey);
+    toast.success(`${guest.name} ma'lumotlari to'ldirildi`);
   };
 
   const handleRecentGuestSelect = (guest: RecentGuest) => {
@@ -693,6 +696,12 @@ const Index = () => {
                 onReplace={replacePhoto}
               />
 
+              <RepeatGuestBanner
+                guest={repeatGuest}
+                onApply={handleAutoFill}
+                applied={!!repeatGuest && appliedRepeatKey === currentRepeatKey}
+              />
+
               {(() => {
                 const urls = isFullRoom ? activeGuest?.photos ?? [] : photos;
                 const o = idOcrPreview;
@@ -740,8 +749,6 @@ const Index = () => {
               <PhoneInput
                 value={isFullRoom ? activeGuest?.phone || "" : phone}
                 onChange={(v) => (isFullRoom ? updateGuest(activeGuestIdx, { phone: v }) : setPhone(v))}
-                repeatGuest={repeatGuest}
-                onAutoFill={handleAutoFill}
                 onGuestsOpen={() => setShowRecentGuests(!showRecentGuests)}
               />
 
