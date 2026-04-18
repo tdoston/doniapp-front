@@ -620,96 +620,165 @@ const Index = () => {
       )}
 
       <div className="flex-1 overflow-y-auto">
-        <div className="max-w-lg mx-auto px-4 py-3 space-y-3">
-          <PhotoUpload
-            photos={isFullRoom ? activeGuest?.photos || [] : photos}
-            onAdd={handlePhotos}
-            onRemove={removePhoto}
-            onReplace={replacePhoto}
-          />
+        <input
+          ref={photoInputRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          className="hidden"
+          onChange={(e) => {
+            handlePassportScanFiles(e.target.files);
+            e.currentTarget.value = "";
+          }}
+        />
 
-          {(() => {
-            const urls = isFullRoom ? activeGuest?.photos ?? [] : photos;
-            const o = idOcrPreview;
-            if (!o || !urls.includes(o.photoDataUrl)) return null;
-            if (!o.fullName && !o.documentNumber && !o.rawPreview) return null;
-            return (
-              <div className="rounded-xl border border-border bg-muted/40 px-3 py-2.5 space-y-2">
-                <p className="text-xs font-bold text-foreground">Hujjatdan o‘qilgan</p>
-                {o.fullName ? (
-                  <p className="text-sm">
-                    <span className="text-muted-foreground font-medium">Ism: </span>
-                    <span className="font-semibold text-foreground">{o.fullName}</span>
-                  </p>
-                ) : null}
-                {o.documentNumber ? (
-                  <p className="text-sm">
-                    <span className="text-muted-foreground font-medium">Hujjat / seriya: </span>
-                    <span className="font-mono text-foreground">{o.documentNumber}</span>
-                  </p>
-                ) : null}
-                {o.rawPreview ? (
-                  <div className="space-y-1">
-                    <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
-                      O‘qilgan matn
-                    </p>
-                    <pre className="text-[11px] leading-snug text-muted-foreground whitespace-pre-wrap break-words max-h-44 overflow-y-auto font-mono bg-background/90 rounded-lg p-2.5 border border-border/60">
-                      {o.rawPreview}
-                    </pre>
-                  </div>
-                ) : null}
+        <RecentGuests
+          open={showRecentGuests}
+          onClose={() => setShowRecentGuests(false)}
+          onSelect={(guest) => {
+            handleRecentGuestSelect(guest);
+            setShowRecentGuests(false);
+          }}
+        />
+
+        {step === "choose" && !isEditMode ? (
+          <div className="max-w-lg mx-auto px-4 py-6 space-y-4">
+            <div className="text-center space-y-1.5 mb-2">
+              <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                {isFullRoom ? "To‘liq xona bron" : `Karavot ${prefill.bedId ?? ""}`}
+              </p>
+              <h2 className="text-2xl font-extrabold text-foreground leading-tight">
+                Mehmonni qo‘shish
+              </h2>
+              <p className="text-sm text-muted-foreground">Birini tanlang — keyin saqlash</p>
+            </div>
+
+            <button
+              type="button"
+              onClick={triggerPassportScan}
+              className="w-full flex flex-col items-center justify-center gap-3 p-6 rounded-2xl bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-xl active:scale-[0.98] transition-all"
+            >
+              <div className="w-14 h-14 rounded-2xl bg-white/15 flex items-center justify-center">
+                <Camera className="w-8 h-8" />
               </div>
-            );
-          })()}
+              <div className="text-center">
+                <p className="text-lg font-extrabold leading-tight">Yangi mehmon</p>
+                <p className="text-xs opacity-90 mt-0.5">Passportni rasmga oling — ma’lumot avto to‘ladi</p>
+              </div>
+            </button>
 
-          <RecentGuests
-            open={showRecentGuests}
-            onClose={() => setShowRecentGuests(false)}
-            onSelect={(guest) => {
-              handleRecentGuestSelect(guest);
-              setShowRecentGuests(false);
-            }}
-          />
+            <button
+              type="button"
+              onClick={() => setShowRecentGuests(true)}
+              className="w-full flex flex-col items-center justify-center gap-3 p-6 rounded-2xl bg-card border-2 border-border text-foreground active:scale-[0.98] transition-all"
+            >
+              <div className="w-14 h-14 rounded-2xl bg-primary/10 text-primary flex items-center justify-center">
+                <Users className="w-8 h-8" />
+              </div>
+              <div className="text-center">
+                <p className="text-lg font-extrabold leading-tight">Avval kelgan mehmon</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Ro‘yxatdan tanlang — bir click</p>
+              </div>
+            </button>
 
-          <PhoneInput
-            value={isFullRoom ? activeGuest?.phone || "" : phone}
-            onChange={(v) => (isFullRoom ? updateGuest(activeGuestIdx, { phone: v }) : setPhone(v))}
-            repeatGuest={repeatGuest}
-            onAutoFill={handleAutoFill}
-            onGuestsOpen={() => setShowRecentGuests(!showRecentGuests)}
-            autoFocus
-          />
-          <div className="space-y-2">
-            <Label className="text-sm font-medium text-muted-foreground">Pasport seriyasi (telefon bo‘lmasa)</Label>
-            <Input
-              value={isFullRoom ? activeGuest?.passportSeries ?? "" : passportSeries}
-              onChange={(e) =>
-                isFullRoom
-                  ? updateGuest(activeGuestIdx, { passportSeries: e.target.value.toUpperCase() })
-                  : setPassportSeries(e.target.value.toUpperCase())
-              }
-              placeholder="Masalan AB1234567"
-              className="h-12 rounded-lg border border-input bg-card text-base font-medium"
-              autoCapitalize="characters"
+            <button
+              type="button"
+              onClick={() => setStep("form")}
+              className="w-full text-center text-sm font-semibold text-muted-foreground py-3 hover:text-foreground transition-colors"
+            >
+              Qo‘lda kiritish →
+            </button>
+          </div>
+        ) : (
+          <div className="max-w-lg mx-auto px-4 py-3 space-y-3">
+            <PhotoUpload
+              photos={isFullRoom ? activeGuest?.photos || [] : photos}
+              onAdd={handlePhotos}
+              onRemove={removePhoto}
+              onReplace={replacePhoto}
+            />
+
+            {(() => {
+              const urls = isFullRoom ? activeGuest?.photos ?? [] : photos;
+              const o = idOcrPreview;
+              if (!o || !urls.includes(o.photoDataUrl)) return null;
+              if (!o.fullName && !o.documentNumber && !o.rawPreview) return null;
+              return (
+                <div className="rounded-xl border border-border bg-muted/40 px-3 py-2.5 space-y-2">
+                  <p className="text-xs font-bold text-foreground">Hujjatdan o‘qilgan</p>
+                  {o.fullName ? (
+                    <p className="text-sm">
+                      <span className="text-muted-foreground font-medium">Ism: </span>
+                      <span className="font-semibold text-foreground">{o.fullName}</span>
+                    </p>
+                  ) : null}
+                  {o.documentNumber ? (
+                    <p className="text-sm">
+                      <span className="text-muted-foreground font-medium">Hujjat / seriya: </span>
+                      <span className="font-mono text-foreground">{o.documentNumber}</span>
+                    </p>
+                  ) : null}
+                  {o.rawPreview ? (
+                    <div className="space-y-1">
+                      <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
+                        O‘qilgan matn
+                      </p>
+                      <pre className="text-[11px] leading-snug text-muted-foreground whitespace-pre-wrap break-words max-h-44 overflow-y-auto font-mono bg-background/90 rounded-lg p-2.5 border border-border/60">
+                        {o.rawPreview}
+                      </pre>
+                    </div>
+                  ) : null}
+                </div>
+              );
+            })()}
+
+            <div className="space-y-2">
+              <Label className="text-sm font-bold text-foreground">
+                Hujjat seriyasi <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                value={isFullRoom ? activeGuest?.passportSeries ?? "" : passportSeries}
+                onChange={(e) =>
+                  isFullRoom
+                    ? updateGuest(activeGuestIdx, { passportSeries: e.target.value.toUpperCase() })
+                    : setPassportSeries(e.target.value.toUpperCase())
+                }
+                placeholder="Pasport yoki haydovchilik guvohnomasi (AB1234567)"
+                className="h-12 rounded-lg border border-input bg-card text-base font-medium"
+                autoCapitalize="characters"
+                autoFocus={!isEditMode}
+              />
+              <p className="text-[11px] text-muted-foreground">
+                Mehmon shu seriya orqali noyob aniqlanadi
+              </p>
+            </div>
+
+            <PhoneInput
+              value={isFullRoom ? activeGuest?.phone || "" : phone}
+              onChange={(v) => (isFullRoom ? updateGuest(activeGuestIdx, { phone: v }) : setPhone(v))}
+              repeatGuest={repeatGuest}
+              onAutoFill={handleAutoFill}
+              onGuestsOpen={() => setShowRecentGuests(!showRecentGuests)}
+            />
+
+            <PriceInput
+              value={isFullRoom ? activeGuest?.price || "" : price}
+              onChange={(v) => (isFullRoom ? updateGuest(activeGuestIdx, { price: v }) : setPrice(v))}
+              nights={isFullRoom ? activeGuest?.nights || 1 : nights}
+              onNightsChange={(v) => (isFullRoom ? updateGuest(activeGuestIdx, { nights: v }) : setNights(v))}
+            />
+            <PaymentBlock
+              price={isFullRoom ? activeGuest?.price || "" : price}
+              paid={isFullRoom ? activeGuest?.paid || "" : paid}
+              nights={isFullRoom ? activeGuest?.nights || 1 : nights}
+              onPaidChange={(v) => (isFullRoom ? updateGuest(activeGuestIdx, { paid: v }) : setPaid(v))}
+            />
+            <NotesInput
+              value={isFullRoom ? activeGuest?.notes || "" : notes}
+              onChange={(v) => (isFullRoom ? updateGuest(activeGuestIdx, { notes: v }) : setNotes(v))}
             />
           </div>
-          <PriceInput
-            value={isFullRoom ? activeGuest?.price || "" : price}
-            onChange={(v) => (isFullRoom ? updateGuest(activeGuestIdx, { price: v }) : setPrice(v))}
-            nights={isFullRoom ? activeGuest?.nights || 1 : nights}
-            onNightsChange={(v) => (isFullRoom ? updateGuest(activeGuestIdx, { nights: v }) : setNights(v))}
-          />
-          <PaymentBlock
-            price={isFullRoom ? activeGuest?.price || "" : price}
-            paid={isFullRoom ? activeGuest?.paid || "" : paid}
-            nights={isFullRoom ? activeGuest?.nights || 1 : nights}
-            onPaidChange={(v) => (isFullRoom ? updateGuest(activeGuestIdx, { paid: v }) : setPaid(v))}
-          />
-          <NotesInput
-            value={isFullRoom ? activeGuest?.notes || "" : notes}
-            onChange={(v) => (isFullRoom ? updateGuest(activeGuestIdx, { notes: v }) : setNotes(v))}
-          />
-        </div>
+        )}
       </div>
 
       <div
