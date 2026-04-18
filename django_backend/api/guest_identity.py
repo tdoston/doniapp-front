@@ -18,23 +18,25 @@ def normalize_phone_digits(raw: str) -> str:
 
 def compute_identity_key(phone: str, passport_series: str) -> tuple[str | None, str | None]:
     """
-    Birlamchi identifikator: telefon (>=9 raqam) yoki pasport seriyasi (>=4 belgi).
+    Birlamchi identifikator: HUJJAT seriyasi (pasport yoki haydovchilik guvohnomasi, >=4 belgi).
+    Telefon — ixtiyoriy qo‘shimcha, unique uchun ishlatilmaydi.
+    Eski yozuvlar uchun: agar seriya bo‘lmasa va telefon (>=9 raqam) bo‘lsa — `phone:` kalitiga tushadi.
     Qaytaradi: (identity_key, xato_xabari).
     """
-    pn = normalize_phone_digits(phone)
     ps = normalize_passport_series(passport_series)
+    pn = normalize_phone_digits(phone)
+    if len(ps) >= 4:
+        return f"doc:{ps}", None
     if len(pn) >= 9:
         return f"phone:{pn}", None
-    if len(ps) >= 4:
-        return f"passport:{ps}", None
-    return None, "Telefon (kamida 9 raqam) yoki pasport seriyasi (kamida 4 belgi) kerak"
+    return None, "Hujjat seriyasi (pasport yoki haydovchilik guvohnomasi, kamida 4 belgi) kerak"
 
 
 def guest_phone_column_value(identity_key: str, phone_norm: str, passport_norm: str) -> str:
-    """`bed_bookings.guest_phone` — taxtada ko‘rinadi (telefon raqamlari yoki seriya)."""
-    if identity_key.startswith("phone:"):
-        return phone_norm[:32]
-    return passport_norm[:32]
+    """`bed_bookings.guest_phone` — taxtada ko‘rinadi (hujjat seriyasi yoki telefon)."""
+    if identity_key.startswith("doc:") or identity_key.startswith("passport:"):
+        return (passport_norm or phone_norm)[:32]
+    return (phone_norm or passport_norm)[:32]
 
 
 def ensure_guest_schema(cursor) -> None:
@@ -123,8 +125,18 @@ def identity_hostel_active_stay_overlap(
     nights: int,
     exclude_booking_id: str | None = None,
 ) -> bool:
-    """Shu identifikator bilan filialda aktiv bron sanalari kesishadimi."""
-    legacy_phone = identity_key[6:] if identity_key.startswith("phone:") else None
+    """Shu identifikator bilan filialda aktiv bron sanalari kesishadimi.
+
+    Eski yozuvlar `guests` jadvalisiz bo‘lsa: `bed_bookings.guest_phone` ustuniga
+    qarab ham tekshiramiz (telefon raqami yoki hujjat seriyasi shu yerda saqlanadi).
+    """
+    legacy_value: str | None = None
+    if identity_key.startswith("phone:"):
+        legacy_value = identity_key[6:]
+    elif identity_key.startswith("doc:"):
+        legacy_value = identity_key[4:]
+    elif identity_key.startswith("passport:"):
+        legacy_value = identity_key[9:]
     with connection.cursor() as c:
         c.execute(
             """
@@ -148,8 +160,8 @@ def identity_hostel_active_stay_overlap(
                 exclude_booking_id,
                 exclude_booking_id,
                 identity_key,
-                legacy_phone,
-                legacy_phone,
+                legacy_value,
+                legacy_value,
                 check_in,
                 nights,
                 check_in,
@@ -164,19 +176,26 @@ def guest_latest_name_by_identity(identity_key: str) -> str:
         row = c.fetchone()
         if row and str(row[0] or "").strip():
             return str(row[0]).strip()[:200]
+    legacy_value: str | None = None
     if identity_key.startswith("phone:"):
-        pn = identity_key[6:]
-        c.execute(
-            """
-            SELECT guest_name FROM bed_bookings
-            WHERE guest_phone = %s AND guest_id IS NULL
-            ORDER BY check_in_date DESC, created_at DESC LIMIT 1
-            """,
-            [pn],
-        )
-        row2 = c.fetchone()
-        if row2 and row2[0]:
-            return str(row2[0]).strip()[:200]
+        legacy_value = identity_key[6:]
+    elif identity_key.startswith("doc:"):
+        legacy_value = identity_key[4:]
+    elif identity_key.startswith("passport:"):
+        legacy_value = identity_key[9:]
+    if legacy_value:
+        with connection.cursor() as c2:
+            c2.execute(
+                """
+                SELECT guest_name FROM bed_bookings
+                WHERE guest_phone = %s AND guest_id IS NULL
+                ORDER BY check_in_date DESC, created_at DESC LIMIT 1
+                """,
+                [legacy_value],
+            )
+            row2 = c2.fetchone()
+            if row2 and row2[0]:
+                return str(row2[0]).strip()[:200]
     return ""
 
 
