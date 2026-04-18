@@ -23,9 +23,9 @@ const RepeatGuestBanner = ({ guest, onApply, applied }: RepeatGuestBannerProps) 
 
   if (applied) {
     return (
-      <div className="rounded-xl bg-emerald-500/10 border border-emerald-500/30 px-3 py-2.5 flex items-center gap-2 animate-fade-in">
-        <Check className="h-4 w-4 text-emerald-600 shrink-0" />
-        <span className="text-sm font-semibold text-emerald-700 dark:text-emerald-400 truncate">
+      <div className="rounded-xl bg-accent/10 border border-accent/40 px-3 py-2.5 flex items-center gap-2 animate-fade-in">
+        <Check className="h-4 w-4 text-accent shrink-0" />
+        <span className="text-sm font-semibold text-foreground truncate">
           {guest.name} ma'lumotlari to'ldirildi
         </span>
       </div>
