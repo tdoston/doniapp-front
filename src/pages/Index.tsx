@@ -696,6 +696,12 @@ const Index = () => {
                 onReplace={replacePhoto}
               />
 
+              <RepeatGuestBanner
+                guest={repeatGuest}
+                onApply={handleAutoFill}
+                applied={!!repeatGuest && appliedRepeatKey === currentRepeatKey}
+              />
+
               {(() => {
                 const urls = isFullRoom ? activeGuest?.photos ?? [] : photos;
                 const o = idOcrPreview;
