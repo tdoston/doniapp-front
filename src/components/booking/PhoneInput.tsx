@@ -1,6 +1,4 @@
 import { Check, Users } from "lucide-react";
-import PhoneInputLib from "react-phone-number-input";
-import "react-phone-number-input/style.css";
 
 interface RepeatGuest {
   name: string;
@@ -19,23 +17,27 @@ interface PhoneInputProps {
 }
 
 const PhoneInput = ({ value, onChange, repeatGuest, onAutoFill, onGuestsOpen, autoFocus }: PhoneInputProps) => {
-  const phoneValue = value ? (value.startsWith("+") ? value : `+${value}`) : undefined;
+  const display = value ? (value.startsWith("+") ? value : `+${value}`) : "";
 
   return (
     <div className="space-y-2">
-      <label className="text-sm font-medium text-muted-foreground">Telefon raqami <span className="text-xs text-muted-foreground/70">(ixtiyoriy)</span></label>
+      <label className="text-sm font-medium text-muted-foreground">
+        Telefon raqami <span className="text-xs text-muted-foreground/70">(ixtiyoriy)</span>
+      </label>
       <div className="flex items-center gap-2">
-        <div className="phone-input-wrapper flex-1 min-w-0">
-          <PhoneInputLib
-            international
-            defaultCountry="UZ"
-            value={phoneValue}
-            onChange={(val) => onChange(val ? val.replace(/\D/g, "") : "")}
-            placeholder="Telefon raqamini kiriting"
-            autoFocus={autoFocus}
-            className="w-full h-12 rounded-lg border border-input bg-card text-foreground text-base font-medium focus-within:ring-2 focus-within:ring-ring transition-all px-3"
-          />
-        </div>
+        <input
+          type="tel"
+          inputMode="tel"
+          autoComplete="tel"
+          value={display}
+          onChange={(e) => {
+            const digits = e.target.value.replace(/\D/g, "");
+            onChange(digits);
+          }}
+          placeholder="+998 90 123 45 67"
+          autoFocus={autoFocus}
+          className="flex-1 min-w-0 h-12 rounded-lg border border-input bg-card text-foreground text-base font-medium focus:outline-none focus:ring-2 focus:ring-ring transition-all px-3"
+        />
         {onGuestsOpen && (
           <button
             type="button"
