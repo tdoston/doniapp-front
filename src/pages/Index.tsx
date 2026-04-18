@@ -15,6 +15,7 @@ import PaymentBlock from "@/components/booking/PaymentBlock";
 import NotesInput from "@/components/booking/NotesInput";
 import RecentGuests from "@/components/booking/RecentGuests";
 import type { RecentGuest } from "@/components/booking/RecentGuests";
+import RepeatGuestBanner from "@/components/booking/RepeatGuestBanner";
 import type { BookingPrefillState } from "@/types/bookingPrefill";
 import {
   ApiError,
