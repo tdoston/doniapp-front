@@ -282,7 +282,7 @@ const Index = () => {
       }
 
       if (!lineHasValidGuestIdentity(phone, passportSeries)) {
-        throw new Error("Telefon (9+ raqam) yoki pasport seriyasi (4+ belgi) kiriting");
+        throw new Error("Hujjat seriyasi (pasport yoki haydovchilik guvohnomasi, 4+ belgi) kiriting");
       }
       if (!prefill.bedId) throw new Error("Karavot tanlanmagan");
 
