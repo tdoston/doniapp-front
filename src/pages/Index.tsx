@@ -473,6 +473,7 @@ const Index = () => {
         setPhotos([]);
         setIdOcrPreview(null);
       }
+      if (!isEditMode) setStep("choose");
       navigate(-1);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Xatolik";
