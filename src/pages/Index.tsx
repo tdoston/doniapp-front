@@ -800,25 +800,38 @@ const Index = () => {
             </button>
           </div>
         )}
-        <div className="max-w-lg mx-auto grid grid-cols-2 gap-2">
-          <button
-            type="button"
-            onClick={handleBack}
-            disabled={saving}
-            className="h-14 rounded-xl font-bold text-base bg-muted text-foreground border border-border transition-all active:scale-[0.98] flex items-center justify-center gap-1.5 disabled:opacity-50"
-          >
-            <ChevronLeft className="h-5 w-5" />
-            Ortga
-          </button>
-          <button
-            type="button"
-            onClick={handleSave}
-            disabled={saving}
-            className="h-14 rounded-xl font-bold text-base bg-primary text-primary-foreground shadow-lg transition-all active:scale-[0.98] disabled:opacity-50"
-          >
-            {saving ? "Saqlanmoqda…" : isEditMode ? "O'zgartirish" : "Saqlash"}
-          </button>
-        </div>
+        {step === "choose" && !isEditMode ? (
+          <div className="max-w-lg mx-auto">
+            <button
+              type="button"
+              onClick={handleBack}
+              className="w-full h-14 rounded-xl font-bold text-base bg-muted text-foreground border border-border transition-all active:scale-[0.98] flex items-center justify-center gap-1.5"
+            >
+              <ChevronLeft className="h-5 w-5" />
+              Ortga
+            </button>
+          </div>
+        ) : (
+          <div className="max-w-lg mx-auto grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => (isEditMode ? handleBack() : setStep("choose"))}
+              disabled={saving}
+              className="h-14 rounded-xl font-bold text-base bg-muted text-foreground border border-border transition-all active:scale-[0.98] flex items-center justify-center gap-1.5 disabled:opacity-50"
+            >
+              <ChevronLeft className="h-5 w-5" />
+              {isEditMode ? "Ortga" : "Boshqa usul"}
+            </button>
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={saving}
+              className="h-14 rounded-xl font-bold text-base bg-primary text-primary-foreground shadow-lg transition-all active:scale-[0.98] disabled:opacity-50"
+            >
+              {saving ? "Saqlanmoqda…" : isEditMode ? "O'zgartirish" : "Saqlash"}
+            </button>
+          </div>
+        )}
       </div>
 
       {showCancelDialog && (
