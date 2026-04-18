@@ -1,4 +1,4 @@
-import { Check, Users } from "lucide-react";
+import { Check } from "lucide-react";
 import PhoneInputLib from "react-phone-number-input";
 import "react-phone-number-input/style.css";
 
