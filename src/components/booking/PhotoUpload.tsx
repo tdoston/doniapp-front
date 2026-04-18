@@ -26,9 +26,6 @@ const PhotoUpload = ({ photos, onAdd, onRemove, onReplace }: PhotoUploadProps) =
 
   return (
     <div className="space-y-2">
-      <label className="text-sm font-medium text-muted-foreground">
-        Hujjat rasmi (max 3 ta)
-      </label>
       <div className="flex gap-3">
         {photos.map((src, i) => (
           <div key={i} className="relative w-20 h-20 rounded-lg overflow-hidden border border-border">
