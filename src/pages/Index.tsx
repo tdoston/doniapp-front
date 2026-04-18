@@ -142,6 +142,8 @@ const Index = () => {
   const [activeGuestIdx, setActiveGuestIdx] = useState(0);
   const ocrProcessedRef = useRef<Set<string>>(new Set());
   const [idOcrPreview, setIdOcrPreview] = useState<IdOcrPreview | null>(null);
+  /** Avval kelgan mehmon qo'llanildi → banner "to'ldirildi" holatiga o'tadi */
+  const [appliedRepeatKey, setAppliedRepeatKey] = useState<string>("");
 
   useEffect(() => {
     if (!isFullRoom) return;
