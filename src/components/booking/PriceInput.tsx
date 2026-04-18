@@ -32,7 +32,7 @@ const PriceInput = ({ value, onChange, nights, onNightsChange }: PriceInputProps
 
   return (
     <div className="space-y-2">
-      <label className="text-sm font-medium text-muted-foreground">Kelishilgan narx (1 kecha)</label>
+      <label className="text-sm font-medium text-muted-foreground">Narx / kecha</label>
       <input
         type="text"
         inputMode="numeric"
