@@ -25,7 +25,7 @@ const PaymentBlock = ({ price, paid, nights, onPaidChange }: PaymentBlockProps) 
 
   return (
     <div className="space-y-2">
-      <label className="text-sm font-medium text-muted-foreground">To'langan (so'm)</label>
+      <label className="text-sm font-medium text-muted-foreground">To'langan</label>
       <div className="flex items-center gap-2">
         <input
           type="text"
