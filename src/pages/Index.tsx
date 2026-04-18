@@ -418,7 +418,18 @@ const Index = () => {
       setPrice(String(guest.price));
       setNotes(guestNotes);
     }
+    setStep("form");
     toast.success(`Mehmon tanlandi: ${guest.name}`);
+  };
+
+  const triggerPassportScan = () => {
+    photoInputRef.current?.click();
+  };
+
+  const handlePassportScanFiles = (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    handlePhotos(files);
+    setStep("form");
   };
 
   const updateGuest = (idx: number, data: Partial<GuestEntry>) => {
