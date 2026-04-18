@@ -749,7 +749,6 @@ const Index = () => {
               <PhoneInput
                 value={isFullRoom ? activeGuest?.phone || "" : phone}
                 onChange={(v) => (isFullRoom ? updateGuest(activeGuestIdx, { phone: v }) : setPhone(v))}
-                onGuestsOpen={() => setShowRecentGuests(!showRecentGuests)}
               />
 
               <PriceInput
