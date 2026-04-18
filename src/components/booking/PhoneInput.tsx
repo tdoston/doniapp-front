@@ -1,4 +1,4 @@
-import { Check, Users } from "lucide-react";
+import { Check } from "lucide-react";
 import PhoneInputLib from "react-phone-number-input";
 import "react-phone-number-input/style.css";
 
@@ -24,28 +24,16 @@ const PhoneInput = ({ value, onChange, repeatGuest, onAutoFill, onGuestsOpen, au
   return (
     <div className="space-y-2">
       <label className="text-sm font-medium text-muted-foreground">Telefon raqami <span className="text-xs text-muted-foreground/70">(ixtiyoriy)</span></label>
-      <div className="flex items-center gap-2">
-        <div className="phone-input-wrapper flex-1 min-w-0">
-          <PhoneInputLib
-            international
-            defaultCountry="UZ"
-            value={phoneValue}
-            onChange={(val) => onChange(val ? val.replace(/\D/g, "") : "")}
-            placeholder="Telefon raqamini kiriting"
-            autoFocus={autoFocus}
-            className="w-full h-12 rounded-lg border border-input bg-card text-foreground text-base font-medium focus-within:ring-2 focus-within:ring-ring transition-all px-3"
-          />
-        </div>
-        {onGuestsOpen && (
-          <button
-            type="button"
-            onClick={onGuestsOpen}
-            className="h-12 px-3 rounded-lg bg-primary/10 text-primary font-semibold text-xs whitespace-nowrap transition-all active:scale-[0.97] flex items-center gap-1.5 shrink-0"
-          >
-            <Users className="w-4 h-4" />
-            Mehmonlar
-          </button>
-        )}
+      <div className="phone-input-wrapper">
+        <PhoneInputLib
+          international
+          defaultCountry="UZ"
+          value={phoneValue}
+          onChange={(val) => onChange(val ? val.replace(/\D/g, "") : "")}
+          placeholder="Telefon raqamini kiriting"
+          autoFocus={autoFocus}
+          className="w-full h-12 rounded-lg border border-input bg-card text-foreground text-base font-medium focus-within:ring-2 focus-within:ring-ring transition-all px-3"
+        />
       </div>
 
       {repeatGuest && (
