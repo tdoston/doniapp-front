@@ -23,7 +23,7 @@ const PhoneInput = ({ value, onChange, repeatGuest, onAutoFill, onGuestsOpen, au
 
   return (
     <div className="space-y-2">
-      <label className="text-sm font-medium text-muted-foreground">Telefon raqami <span className="text-xs text-muted-foreground/70">(ixtiyoriy)</span></label>
+      <label className="text-sm font-medium text-muted-foreground">Telefon</label>
       <div className="phone-input-wrapper">
         <PhoneInputLib
           international

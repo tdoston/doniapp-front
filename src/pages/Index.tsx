@@ -643,42 +643,26 @@ const Index = () => {
 
         {step === "choose" && !isEditMode ? (
           <div className="max-w-lg mx-auto px-4 py-6 space-y-4">
-            <div className="text-center space-y-1.5 mb-2">
-              <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                {isFullRoom ? "To‘liq xona bron" : `Karavot ${prefill.bedId ?? ""}`}
-              </p>
-              <h2 className="text-2xl font-extrabold text-foreground leading-tight">
-                Mehmonni qo‘shish
-              </h2>
-              <p className="text-sm text-muted-foreground">Birini tanlang — keyin saqlash</p>
-            </div>
-
             <button
               type="button"
               onClick={triggerPassportScan}
-              className="w-full flex flex-col items-center justify-center gap-3 p-6 rounded-2xl bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-xl active:scale-[0.98] transition-all"
+              className="w-full flex items-center gap-4 p-5 rounded-2xl bg-primary text-primary-foreground active:scale-[0.98] transition-all"
             >
-              <div className="w-14 h-14 rounded-2xl bg-white/15 flex items-center justify-center">
-                <Camera className="w-8 h-8" />
+              <div className="w-12 h-12 rounded-xl bg-white/15 flex items-center justify-center shrink-0">
+                <Camera className="w-6 h-6" />
               </div>
-              <div className="text-center">
-                <p className="text-lg font-extrabold leading-tight">Yangi mehmon</p>
-                <p className="text-xs opacity-90 mt-0.5">Passportni rasmga oling — ma’lumot avto to‘ladi</p>
-              </div>
+              <span className="text-base font-bold">Yangi mehmon</span>
             </button>
 
             <button
               type="button"
               onClick={() => setShowRecentGuests(true)}
-              className="w-full flex flex-col items-center justify-center gap-3 p-6 rounded-2xl bg-card border-2 border-border text-foreground active:scale-[0.98] transition-all"
+              className="w-full flex items-center gap-4 p-5 rounded-2xl bg-card border border-border text-foreground active:scale-[0.98] transition-all"
             >
-              <div className="w-14 h-14 rounded-2xl bg-primary/10 text-primary flex items-center justify-center">
-                <Users className="w-8 h-8" />
+              <div className="w-12 h-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                <Users className="w-6 h-6" />
               </div>
-              <div className="text-center">
-                <p className="text-lg font-extrabold leading-tight">Avval kelgan mehmon</p>
-                <p className="text-xs text-muted-foreground mt-0.5">Ro‘yxatdan tanlang — bir click</p>
-              </div>
+              <span className="text-base font-bold">Avval kelgan</span>
             </button>
 
             <button
@@ -686,7 +670,7 @@ const Index = () => {
               onClick={() => setStep("form")}
               className="w-full text-center text-sm font-semibold text-muted-foreground py-3 hover:text-foreground transition-colors"
             >
-              Qo‘lda kiritish →
+              Qo‘lda kiritish
             </button>
           </div>
         ) : (
@@ -733,9 +717,7 @@ const Index = () => {
             })()}
 
             <div className="space-y-2">
-              <Label className="text-sm font-bold text-foreground">
-                Hujjat seriyasi <span className="text-destructive">*</span>
-              </Label>
+              <Label className="text-sm font-medium text-muted-foreground">Hujjat seriyasi</Label>
               <Input
                 value={isFullRoom ? activeGuest?.passportSeries ?? "" : passportSeries}
                 onChange={(e) =>
@@ -743,14 +725,11 @@ const Index = () => {
                     ? updateGuest(activeGuestIdx, { passportSeries: e.target.value.toUpperCase() })
                     : setPassportSeries(e.target.value.toUpperCase())
                 }
-                placeholder="Pasport yoki haydovchilik guvohnomasi (AB1234567)"
+                placeholder="AB1234567"
                 className="h-12 rounded-lg border border-input bg-card text-base font-medium"
                 autoCapitalize="characters"
                 autoFocus={!isEditMode}
               />
-              <p className="text-[11px] text-muted-foreground">
-                Mehmon shu seriya orqali noyob aniqlanadi
-              </p>
             </div>
 
             <PhoneInput
