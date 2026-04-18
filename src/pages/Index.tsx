@@ -114,6 +114,9 @@ const Index = () => {
   const [cancelReasonValue, setCancelReasonValue] = useState<string>("");
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  /** Yangi bron uchun: "choose" — Yangi mehmon (scan) yoki Avval kelgan; "form" — to‘liq forma. */
+  const [step, setStep] = useState<"choose" | "form">(isEditMode ? "form" : "choose");
+  const photoInputRef = useRef<HTMLInputElement | null>(null);
 
   const [photos, setPhotos] = useState<string[]>(() =>
     isEditMode && Array.isArray(prefill.bookingPhotos) ? prefill.bookingPhotos : []
