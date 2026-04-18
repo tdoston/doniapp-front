@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { toast } from "sonner";
-import { ChevronLeft, Copy, Plus, Trash2, UserPlus } from "lucide-react";
+import { Camera, ChevronLeft, Copy, Plus, Trash2, UserPlus, Users } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
