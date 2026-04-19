@@ -126,6 +126,10 @@ const RoomCard = ({ room, onBedTap, onBedLongPress, onBookRoom }: RoomCardProps)
 
   const cleaningStatus = room.cleaningStatus || "clean";
   const inactive = Boolean(room.inactive);
+  const emptyCount = room.beds.filter((b) => b.status === "empty").length;
+  const bookedCount = room.beds.filter((b) => b.status === "booked").length;
+  const allEmpty = emptyCount === room.totalBeds && room.totalBeds > 0;
+  const fullRoomDisabled = inactive || emptyCount === 0;
 
   return (
     <>
