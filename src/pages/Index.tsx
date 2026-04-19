@@ -2,7 +2,7 @@ import { useState, useCallback, useMemo, useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
-import { toast } from "sonner";
+
 import { Camera, ChevronDown, ChevronLeft, Copy, Plus, Trash2, UserPlus, Users } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -205,23 +205,11 @@ const Index = () => {
                 setPassportSeries((p) => (normalizePassportSeries(p) ? p : passFromOcr));
               }
             }
-            const parts: string[] = [];
-            if (name) parts.push(`Ism: ${name}`);
-            if (canApplyPassport) parts.push(`Seriya: ${passFromOcr}`);
-            if (parts.length) toast.success(`Hujjatdan o‘qildi: ${parts.join(" · ")}`);
-          } else if (raw) {
-            toast.message("Hujjat matni o‘qildi — ism avtomatik aniqlanmadi", { duration: 4500 });
           }
         } catch (e) {
           if (cancelled) return;
           ocrProcessedRef.current.add(last);
           setIdOcrPreview((p) => (p?.photoDataUrl === last ? null : p));
-          if (e instanceof ApiError && e.status === 503) {
-            toast.message(e.message || "OCR serverda yoqilmagan", { duration: 6000 });
-            return;
-          }
-          const msg = e instanceof ApiError ? e.message : "Hujjatdan ism o‘qilmadi";
-          toast.error(msg);
         }
       })();
     }, 700);
@@ -407,7 +395,6 @@ const Index = () => {
       setNotes(guest.notes);
     }
     setAppliedRepeatKey(currentRepeatKey);
-    toast.success(`${guest.name} ma'lumotlari to'ldirildi`);
   };
 
   const handleRecentGuestSelect = (guest: RecentGuest) => {
@@ -430,7 +417,6 @@ const Index = () => {
       setNotes(guestNotes);
     }
     setStep("form");
-    toast.success(`Mehmon tanlandi: ${guest.name}`);
   };
 
   const triggerPassportScan = () => {
@@ -470,7 +456,7 @@ const Index = () => {
     try {
       await saveMutation.mutateAsync();
       if (price && !isFullRoom) sessionStorage.setItem("lastPrice", price);
-      toast.success(isEditMode ? "O'zgarishlar saqlandi" : "Check-in qilindi");
+      
       setShowConfirm(false);
       if (isFullRoom) {
         setGuests([createEmptyGuest(1)]);
@@ -486,9 +472,8 @@ const Index = () => {
       }
       if (!isEditMode) setStep("choose");
       navigate(-1);
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : "Xatolik";
-      toast.error(msg);
+    } catch {
+      // silent
     } finally {
       setSaving(false);
     }
@@ -508,13 +493,11 @@ const Index = () => {
     setDeleting(true);
     try {
       await deleteMutation.mutateAsync(reasonLabel);
-      toast.success("Bron bekor qilindi");
       setShowCancelDialog(false);
       setCancelReasonValue("");
       navigate(-1);
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : "Xatolik";
-      toast.error(msg);
+    } catch {
+      // silent
     } finally {
       setDeleting(false);
     }
