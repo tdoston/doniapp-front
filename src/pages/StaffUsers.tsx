@@ -28,27 +28,21 @@ const StaffUsersPage = () => {
         role,
       }),
     onSuccess: () => {
-      toast.success("Foydalanuvchi qo'shildi");
       setLogin("");
       setDisplayName("");
       setPassword("");
       setRole("staff");
       void queryClient.invalidateQueries({ queryKey: ["users"] });
     },
-    onError: (e: unknown) => {
-      toast.error(e instanceof Error ? e.message : "Xatolik");
-    },
+    onError: () => {},
   });
 
   const deactivateMut = useMutation({
     mutationFn: (id: number) => deactivateUser(id),
     onSuccess: () => {
-      toast.success("Foydalanuvchi o'chirildi (nofaol)");
       void queryClient.invalidateQueries({ queryKey: ["users"] });
     },
-    onError: (e: unknown) => {
-      toast.error(e instanceof Error ? e.message : "Xatolik");
-    },
+    onError: () => {},
   });
 
   const users = data?.users ?? [];
