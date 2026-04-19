@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
 import { UserCog } from "lucide-react";
 import { createUser, deactivateUser, fetchUsers } from "@/lib/api";
 import { Button } from "@/components/ui/button";
