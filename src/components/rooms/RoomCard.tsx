@@ -203,16 +203,40 @@ const RoomCard = ({ room, onBedTap, onBedLongPress, onBookRoom }: RoomCardProps)
 
         <button
           type="button"
-          disabled={inactive}
+          disabled={fullRoomDisabled}
           onClick={() => onBookRoom(room.id)}
-          className={`flex items-center justify-center gap-2 w-full py-2.5 text-sm font-bold transition-all ${
-            inactive
-              ? "bg-muted/30 text-muted-foreground cursor-not-allowed"
-              : "bg-primary/20 text-primary active:bg-primary/30"
+          className={`relative flex items-center justify-between w-full px-4 py-3 text-sm font-bold transition-all ${
+            fullRoomDisabled
+              ? "bg-muted/20 text-muted-foreground cursor-not-allowed"
+              : allEmpty
+                ? "bg-gradient-to-r from-primary to-primary/80 text-primary-foreground active:scale-[0.99] shadow-lg shadow-primary/20"
+                : "bg-primary/15 text-primary active:bg-primary/25"
           }`}
         >
-          <Plus className="w-4 h-4" />
-          To'liq xona bron qilish
+          <span className="flex items-center gap-2">
+            <span className={`flex items-center justify-center w-7 h-7 rounded-lg ${
+              fullRoomDisabled ? "bg-muted/30" : allEmpty ? "bg-primary-foreground/20" : "bg-primary/20"
+            }`}>
+              <Plus className="w-4 h-4" />
+            </span>
+            <span className="text-left leading-tight">
+              <span className="block">To&apos;liq xona</span>
+              <span className={`block text-[10px] font-medium opacity-80`}>
+                {fullRoomDisabled
+                  ? inactive ? "Nofaol" : "Bo'sh joy yo'q"
+                  : allEmpty
+                    ? `Barcha ${room.totalBeds} karavot bo'sh`
+                    : `${emptyCount}/${room.totalBeds} karavot bo'sh`}
+              </span>
+            </span>
+          </span>
+          {!fullRoomDisabled && (
+            <span className={`flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold ${
+              allEmpty ? "bg-primary-foreground/20" : "bg-primary/20"
+            }`}>
+              {bookedCount > 0 ? `${bookedCount} band` : "Tayyor"}
+            </span>
+          )}
         </button>
       </div>
 
