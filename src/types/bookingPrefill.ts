@@ -21,7 +21,13 @@ export interface BookingPrefillState {
   checkInDate?: string;
   /** Bron yozuvi yaratilgan vaqt (taxtadan) */
   checkedInAt?: string;
+  /** API: `bron` yoki `check_in` (standart check-in) */
+  bookingKind?: "bron" | "check_in";
+  /** Bron: taxminiy kelish vaqti */
+  expectedArrival?: string;
   bookingPhotos?: string[];
   /** To'liq xona: bo'sh karavot indekslari (tartibda) */
   emptyBedIds?: number[];
+  /** CRM ro‘yxatidan / «Avval kelgan» oqimi — forma allaqachon to‘ldirilgan, banner «tanlandi» ko‘rinishi */
+  fromRecentGuestList?: boolean;
 }

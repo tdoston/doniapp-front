@@ -17,13 +17,15 @@ interface StatCardsProps {
 const StatCards = ({ stats, pending }: StatCardsProps) => {
   const [showRevenue, setShowRevenue] = useState(true);
   const n = (v: number) => (pending ? "—" : v);
-
+  const totalBeds = stats.empty + stats.guests;
   return (
     <div className="grid grid-cols-2 gap-3 px-4 py-3">
       <div
         className={`rounded-xl p-4 flex flex-col items-center justify-center bg-[hsl(var(--empty))] min-h-[80px] ${pending ? "animate-pulse opacity-70" : ""}`}
       >
-        <span className="text-3xl font-extrabold text-[hsl(30,80%,20%)]">{n(stats.empty)}</span>
+        <span className="text-3xl font-extrabold text-[hsl(30,80%,20%)]">
+          {pending ? "—" : `${stats.empty}/${totalBeds}`}
+        </span>
         <span className="text-xs font-semibold text-[hsl(30,60%,30%)]">Bo'sh</span>
       </div>
       <div
@@ -42,7 +44,7 @@ const StatCards = ({ stats, pending }: StatCardsProps) => {
         className={`rounded-xl p-4 flex flex-col items-center justify-center bg-[hsl(var(--income))] min-h-[80px] relative ${pending ? "" : "cursor-pointer"}`}
         onClick={() => !pending && setShowRevenue((p) => !p)}
       >
-        <div className="absolute top-2 right-2 text-accent">
+       <div className="absolute top-2 right-2 text-accent">
           {showRevenue ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
         </div>
         <span className="text-3xl font-extrabold text-accent">

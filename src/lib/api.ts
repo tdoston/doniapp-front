@@ -66,9 +66,13 @@ export type RecentGuestDto = {
   lastVisit: string;
   price: number;
   paid: number;
+  /** Oxirgi faol yozuvdagi kechalar (qarz / narx hisobi bilan mos) */
+  nights?: number;
   notes?: string;
   hostel?: string;
   room?: string;
+  /** Oxirgi yozuvdagi hujjat suratlari (URL yoki base64, max 3) */
+  photos?: string[];
 };
 
 export type BoardStats = {
@@ -77,6 +81,9 @@ export type BoardStats = {
   debt: number;
   revenue: number;
 };
+
+/** `bron` — mehmon kelmagan band; `check_in` — haqiqiy yashash. */
+export type BoardBookingKind = "bron" | "check_in";
 
 /** API: faol bronlar (static xonalar bilan merge qilinadi). */
 export type BoardBookingRow = {
@@ -94,6 +101,9 @@ export type BoardBookingRow = {
   /** SQLite / Django: bron yozuvi yaratilgan vaqt (check-in vaqti) */
   checkedInAt?: string;
   photos: string[];
+  bookingKind?: BoardBookingKind;
+  /** Bron: taxminiy kelish vaqti (matn) */
+  expectedArrival?: string;
 };
 
 export type BoardResponse = {
@@ -102,6 +112,8 @@ export type BoardResponse = {
   stats: BoardStats;
   bookings: BoardBookingRow[];
   cleaningByRoomCode: Record<string, "clean" | "dirty">;
+  fullTakenByRoomCode?: Record<string, boolean>;
+  fullTakenModeByRoomCode?: Record<string, "" | "check_in" | "bron">;
 };
 
 export async function fetchBoard(hostel: string, dateIso: string): Promise<BoardResponse> {
@@ -146,31 +158,29 @@ export async function fetchRecentGuests(limit = 80): Promise<{ guests: RecentGue
   return fetchJson(`/guests/recent?limit=${limit}`);
 }
 
-/** Passport/ID (data URL) — backend Tesseract OCR (tashqi AI yo‘q). */
-export type ExtractIdFromImageResponse = {
-  full_name: string;
-  document_number?: string;
-  date_of_birth?: string;
-  expiry_date?: string;
-  mrz_detected?: boolean;
-  raw_text_preview?: string;
-  /** passporteye | tesseract_heuristic */
-  mrz_source?: string;
-  mrz_type?: string;
-  mrz_valid_score?: number;
-  mrz_valid?: boolean;
-  country?: string;
-  nationality?: string;
-  sex?: string;
-  document_type?: string;
-  name_fallback?: string;
+export type GuestHistoryRow = {
+  bookingId: string;
+  roomName: string;
+  hostel: string;
+  bedIndex: number;
+  checkInDate: string;
+  nights: number;
+  bookingKind: "bron" | "check_in";
+  status: "active" | "cancelled";
+  eventType: "check_in" | "check_out" | "bron" | "bron_cancel";
+  notes: string;
+  cancelReasonBron: string;
+  cancelReasonCheckin: string;
+  price: string;
+  paid: string;
+  guestName: string;
+  createdAt: string;
+  updatedAt: string;
 };
 
-export async function extractGuestNameFromIdImage(imageDataUrl: string): Promise<ExtractIdFromImageResponse> {
-  return fetchJson(`/guests/extract-name-from-id`, {
-    method: "POST",
-    body: JSON.stringify({ image: imageDataUrl }),
-  });
+export async function fetchGuestHistory(lookupKey: string): Promise<{ history: GuestHistoryRow[] }> {
+  const q = new URLSearchParams({ lookupKey });
+  return fetchJson(`/guests/history?${q.toString()}`);
 }
 
 export type CleaningRoomDto = {
@@ -182,6 +192,8 @@ export type CleaningRoomDto = {
   type: "room" | "bathroom";
   totalBeds: number;
   occupiedBeds: number;
+  fullTaken?: boolean;
+  fullTakenMode?: "" | "check_in" | "bron";
   photosBefore: string[];
   photosAfter: string[];
 };
@@ -193,7 +205,14 @@ export async function fetchCleaning(hostel: string, dateIso: string): Promise<{ 
 
 export async function patchCleaning(
   roomCode: string,
-  body: { hostel: string; status?: "dirty" | "cleaned"; photosBefore?: string[]; photosAfter?: string[] }
+  body: {
+    hostel: string;
+    status?: "dirty" | "cleaned";
+    photosBefore?: string[];
+    photosAfter?: string[];
+    fullTaken?: boolean;
+    fullTakenMode?: "" | "check_in" | "bron";
+  }
 ): Promise<{ ok: boolean; updated: boolean }> {
   return fetchJson(`/cleaning/${encodeURIComponent(roomCode)}`, {
     method: "PATCH",
@@ -211,6 +230,15 @@ export type BookingLineInput = {
   notes: string;
   photos: string[];
   nights?: number;
+  bookingKind?: BoardBookingKind;
+  expectedArrival?: string;
+};
+
+/** Telefon/pasport boshqa aktiv yozuvda ham bo‘lsa — qaysi xona/karavot ekanligi (ogohlantirish). */
+export type IdentityOverlapWarning = {
+  roomName: string;
+  roomCode: string;
+  bedIndex: number;
 };
 
 export async function createBooking(body: {
@@ -220,7 +248,7 @@ export async function createBooking(body: {
   nights: number;
   checkedInBy: string;
   lines: BookingLineInput[];
-}): Promise<{ ids: string[] }> {
+}): Promise<{ ids: string[]; identityOverlapWarnings: IdentityOverlapWarning[] }> {
   return fetchJson("/bookings", { method: "POST", body: JSON.stringify(body) });
 }
 
@@ -237,18 +265,39 @@ export async function patchBooking(
     checkInDate: string;
     photos: string[];
     checkedInBy: string;
+    bookingKind: BoardBookingKind;
   }>
-): Promise<{ ok: boolean; updated: boolean }> {
+): Promise<{ ok: boolean; updated: boolean; identityOverlapWarning?: IdentityOverlapWarning }> {
   return fetchJson(`/bookings/${encodeURIComponent(id)}`, {
     method: "PATCH",
     body: JSON.stringify(body),
   });
 }
 
-/** Bekor: `cancelReason` — qisqa matn (jurnal uchun notes ga qo‘shiladi). */
+/** Bekor: `cancelReason` — qisqa matn (backendda bron/check-in uchun alohida log maydoniga yoziladi). */
 export async function deleteBooking(id: string, cancelReason: string): Promise<{ ok: boolean }> {
   return fetchJson(`/bookings/${encodeURIComponent(id)}`, {
     method: "DELETE",
     body: JSON.stringify({ cancelReason }),
+  });
+}
+
+export type ParsedDocumentDto = {
+  ok: boolean;
+  parsed: boolean;
+  fullName?: string;
+  birthDate?: string;
+  expiryDate?: string;
+  citizenship?: string;
+  documentNumber?: string;
+  documentType?: string;
+  rawExtractedText?: string;
+};
+
+/** Birinchi hujjat rasmidan AI orqali maydonlarni ajratib oladi. */
+export async function parseDocumentPhoto(photo: string): Promise<ParsedDocumentDto> {
+  return fetchJson("/doc-parse", {
+    method: "POST",
+    body: JSON.stringify({ photo }),
   });
 }

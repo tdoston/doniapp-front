@@ -26,11 +26,11 @@ export const STATIC_ROOMS: Record<string, RoomData[]> = {
     room("v7", "2-qavat Koridor", 1),
   ],
   Zargarlik: [
-    room("z1", "1-xona 7 TA krovat", 7),
-    room("z2", "2-xona 3 TA krovat", 3),
+    room("z1", "1-xona 7 ta krovat", 7),
+    room("z2", "2-xona 3 ta krovat", 3),
     /** Nofaol xonalar — boshqa kodlarni yozing yoki `inactive` ni olib tashlang */
-    room("z3", "3-xona 3 TA krovat", 3, { inactive: true }),
-    room("z4", "4-xona 3 TA krovat", 3, { inactive: true }),
+    room("z3", "3-xona 1 ta krovat", 1, { inactive: true }),
+    room("z4", "4-xona 3 ta krovat", 3),
   ],
   Tabarruk: [
     room("t1", "1-xona Dushli", 2),
@@ -40,7 +40,6 @@ export const STATIC_ROOMS: Record<string, RoomData[]> = {
     room("t5", "5-xona", 2),
     room("t6", "6-xona", 2),
     room("t7", "7-xona", 2),
-    room("t8", "8-xona", 2),
   ],
 };
 

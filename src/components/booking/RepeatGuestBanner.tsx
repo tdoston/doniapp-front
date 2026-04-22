@@ -1,10 +1,20 @@
-import { Sparkles, Check } from "lucide-react";
+import { Sparkles, Check, ChevronRight } from "lucide-react";
 
-interface RepeatGuest {
+/** CRM (`/guests/recent`) dan kelgan takroriy mehmon snapshot */
+export interface RepeatGuest {
   name: string;
   lastVisit: string;
   price: number;
+  paid: number;
+  /** Oxirgi yozuvdagi kechalar — takroriy check-in / qarz ko‘rinishi uchun */
+  nights?: number;
   notes: string;
+  phone: string;
+  passportSeries: string;
+  hostel?: string;
+  room?: string;
+  /** Oxirgi check-in suratlari (max 3) */
+  photos?: string[];
 }
 
 interface RepeatGuestBannerProps {
@@ -15,19 +25,26 @@ interface RepeatGuestBannerProps {
 
 /**
  * Avval kelgan mehmon aniqlanganda chiqadigan banner.
- * Pasport seriyasi yoki telefon kiritilganda (yoki OCR orqali) aniqlanadi.
- * 1 ta tap orqali oxirgi check-in ma'lumotlari to'ldiriladi.
+ * Pasport seriyasi yoki telefon kiritilganda aniqlanadi.
+ * Bir marta bosish — telefon, hujjat, narx, suratlar (bo‘lsa) to‘ldiriladi.
  */
 const RepeatGuestBanner = ({ guest, onApply, applied }: RepeatGuestBannerProps) => {
   if (!guest) return null;
 
   if (applied) {
     return (
-      <div className="rounded-xl bg-accent/10 border border-accent/40 px-3 py-2.5 flex items-center gap-2 animate-fade-in">
-        <Check className="h-4 w-4 text-accent shrink-0" />
-        <span className="text-sm font-semibold text-foreground truncate">
-          {guest.name} ma'lumotlari to'ldirildi
-        </span>
+      <div
+        className="rounded-xl border border-emerald-600/30 bg-emerald-500/[0.08] px-3 py-2.5 flex gap-2.5 animate-fade-in dark:border-emerald-500/35 dark:bg-emerald-950/40"
+        role="status"
+        aria-live="polite"
+      >
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-600/15 dark:bg-emerald-500/20">
+          <Check className="h-4 w-4 text-emerald-800 dark:text-emerald-300" aria-hidden />
+        </div>
+        <div className="min-w-0 flex-1 leading-tight">
+          <p className="text-sm font-bold text-emerald-950 dark:text-emerald-100">Avval kelgan mehmon tanlandi</p>
+          <p className="mt-0.5 truncate text-xs font-semibold text-muted-foreground">{guest.name}</p>
+        </div>
       </div>
     );
   }
@@ -36,24 +53,22 @@ const RepeatGuestBanner = ({ guest, onApply, applied }: RepeatGuestBannerProps) 
     <button
       type="button"
       onClick={() => onApply(guest)}
+      aria-label={`Avval ro'yxatdan olingan mehmon: ${guest.name}. Bosib, tanlash va to'ldirishni bajaring.`}
       className="w-full rounded-xl bg-gradient-to-br from-primary/15 to-accent/15 border-2 border-primary/40 px-3 py-3 text-left animate-fade-in transition-all active:scale-[0.99] hover:from-primary/20 hover:to-accent/20"
     >
-      <div className="flex items-center gap-3">
-        <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
-          <Sparkles className="h-5 w-5 text-primary" />
+      <div className="flex items-start gap-3">
+        <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/20">
+          <Sparkles className="h-5 w-5 text-primary" aria-hidden />
         </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-[10px] font-bold uppercase tracking-wide text-primary mb-0.5">
-            Avval kelgan mehmon
-          </p>
-          <p className="text-sm font-bold text-foreground truncate">{guest.name}</p>
-          <p className="text-[11px] text-muted-foreground truncate">
+        <div className="min-w-0 flex-1 leading-tight">
+          <p className="text-xs font-bold text-primary">Avval ro&apos;yxatdan olingan mehmon</p>
+          <p className="mt-1 text-[0.9375rem] font-bold text-foreground sm:text-sm truncate">{guest.name}</p>
+          <p className="mt-0.5 text-xs text-muted-foreground truncate">
             {guest.lastVisit} · {guest.price.toLocaleString()} so'm
           </p>
+          <p className="mt-2 text-[0.6875rem] font-semibold leading-snug text-muted-foreground">Tanlash va to&apos;ldirish</p>
         </div>
-        <div className="shrink-0 h-9 px-3 rounded-lg bg-primary text-primary-foreground font-bold text-xs flex items-center">
-          Tanlash
-        </div>
+        <ChevronRight className="mt-1 h-5 w-5 shrink-0 text-muted-foreground" aria-hidden />
       </div>
     </button>
   );
