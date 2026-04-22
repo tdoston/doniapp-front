@@ -10,22 +10,34 @@ interface PhotoUploadProps {
   hideLabel?: boolean;
   /** `express` — katta yuklash zonasi. */
   variant?: "default" | "express";
+  /** Faqat ko‘rish (taxtadan qayta ochilganda). */
+  readOnly?: boolean;
 }
 
-const PhotoUpload = ({ photos, onAdd, onRemove, onReplace, hideLabel, variant = "default" }: PhotoUploadProps) => {
+const PhotoUpload = ({ photos, onAdd, onRemove, onReplace, hideLabel, variant = "default", readOnly }: PhotoUploadProps) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const replaceRef = useRef<HTMLInputElement>(null);
   const [viewIdx, setViewIdx] = useState<number | null>(null);
-  const [confirmReplace, setConfirmReplace] = useState(false);
   const touchStartX = useRef(0);
 
   const handleReplace = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file && viewIdx !== null && onReplace) {
       onReplace(viewIdx, file);
-      setConfirmReplace(false);
     }
     e.target.value = "";
+  };
+
+  const handleViewerDelete = () => {
+    if (viewIdx === null || readOnly) return;
+    onRemove(viewIdx);
+    if (photos.length <= 1) {
+      setViewIdx(null);
+      return;
+    }
+    if (viewIdx >= photos.length - 1) {
+      setViewIdx(Math.max(0, photos.length - 2));
+    }
   };
 
   const express = variant === "express";
@@ -35,7 +47,7 @@ const PhotoUpload = ({ photos, onAdd, onRemove, onReplace, hideLabel, variant = 
       {!hideLabel ? (
         <label className="text-sm font-medium text-muted-foreground">Hujjat rasmi (max 3 ta)</label>
       ) : null}
-      <div className={`flex gap-3 ${express ? "items-stretch flex-wrap" : ""}`}>
+      <div className={`flex gap-3 ${express ? "items-stretch flex-wrap" : "items-stretch flex-wrap"}`}>
         {photos.map((src, i) => (
           <div
             key={i}
@@ -52,31 +64,39 @@ const PhotoUpload = ({ photos, onAdd, onRemove, onReplace, hideLabel, variant = 
             >
               <img src={src} alt="" className="w-full h-full object-cover" />
             </button>
-            <button
-              type="button"
-              onClick={() => onRemove(i)}
-              className="absolute top-1 right-1 w-6 h-6 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center shadow-sm active:scale-95"
-              aria-label="Rasmni o‘chirish"
-            >
-              <X className="w-3.5 h-3.5" />
-            </button>
+            {!readOnly ? (
+              <button
+                type="button"
+                onClick={() => onRemove(i)}
+                className="absolute top-1 right-1 w-6 h-6 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center shadow-sm active:scale-95"
+                aria-label="Rasmni o‘chirish"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            ) : null}
           </div>
         ))}
-        {photos.length < 3 && (
+        {photos.length < 3 && !readOnly && (
           <button
             type="button"
             onClick={() => inputRef.current?.click()}
             className={
               express
-                ? "min-h-[7.5rem] flex-1 min-w-[7rem] rounded-3xl border-0 ring-1 ring-dashed ring-muted-foreground/25 bg-primary/[0.04] flex flex-col items-center justify-center gap-2 text-primary hover:ring-primary/35 hover:bg-primary/[0.07] active:scale-[0.99] transition-all"
-                : "w-20 h-20 rounded-xl border-0 ring-1 ring-dashed ring-muted-foreground/25 flex flex-col items-center justify-center gap-1 text-muted-foreground hover:ring-primary/35 hover:bg-primary/[0.04] transition-colors"
+                ? "min-h-[7.5rem] flex-1 min-w-[7rem] rounded-3xl border border-primary/30 bg-gradient-to-br from-primary/15 via-primary/10 to-accent/15 flex flex-col items-center justify-center gap-2 text-primary shadow-sm shadow-primary/15 hover:border-primary/45 hover:from-primary/20 hover:to-accent/20 active:scale-[0.99] transition-all"
+                : "h-24 min-w-[8.5rem] flex-1 rounded-2xl border border-input bg-card flex flex-col items-center justify-center gap-1.5 text-foreground hover:border-primary/40 active:scale-[0.985] transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
             }
           >
-            <Camera className={express ? "w-8 h-8 opacity-90" : "w-5 h-5"} />
-            <span className={express ? "text-sm font-semibold" : "text-[10px]"}>
-              {express ? "Suratga olish" : "Yuklash"}
+            <Camera className={express ? "w-7 h-7 sm:w-8 sm:h-8 opacity-90" : "w-5 h-5 text-muted-foreground"} />
+            <span className={express ? "text-[0.9375rem] sm:text-base font-bold leading-tight" : "text-xs font-extrabold tracking-tight"}>
+              {express ? "Suratga olish" : "Hujjatlarni yuklash"}
             </span>
-            {express ? <span className="text-[11px] text-muted-foreground font-medium px-2">3 tagacha</span> : null}
+            {express ? (
+              <span className="text-xs text-muted-foreground font-medium px-2 text-center leading-snug">
+                3 tagacha
+              </span>
+            ) : (
+              <span className="text-[11px] font-medium text-muted-foreground">PNG/JPG, 3 tagacha</span>
+            )}
           </button>
         )}
       </div>
@@ -84,7 +104,6 @@ const PhotoUpload = ({ photos, onAdd, onRemove, onReplace, hideLabel, variant = 
         ref={inputRef}
         type="file"
         accept="image/*"
-        capture="environment"
         multiple
         className="hidden"
         onChange={(e) => { if (e.target.files) onAdd(e.target.files); e.target.value = ""; }}
@@ -101,10 +120,17 @@ const PhotoUpload = ({ photos, onAdd, onRemove, onReplace, hideLabel, variant = 
       {/* Fullscreen viewer */}
       {viewIdx !== null && photos[viewIdx] && (
         <div className="fixed inset-0 z-50 bg-black/90 flex flex-col animate-fade-in">
-          <div className="flex items-center justify-between px-4 py-3 shrink-0">
+          <div
+            className="flex items-center justify-between px-4 py-3 shrink-0"
+            style={{ paddingTop: "calc(env(safe-area-inset-top) + 0.5rem)" }}
+          >
             <h3 className="text-white font-bold text-sm">Hujjat rasmi {viewIdx + 1}/{photos.length}</h3>
-            <button onClick={() => { setViewIdx(null); setConfirmReplace(false); }} className="p-2 rounded-full bg-white/10 text-white">
-              <X className="w-5 h-5" />
+            <button
+              onClick={() => { setViewIdx(null); }}
+              className="inline-flex h-12 w-12 touch-manipulation items-center justify-center rounded-full bg-white/20 text-white active:scale-[0.98]"
+              aria-label="Yopish"
+            >
+              <X className="w-7 h-7" />
             </button>
           </div>
 
@@ -157,40 +183,37 @@ const PhotoUpload = ({ photos, onAdd, onRemove, onReplace, hideLabel, variant = 
           </div>
 
           {/* Bottom actions */}
-          <div className="px-4 pb-6 shrink-0">
-            {!confirmReplace ? (
-              <div className="flex justify-center gap-3">
-                {onReplace && (
-                  <button
-                    onClick={() => setConfirmReplace(true)}
-                    className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/10 text-white text-sm font-semibold"
-                  >
-                    <RefreshCw className="w-4 h-4" />
-                    Almashtirish
-                  </button>
-                )}
-              </div>
-            ) : (
-              <div className="bg-card rounded-2xl p-4 mx-auto max-w-sm">
-                <p className="text-sm font-semibold text-foreground mb-3 text-center">
-                  Rasmni almashtirasizmi?
-                </p>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    onClick={() => setConfirmReplace(false)}
-                    className="h-10 rounded-xl font-bold text-sm bg-muted text-foreground border border-border active:scale-[0.98]"
-                  >
-                    Bekor qilish
-                  </button>
-                  <button
-                    onClick={() => replaceRef.current?.click()}
-                    className="h-10 rounded-xl font-bold text-sm bg-primary text-primary-foreground active:scale-[0.98]"
-                  >
-                    Yangi rasm
-                  </button>
-                </div>
-              </div>
-            )}
+          <div
+            className="px-4 pb-6 shrink-0 grid grid-cols-1 sm:flex sm:justify-center gap-2.5 sm:gap-3"
+            style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 0.75rem)" }}
+          >
+            {!readOnly && onReplace ? (
+              <button
+                onClick={() => replaceRef.current?.click()}
+                className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-white/10 text-white text-sm font-semibold"
+              >
+                <RefreshCw className="w-4 h-4" />
+                Almashtirish
+              </button>
+            ) : null}
+            {!readOnly ? (
+              <button
+                onClick={handleViewerDelete}
+                className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-destructive/20 text-destructive text-sm font-semibold"
+              >
+                <X className="w-4 h-4" />
+                O&apos;chirish
+              </button>
+            ) : null}
+            {!readOnly && photos.length < 3 ? (
+              <button
+                onClick={() => inputRef.current?.click()}
+                className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-white/10 text-white text-sm font-semibold"
+              >
+                <Camera className="w-4 h-4" />
+                Qo&apos;shish ({photos.length}/3)
+              </button>
+            ) : null}
           </div>
         </div>
       )}

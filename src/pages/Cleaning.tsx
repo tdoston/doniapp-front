@@ -210,7 +210,16 @@ const CleaningPage = ({ activeHostel, stayDateIso }: CleaningPageProps) => {
         <p className="text-center text-sm text-muted-foreground py-4 px-4">Tozalash ro&apos;yxati yuklanmoqda…</p>
       )}
       {cleaningQuery.isError && (
-        <p className="text-center text-sm text-destructive py-4 px-4">Ma&apos;lumot olinmadi. API va Postgresni tekshiring.</p>
+        <div className="py-4 px-4 text-center space-y-2">
+          <p className="text-sm text-destructive font-medium">Ma&apos;lumot olinmadi. Iltimos, qayta urinib ko&apos;ring.</p>
+          <button
+            type="button"
+            onClick={() => cleaningQuery.refetch()}
+            className="inline-flex h-9 items-center justify-center rounded-lg border border-border bg-background px-3 text-xs font-bold text-foreground active:scale-[0.98]"
+          >
+            Qayta urinish
+          </button>
+        </div>
       )}
 
       {/* Stats */}
@@ -420,7 +429,10 @@ const CleaningPage = ({ activeHostel, stayDateIso }: CleaningPageProps) => {
         const currentPhoto = photos[gallery.activeIdx];
         return (
         <div className="fixed inset-0 z-50 bg-black/90 flex flex-col animate-fade-in">
-          <div className="flex items-center justify-between px-4 py-3 shrink-0">
+          <div
+            className="flex items-center justify-between px-4 py-3 shrink-0"
+            style={{ paddingTop: "calc(env(safe-area-inset-top) + 0.5rem)" }}
+          >
             <div>
               <h3 className="text-white font-bold text-sm">{gallery.title}</h3>
               {currentPhoto && (
@@ -432,11 +444,15 @@ const CleaningPage = ({ activeHostel, stayDateIso }: CleaningPageProps) => {
               )}
             </div>
             <div className="flex items-center gap-2">
-              <button onClick={handleShareGallery} className="p-2 rounded-full bg-white/10 text-white">
+              <button onClick={handleShareGallery} className="inline-flex h-11 w-11 touch-manipulation items-center justify-center rounded-full bg-white/10 text-white">
                 <Share2 className="w-5 h-5" />
               </button>
-              <button onClick={() => setGallery(null)} className="p-2 rounded-full bg-white/10 text-white">
-                <X className="w-5 h-5" />
+              <button
+                onClick={() => setGallery(null)}
+                className="inline-flex h-12 w-12 touch-manipulation items-center justify-center rounded-full bg-white/20 text-white active:scale-[0.98]"
+                aria-label="Galereyani yopish"
+              >
+                <X className="w-7 h-7" />
               </button>
             </div>
           </div>
@@ -497,17 +513,20 @@ const CleaningPage = ({ activeHostel, stayDateIso }: CleaningPageProps) => {
           </div>
 
           {/* Bottom edit actions */}
-          <div className="px-4 pb-6 shrink-0 flex justify-center gap-3">
+          <div
+            className="px-4 pb-6 shrink-0 grid grid-cols-1 sm:flex sm:justify-center gap-2.5 sm:gap-3"
+            style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 0.75rem)" }}
+          >
             <button
               onClick={() => replaceRef.current?.click()}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/10 text-white text-sm font-semibold"
+              className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-white/10 text-white text-sm font-semibold"
             >
               <RefreshCw className="w-4 h-4" />
               Almashtirish
             </button>
             <button
               onClick={handleGalleryDelete}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-destructive/20 text-destructive text-sm font-semibold"
+              className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-destructive/20 text-destructive text-sm font-semibold"
             >
               <Trash2 className="w-4 h-4" />
               O'chirish

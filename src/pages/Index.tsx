@@ -1,39 +1,63 @@
 import { useState, useCallback, useMemo, useEffect, useRef } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
-
-import { Camera, ChevronDown, ChevronLeft, Copy, Plus, Trash2, UserPlus, Users } from "lucide-react";
+import { ChevronLeft, Magnet, Trash2, UserPlus } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import PhotoUpload from "@/components/booking/PhotoUpload";
 import PhoneInput from "@/components/booking/PhoneInput";
 import PriceInput from "@/components/booking/PriceInput";
 import PaymentBlock from "@/components/booking/PaymentBlock";
 import NotesInput from "@/components/booking/NotesInput";
-import RecentGuests from "@/components/booking/RecentGuests";
-import type { RecentGuest } from "@/components/booking/RecentGuests";
-import RepeatGuestBanner from "@/components/booking/RepeatGuestBanner";
+import RepeatGuestBanner, { type RepeatGuest } from "@/components/booking/RepeatGuestBanner";
 import type { BookingPrefillState } from "@/types/bookingPrefill";
 import {
   ApiError,
   createBooking,
   deleteBooking,
   digitsOnly,
-  extractGuestNameFromIdImage,
   fetchRecentGuests,
   patchBooking,
+  parseDocumentPhoto,
   recentGuestsQueryKey,
+  type IdentityOverlapWarning,
 } from "@/lib/api";
 import { computeGuestLookupKey, lineHasValidGuestIdentity, normalizePassportSeries } from "@/lib/guestIdentity";
-import { applyMijozNameToNotes } from "@/lib/guestNotes";
-import { checkInLabel, formatCheckInDateTime } from "@/lib/dates";
+import { BOOKING_FIELD_SHELL_CLASS, BOOKING_SINGLE_LINE_INPUT_CLASS } from "@/lib/bookingFieldStyles";
+import { cn } from "@/lib/utils";
+import { checkInLabel } from "@/lib/dates";
+import { BOOKING_CANCEL_REASONS } from "@/lib/bookingCancelReasons";
+import { formatBronArrivalHuman } from "@/lib/bronTime";
+import { bookingSaveErrorUz } from "@/lib/bookingSaveErrorUz";
+import {
+  formatNotesWithContactDetails,
+  parseEmbeddedContactFromNotes,
+  stripEmbeddedContactLines,
+} from "@/lib/bookingNotesContact";
+import { LAST_BOOKING_IDENTITY_OVERLAP_KEY } from "@/lib/identityOverlapWarning";
 
 function guestNameFromNotes(notes: string): string {
   const m = notes.match(/^Mijoz:\s*(.+)$/i);
   return m ? m[1].trim() : "";
+}
+
+function applyParsedDocToNotes(current: string, fullName: string, birthDate: string): string {
+  const lines = current
+    .split("\n")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const next = [...lines];
+  if (fullName) {
+    const hasName = next.some((l) => /^Mijoz:/i.test(l));
+    if (!hasName) next.unshift(`Mijoz: ${fullName}`);
+  }
+  if (birthDate) {
+    const hasDob = next.some((l) => /^Tug'ilgan sana:/i.test(l));
+    if (!hasDob) next.push(`Tug'ilgan sana: ${birthDate}`);
+  }
+  return next.join("\n");
 }
 
 interface GuestEntry {
@@ -46,22 +70,6 @@ interface GuestEntry {
   notes: string;
   photos: string[];
 }
-
-/** So‘nggi muvaffaqiyatli ID/OCR javobi (UI blok) */
-interface IdOcrPreview {
-  photoDataUrl: string;
-  fullName: string;
-  documentNumber: string;
-  rawPreview: string;
-}
-
-/** Bekor qilishda tanlanadigan 4 ta sabab (API ga `cancelReason` matni sifatida ketadi). */
-const BOOKING_CANCEL_REASONS = [
-  { value: "no_show", label: "Mehmon kelmadi" },
-  { value: "wrong_booking", label: "Bron xato / ma'lumot noto'g'ri" },
-  { value: "early_leave", label: "Muddatidan oldin ketdi" },
-  { value: "other", label: "Boshqa sabab" },
-] as const;
 
 const createEmptyGuest = (id: number): GuestEntry => ({
   id,
@@ -82,6 +90,10 @@ const Index = () => {
 
   const isFullRoom = prefill.bookingScope === "full-room";
   const isEditMode = prefill.mode === "edit";
+  const isBronReservation = isEditMode && prefill.bookingKind === "bron";
+  const [editUnlocked, setEditUnlocked] = useState(false);
+  const fieldsReadOnly = isEditMode && !isBronReservation && !editUnlocked;
+  const isCheckInEditLocked = fieldsReadOnly;
 
   const todayIso = format(new Date(), "yyyy-MM-dd");
   const stayDateIso = prefill.stayDate ?? todayIso;
@@ -94,135 +106,125 @@ const Index = () => {
   });
 
   const guestLookup = useMemo(() => {
-    const m: Record<string, { name: string; lastVisit: string; price: number; notes: string }> = {};
+    const m: Record<string, RepeatGuest> = {};
     (recentData?.guests ?? []).forEach((g) => {
       const key = g.lookupKey || computeGuestLookupKey(g.phone, g.passportSeries || "");
       if (!key) return;
+      const paidNum = typeof g.paid === "number" ? g.paid : Number(g.paid) || 0;
+      const n = g.nights;
+      const nightsSnap = typeof n === "number" && n >= 1 ? Math.min(365, n) : 1;
+      const photoSnap = (g.photos ?? [])
+        .filter((u): u is string => typeof u === "string" && u.trim().length > 0)
+        .slice(0, 3);
       m[key] = {
-        name: g.name,
+        name: g.name || "",
         lastVisit: checkInLabel(g.lastVisit),
         price: g.price,
+        paid: paidNum,
+        nights: nightsSnap,
         notes: g.notes || "",
+        phone: g.phone || "",
+        passportSeries: normalizePassportSeries(g.passportSeries || ""),
+        hostel: g.hostel,
+        room: g.room,
+        ...(photoSnap.length ? { photos: photoSnap } : {}),
       };
     });
     return m;
   }, [recentData]);
 
   const normalizedPhone = (prefill.guestPhone || "").replace(/\D/g, "");
+  const notesFromEmbeddedContact =
+    isEditMode && prefill.notes ? parseEmbeddedContactFromNotes(prefill.notes) : { phone: "", passportSeries: "" };
 
-  const [showRecentGuests, setShowRecentGuests] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [cancelReasonValue, setCancelReasonValue] = useState<string>("");
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [aiParsing, setAiParsing] = useState(false);
+  const [aiExtracted, setAiExtracted] = useState<{ name: string; serialNumber: string; dateOfBirth: string } | null>(null);
+  const [aiRawText, setAiRawText] = useState<string>("");
   const [deleting, setDeleting] = useState(false);
-  /** Yangi bron uchun: "choose" — Yangi mehmon (scan) yoki Avval kelgan; "form" — to‘liq forma. */
-  const [step, setStep] = useState<"choose" | "form">(isEditMode ? "form" : "choose");
-  const [notesOpen, setNotesOpen] = useState(false);
-  const photoInputRef = useRef<HTMLInputElement | null>(null);
-
-  const [photos, setPhotos] = useState<string[]>(() =>
-    isEditMode && Array.isArray(prefill.bookingPhotos) ? prefill.bookingPhotos : []
+  const [photos, setPhotos] = useState<string[]>(() => {
+    const raw = prefill.bookingPhotos;
+    if (Array.isArray(raw)) {
+      if (raw.length > 0) {
+        return raw.filter((u): u is string => typeof u === "string").slice(0, 3);
+      }
+      if (isEditMode) return raw;
+    }
+    return [];
+  });
+  const [phone, setPhone] = useState(() =>
+    normalizedPhone.length >= 9
+      ? normalizedPhone
+      : notesFromEmbeddedContact.phone.length > 0
+        ? notesFromEmbeddedContact.phone
+        : normalizedPhone
   );
-  const [phone, setPhone] = useState(normalizedPhone);
-  const [passportSeries, setPassportSeries] = useState(() => prefill.guestPassportSeries || "");
+  const [passportSeries, setPassportSeries] = useState(() => {
+    const fromNotes = notesFromEmbeddedContact.passportSeries;
+    if (fromNotes.length > 0) return fromNotes;
+    return prefill.guestPassportSeries || "";
+  });
   const [price, setPrice] = useState(() => {
     if (prefill.price) return prefill.price;
     return sessionStorage.getItem("lastPrice") || "";
   });
   const [paid, setPaid] = useState(prefill.paid ?? "");
   const [notes, setNotes] = useState(() => {
-    if (prefill.notes) return prefill.notes;
-    if (prefill.guestName) return `Mijoz: ${prefill.guestName}`;
+    if (isEditMode && prefill.notes) return stripEmbeddedContactLines(prefill.notes);
     return "";
   });
   const [nights, setNights] = useState(prefill.nights ?? 1);
 
   const [guests, setGuests] = useState<GuestEntry[]>(() => [createEmptyGuest(1)]);
   const [activeGuestIdx, setActiveGuestIdx] = useState(0);
-  const ocrProcessedRef = useRef<Set<string>>(new Set());
-  const [idOcrPreview, setIdOcrPreview] = useState<IdOcrPreview | null>(null);
   /** Avval kelgan mehmon qo'llanildi → banner "to'ldirildi" holatiga o'tadi */
   const [appliedRepeatKey, setAppliedRepeatKey] = useState<string>("");
 
+  const repeatLookupKey = useMemo(
+    () =>
+      isFullRoom
+        ? computeGuestLookupKey(guests[activeGuestIdx]?.phone || "", guests[activeGuestIdx]?.passportSeries || "")
+        : computeGuestLookupKey(phone, passportSeries),
+    [isFullRoom, phone, passportSeries, activeGuestIdx, guests]
+  );
+
+  const repeatGuest: RepeatGuest | null = repeatLookupKey ? guestLookup[repeatLookupKey] ?? null : null;
+
+  /** CRM dan tanlab kelganda — «tanlash» banneri emas, darhol «tanlandi» holati */
+  const repeatGuestListPrefillAppliedRef = useRef(false);
   useEffect(() => {
-    if (!isFullRoom) return;
-    setIdOcrPreview(null);
-  }, [activeGuestIdx, isFullRoom]);
-
-  const currentRepeatKey = isFullRoom
-    ? computeGuestLookupKey(guests[activeGuestIdx]?.phone || "", guests[activeGuestIdx]?.passportSeries || "")
-    : computeGuestLookupKey(phone, passportSeries);
-  const repeatGuest = guestLookup[currentRepeatKey] || null;
-
-  const photoListKey = isFullRoom
-    ? `${activeGuestIdx}:${JSON.stringify(guests[activeGuestIdx]?.photos ?? [])}`
-    : JSON.stringify(photos);
+    if (isEditMode || isFullRoom || !prefill.fromRecentGuestList) return;
+    if (repeatGuestListPrefillAppliedRef.current) return;
+    const key = repeatLookupKey;
+    if (!key || !repeatGuest) return;
+    repeatGuestListPrefillAppliedRef.current = true;
+    setAppliedRepeatKey(key);
+  }, [isEditMode, isFullRoom, prefill.fromRecentGuestList, repeatLookupKey, repeatGuest]);
 
   useEffect(() => {
-    const urls = isFullRoom ? guests[activeGuestIdx]?.photos ?? [] : photos;
-    const last = urls[urls.length - 1];
-    if (!last || !last.startsWith("data:image")) return;
-    if (ocrProcessedRef.current.has(last)) return;
-    let cancelled = false;
-    const timer = window.setTimeout(() => {
-      void (async () => {
-        try {
-          const data = await extractGuestNameFromIdImage(last);
-          if (cancelled) return;
-          ocrProcessedRef.current.add(last);
-          const name = (data.full_name || "").trim();
-          const raw = (data.raw_text_preview || "").trim().slice(0, 2500);
-          const doc = (data.document_number || "").trim();
-          const passFromOcr = normalizePassportSeries(doc);
-          const canApplyPassport = passFromOcr.length >= 4;
-          if (name || doc || raw) {
-            setIdOcrPreview({
-              photoDataUrl: last,
-              fullName: name,
-              documentNumber: doc,
-              rawPreview: raw,
-            });
-          }
-          if (name || canApplyPassport) {
-            if (isFullRoom) {
-              setGuests((prev) => {
-                const gi = prev.findIndex((g) => g.photos.includes(last));
-                if (gi < 0) return prev;
-                return prev.map((g, i) => {
-                  if (i !== gi) return g;
-                  const updates: Partial<GuestEntry> = {};
-                  if (name) updates.notes = applyMijozNameToNotes(g.notes, name);
-                  if (canApplyPassport && !normalizePassportSeries(g.passportSeries)) {
-                    updates.passportSeries = passFromOcr;
-                  }
-                  return { ...g, ...updates };
-                });
-              });
-            } else {
-              if (name) setNotes((n) => applyMijozNameToNotes(n, name));
-              if (canApplyPassport) {
-                setPassportSeries((p) => (normalizePassportSeries(p) ? p : passFromOcr));
-              }
-            }
-          }
-        } catch (e) {
-          if (cancelled) return;
-          ocrProcessedRef.current.add(last);
-          setIdOcrPreview((p) => (p?.photoDataUrl === last ? null : p));
-        }
-      })();
-    }, 700);
-    return () => {
-      cancelled = true;
-      window.clearTimeout(timer);
-    };
-    // photoListKey = activeGuestIdx + photos (to‘liq xona / bitta karavot)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [photoListKey, isFullRoom]);
+    setEditUnlocked(false);
+  }, [prefill.bookingId, prefill.mode]);
+
+  const crmRefreshForKey = useRef<string | null>(null);
+  useEffect(() => {
+    if (!repeatLookupKey || !repeatGuest) {
+      crmRefreshForKey.current = null;
+      return;
+    }
+    if (crmRefreshForKey.current === repeatLookupKey) return;
+    crmRefreshForKey.current = repeatLookupKey;
+    void queryClient.invalidateQueries({ queryKey: ["recentGuests"] });
+  }, [repeatLookupKey, repeatGuest, queryClient]);
 
   const saveMutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (): Promise<{
+      identityOverlapWarnings?: IdentityOverlapWarning[];
+      identityOverlapWarning?: IdentityOverlapWarning;
+    }> => {
       const hostel = prefill.hostel;
       const roomCode = prefill.roomId;
       if (!hostel || !roomCode) throw new Error("Xona yoki hostel tanlanmagan");
@@ -230,19 +232,39 @@ const Index = () => {
       if (isEditMode) {
         const id = prefill.bookingId;
         if (!id) throw new Error("Bron ID topilmadi — taxtadan qayta oching");
-        await patchBooking(id, {
-          guestPhone: digitsOnly(phone),
-          guestPassportSeries: normalizePassportSeries(passportSeries),
-          guestName: prefill.guestName || guestNameFromNotes(notes) || "Mehmon",
+        if (prefill.bookingKind === "bron") {
+          if (!lineHasValidGuestIdentity(phone, passportSeries)) {
+            throw new Error("Check-in uchun hujjat seriyasi (4+ belgi) yoki telefon (9+ raqam) kiriting");
+          }
+          const pn = normalizePassportSeries(passportSeries);
+          if (pn.startsWith("BRON")) {
+            throw new Error("Haqiqiy pasport yoki haydovchilik guvohnomasi seriyasini kiriting");
+          }
+        }
+        const resolvedGuestName =
+          prefill.bookingKind === "bron"
+            ? guestNameFromNotes(notes) || "Mehmon"
+            : (guestNameFromNotes(notes) || prefill.guestName || "").trim();
+        const identityPatch = lineHasValidGuestIdentity(phone, passportSeries)
+          ? {
+              guestPhone: digitsOnly(phone),
+              guestPassportSeries: normalizePassportSeries(passportSeries),
+            }
+          : {};
+        const notesOut = formatNotesWithContactDetails(notes, phone, passportSeries);
+        const res = await patchBooking(id, {
+          ...identityPatch,
+          guestName: resolvedGuestName,
           price: price || "0",
           paid: paid || "0",
-          notes,
+          notes: notesOut,
           nights,
           checkInDate: prefill.checkInDate ?? stayDateIso,
           photos,
           checkedInBy: prefill.checkedInBy,
+          ...(prefill.bookingKind === "bron" ? { bookingKind: "check_in" as const } : {}),
         });
-        return;
+        return { identityOverlapWarning: res.identityOverlapWarning };
       }
 
       if (isFullRoom) {
@@ -257,7 +279,7 @@ const Index = () => {
         const beds = prefill.emptyBedIds ?? [];
         if (beds.length < filled.length) throw new Error("Bo'sh karavotlar soni yetarli emas");
         const parentNights = Math.max(1, ...filled.map((g) => g.nights));
-        await createBooking({
+        const res = await createBooking({
           hostel,
           roomCode,
           checkInDate: stayDateIso,
@@ -270,20 +292,18 @@ const Index = () => {
             guestPassportSeries: normalizePassportSeries(g.passportSeries),
             price: g.price || "0",
             paid: g.paid || "0",
-            notes: g.notes,
+            notes: formatNotesWithContactDetails(g.notes, g.phone, g.passportSeries),
             photos: g.photos,
             nights: g.nights,
           })),
         });
-        return;
+        return { identityOverlapWarnings: res.identityOverlapWarnings };
       }
 
-      if (!lineHasValidGuestIdentity(phone, passportSeries)) {
-        throw new Error("Hujjat seriyasi (pasport yoki haydovchilik guvohnomasi, 4+ belgi) kiriting");
-      }
       if (!prefill.bedId) throw new Error("Karavot tanlanmagan");
 
-      await createBooking({
+      const notesOut = formatNotesWithContactDetails(notes, phone, passportSeries);
+      const res = await createBooking({
         hostel,
         roomCode,
         checkInDate: stayDateIso,
@@ -292,16 +312,18 @@ const Index = () => {
         lines: [
           {
             bedIndex: prefill.bedId,
-            guestName: prefill.guestName || guestNameFromNotes(notes) || "Mehmon",
+            guestName: (prefill.guestName || guestNameFromNotes(notesOut) || "").trim(),
             guestPhone: digitsOnly(phone),
             guestPassportSeries: normalizePassportSeries(passportSeries),
             price: price || "0",
             paid: paid || "0",
-            notes,
+            nights,
+            notes: notesOut,
             photos,
           },
         ],
       });
+      return { identityOverlapWarnings: res.identityOverlapWarnings };
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["board"] });
@@ -387,46 +409,88 @@ const Index = () => {
     reader.readAsDataURL(file);
   };
 
-  const handleAutoFill = (guest: (typeof guestLookup)[string]) => {
-    if (isFullRoom) {
-      updateGuest(activeGuestIdx, { price: String(guest.price), notes: guest.notes });
-    } else {
-      setPrice(String(guest.price));
-      setNotes(guest.notes);
-    }
-    setAppliedRepeatKey(currentRepeatKey);
-  };
+  const handleAutoFill = (guest: RepeatGuest) => {
+    const priceNum = Math.round(Number(guest.price)) || 0;
+    const priceStr = String(priceNum);
+    const paidStr = guest.paid > 0 ? String(Math.round(Number(guest.paid))) : "0";
+    const snapPhotos = (guest.photos ?? [])
+      .filter((u) => typeof u === "string" && u.trim().length > 0)
+      .slice(0, 3);
 
-  const handleRecentGuestSelect = (guest: RecentGuest) => {
-    const guestNotes = guest.notes
-      ? guest.notes
-      : guest.name
-        ? `Mijoz: ${guest.name}`
-        : "";
+    const snapNights =
+      typeof guest.nights === "number" && guest.nights >= 1 ? Math.min(365, guest.nights) : null;
     if (isFullRoom) {
+      const cur = guests[activeGuestIdx];
       updateGuest(activeGuestIdx, {
-        phone: guest.phone,
-        passportSeries: guest.passportSeries || "",
-        price: String(guest.price),
-        notes: guestNotes,
+        phone: guest.phone || cur?.phone || "",
+        passportSeries: guest.passportSeries
+          ? normalizePassportSeries(guest.passportSeries)
+          : cur?.passportSeries || "",
+        ...(priceNum > 0 ? { price: priceStr } : {}),
+        paid: paidStr,
+        ...(snapNights != null ? { nights: snapNights } : {}),
+        ...(snapPhotos.length ? { photos: snapPhotos } : {}),
       });
     } else {
-      setPhone(guest.phone);
-      setPassportSeries(guest.passportSeries || "");
-      setPrice(String(guest.price));
-      setNotes(guestNotes);
+      if (guest.phone) setPhone(guest.phone);
+      if (guest.passportSeries) setPassportSeries(normalizePassportSeries(guest.passportSeries));
+      if (priceNum > 0) setPrice(priceStr);
+      setPaid(paidStr);
+      if (snapNights != null) setNights(snapNights);
+      if (snapPhotos.length) setPhotos(snapPhotos);
     }
-    setStep("form");
+    setAppliedRepeatKey(repeatLookupKey);
   };
 
-  const triggerPassportScan = () => {
-    photoInputRef.current?.click();
-  };
-
-  const handlePassportScanFiles = (files: FileList | null) => {
-    if (!files || files.length === 0) return;
-    handlePhotos(files);
-    setStep("form");
+  const handleParseFromPhoto = async () => {
+    const firstPhoto = isFullRoom ? activeGuest?.photos?.[0] : photos[0];
+    if (!firstPhoto) {
+      setSaveError("Avval hujjat rasmini yuklang, keyin AI tugmasini bosing.");
+      return;
+    }
+    setAiParsing(true);
+    setSaveError(null);
+    setAiExtracted(null);
+    setAiRawText("");
+    try {
+      const parsed = await parseDocumentPhoto(firstPhoto);
+      const rawText = (parsed.rawExtractedText || "").trim();
+      if (rawText) {
+        setAiRawText(rawText);
+        console.log("AI raw extracted text:", rawText);
+      }
+      if (!parsed.parsed) {
+        setSaveError(
+          rawText
+            ? "AI javobi olindi, lekin structured parse bo'lmadi. Pastda raw text ko'rsatilgan."
+            : "Rasmdan hujjat maʼlumotlari o‘qilmadi. Tiniqroq rasm bilan qayta urinib ko‘ring."
+        );
+        return;
+      }
+      const docNumber = normalizePassportSeries(parsed.documentNumber || "");
+      const fullName = (parsed.fullName || "").trim();
+      const birthDate = (parsed.birthDate || "").trim();
+      setAiExtracted({
+        name: fullName,
+        serialNumber: docNumber,
+        dateOfBirth: birthDate,
+      });
+      if (docNumber) {
+        if (isFullRoom) updateGuest(activeGuestIdx, { passportSeries: docNumber });
+        else setPassportSeries(docNumber);
+      }
+      if (isFullRoom) {
+        const cur = activeGuest?.notes || "";
+        updateGuest(activeGuestIdx, { notes: applyParsedDocToNotes(cur, fullName, birthDate) });
+      } else {
+        setNotes((prev) => applyParsedDocToNotes(prev, fullName, birthDate));
+      }
+    } catch (e) {
+      const raw = e instanceof ApiError ? e.message : e instanceof Error ? e.message : "AI parse xatosi";
+      setSaveError(raw);
+    } finally {
+      setAiParsing(false);
+    }
   };
 
   const updateGuest = (idx: number, data: Partial<GuestEntry>) => {
@@ -446,34 +510,49 @@ const Index = () => {
   };
 
   const handleSave = async () => {
-    if (isEditMode && !showConfirm) {
+    if (isEditMode && isBronReservation && !showConfirm) {
       setShowConfirm(true);
       return;
     }
     if (saving) return;
 
     setSaving(true);
+    setSaveError(null);
     try {
-      await saveMutation.mutateAsync();
+      const saveResult = await saveMutation.mutateAsync();
+      const overlapList: IdentityOverlapWarning[] = [
+        ...(saveResult.identityOverlapWarnings ?? []),
+        ...(saveResult.identityOverlapWarning ? [saveResult.identityOverlapWarning] : []),
+      ];
+      if (overlapList.length > 0) {
+        try {
+          sessionStorage.setItem(LAST_BOOKING_IDENTITY_OVERLAP_KEY, JSON.stringify(overlapList));
+        } catch {
+          void 0;
+        }
+      }
       if (price && !isFullRoom) sessionStorage.setItem("lastPrice", price);
-      
       setShowConfirm(false);
+      setEditUnlocked(false);
       if (isFullRoom) {
         setGuests([createEmptyGuest(1)]);
         setActiveGuestIdx(0);
-        setIdOcrPreview(null);
       } else {
         setPhone("");
         setPassportSeries("");
         setPaid("");
         setNotes("");
         setPhotos([]);
-        setIdOcrPreview(null);
       }
-      if (!isEditMode) setStep("choose");
       navigate(-1);
-    } catch {
-      // silent
+    } catch (e) {
+      const raw =
+        e instanceof ApiError
+          ? e.message
+          : e instanceof Error
+            ? e.message
+            : "Check-inni saqlab bo‘lmadi";
+      setSaveError(bookingSaveErrorUz(raw));
     } finally {
       setSaving(false);
     }
@@ -497,28 +576,22 @@ const Index = () => {
       setCancelReasonValue("");
       navigate(-1);
     } catch {
-      // silent
+      void 0;
     } finally {
       setDeleting(false);
     }
   };
 
-  const handleCopyPhone = () => {
-    const g = isFullRoom ? guests[activeGuestIdx] : undefined;
-    const p = isFullRoom ? g?.phone : phone;
-    const pass = isFullRoom ? g?.passportSeries || "" : passportSeries;
-    const d = digitsOnly(p || "");
-    if (d.length >= 9) {
-      void navigator.clipboard.writeText(`+${d}`);
-      return;
-    }
-    const s = normalizePassportSeries(pass);
-    if (s) void navigator.clipboard.writeText(s);
-  };
-
   const hostelName = prefill.hostel || "Bron";
-  const editCheckInWhen = isEditMode ? formatCheckInDateTime(prefill.checkedInAt) : "";
   const activeGuest = guests[activeGuestIdx];
+
+  /** To‘g‘ridan-to‘g‘ri `/booking` URL — taxta state siz */
+  const bookingContextIncomplete = useMemo(() => {
+    if (isEditMode) return false;
+    if (!prefill.hostel || !prefill.roomId) return true;
+    if (isFullRoom) return !(Array.isArray(prefill.emptyBedIds) && prefill.emptyBedIds.length > 0);
+    return prefill.bedId == null;
+  }, [isEditMode, isFullRoom, prefill.hostel, prefill.roomId, prefill.bedId, prefill.emptyBedIds]);
 
   return (
     <div
@@ -535,10 +608,12 @@ const Index = () => {
             <ChevronLeft className="h-5 w-5" />
             Ortga
           </button>
-          <h1 className="text-lg font-extrabold text-primary">{hostelName}</h1>
-          {isEditMode && (
-            <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-warning/20 text-warning">Tahrirlash</span>
-          )}
+          <h1 className="text-[1.125rem] sm:text-xl font-extrabold tracking-tight text-primary">{hostelName}</h1>
+          {isEditMode && isBronReservation ? (
+            <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-orange-500/25 text-orange-800 dark:text-orange-200">
+              Bron
+            </span>
+          ) : null}
           {prefill.roomName && (
             <span className="text-xs text-muted-foreground">
               · {prefill.roomName}
@@ -546,31 +621,24 @@ const Index = () => {
             </span>
           )}
         </div>
-        {isEditMode && (prefill.checkedInBy || editCheckInWhen) && (
-          <p className="text-xs text-muted-foreground mt-1 px-1">
-            {prefill.checkedInBy ? (
-              <>
-                Check-in qilgan: <span className="font-semibold text-foreground">{prefill.checkedInBy}</span>
-                {editCheckInWhen ? (
-                  <>
-                    {" · "}
-                    <span className="font-semibold text-foreground">{editCheckInWhen}</span>
-                  </>
-                ) : null}
-              </>
-            ) : editCheckInWhen ? (
-              <>
-                Check-in vaqti: <span className="font-semibold text-foreground">{editCheckInWhen}</span>
-              </>
-            ) : null}
+        {isBronReservation && (prefill.expectedArrival || "").trim() ? (
+          <p className="text-xs text-foreground/80 mt-1 px-1 tabular-nums">
+            {formatBronArrivalHuman(prefill.expectedArrival || "")}
           </p>
-        )}
-        {isFullRoom && (
-          <p className="text-xs text-muted-foreground mt-1 px-1">
-            To'liq xona bron · {guests.length} mehmon
-          </p>
-        )}
+        ) : null}
       </div>
+
+      {!isEditMode && bookingContextIncomplete && (
+        <div className="bg-amber-500/15 border-b border-amber-500/25 px-4 py-3 shrink-0 text-sm">
+          <p className="font-semibold text-foreground">Taxtadan xona va karavot tanlanmagan</p>
+          <Link
+            to="/"
+            className="mt-2 inline-block text-sm font-bold text-primary underline underline-offset-[3px]"
+          >
+            Taxtaga o‘tish
+          </Link>
+        </div>
+      )}
 
       {isFullRoom && (
         <div className="bg-card border-b border-border px-3 py-2 shrink-0">
@@ -590,7 +658,7 @@ const Index = () => {
                     <span className="opacity-70">·{(g.phone || g.passportSeries).slice(-4)}</span>
                   )}
                 </button>
-                {guests.length > 1 && idx === activeGuestIdx && (
+                {guests.length > 1 && idx === activeGuestIdx && !fieldsReadOnly && (
                   <button
                     type="button"
                     aria-label="Mehmonni olib tashlash"
@@ -605,7 +673,8 @@ const Index = () => {
             <button
               type="button"
               onClick={addGuest}
-              className="flex items-center gap-1 px-3 py-2 rounded-xl text-xs font-bold bg-primary/10 text-primary whitespace-nowrap active:bg-primary/20"
+              disabled={fieldsReadOnly}
+              className="flex items-center gap-1 px-3 py-2 rounded-xl text-xs font-bold bg-primary/10 text-primary whitespace-nowrap active:bg-primary/20 disabled:opacity-40"
             >
               <UserPlus className="w-3.5 h-3.5" />
               Qo'shish
@@ -615,107 +684,15 @@ const Index = () => {
       )}
 
       <div className="flex-1 overflow-y-auto">
-        <input
-          ref={photoInputRef}
-          type="file"
-          accept="image/*"
-          capture="environment"
-          className="hidden"
-          onChange={(e) => {
-            handlePassportScanFiles(e.target.files);
-            e.currentTarget.value = "";
-          }}
-        />
-
-        <RecentGuests
-          open={showRecentGuests}
-          onClose={() => setShowRecentGuests(false)}
-          onSelect={(guest) => {
-            handleRecentGuestSelect(guest);
-            setShowRecentGuests(false);
-          }}
-        />
-
-        {step === "choose" && !isEditMode ? (
-          <div className="max-w-lg mx-auto px-4 py-6 space-y-4">
-            <button
-              type="button"
-              onClick={triggerPassportScan}
-              className="w-full flex items-center gap-4 p-5 rounded-2xl bg-primary text-primary-foreground active:scale-[0.98] transition-all"
-            >
-              <div className="w-12 h-12 rounded-xl bg-white/15 flex items-center justify-center shrink-0">
-                <Camera className="w-6 h-6" />
-              </div>
-              <span className="text-base font-bold">Yangi mehmon</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setShowRecentGuests(true)}
-              className="w-full flex items-center gap-4 p-5 rounded-2xl bg-card border border-border text-foreground active:scale-[0.98] transition-all"
-            >
-              <div className="w-12 h-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                <Users className="w-6 h-6" />
-              </div>
-              <span className="text-base font-bold">Avval kelgan</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setStep("form")}
-              className="w-full text-center text-sm font-semibold text-muted-foreground py-3 hover:text-foreground transition-colors"
-            >
-              Qo‘lda kiritish
-            </button>
-          </div>
-        ) : (
-          <div className="max-w-lg mx-auto px-4 py-4 pb-6 space-y-4">
-              <PhotoUpload
-                hideLabel
-                variant={isEditMode ? "default" : "express"}
-                photos={isFullRoom ? activeGuest?.photos || [] : photos}
-                onAdd={handlePhotos}
-                onRemove={removePhoto}
-                onReplace={replacePhoto}
-              />
-
-              <RepeatGuestBanner
-                guest={repeatGuest}
-                onApply={handleAutoFill}
-                applied={!!repeatGuest && appliedRepeatKey === currentRepeatKey}
-              />
-
-              {(() => {
-                const urls = isFullRoom ? activeGuest?.photos ?? [] : photos;
-                const o = idOcrPreview;
-                if (!o || !urls.includes(o.photoDataUrl)) return null;
-                if (!o.fullName && !o.documentNumber && !o.rawPreview) return null;
-                return (
-                  <div className="rounded-xl bg-muted/30 px-3 py-2.5 space-y-1.5">
-                    <p className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Rasmdan</p>
-                    {o.fullName ? (
-                      <p className="text-sm">
-                        <span className="text-muted-foreground font-medium">Ism: </span>
-                        <span className="font-semibold text-foreground">{o.fullName}</span>
-                      </p>
-                    ) : null}
-                    {o.documentNumber ? (
-                      <p className="text-sm">
-                        <span className="text-muted-foreground font-medium">Seriya: </span>
-                        <span className="font-mono font-medium text-foreground">{o.documentNumber}</span>
-                      </p>
-                    ) : null}
-                    {o.rawPreview ? (
-                      <pre className="text-[10px] leading-snug text-muted-foreground whitespace-pre-wrap break-words max-h-24 overflow-y-auto font-mono rounded-lg bg-muted/40 p-2">
-                        {o.rawPreview}
-                      </pre>
-                    ) : null}
-                  </div>
-                );
-              })()}
-
-              <div className="space-y-2">
-                <Label className="text-sm font-semibold text-foreground">Hujjat seriyasi</Label>
+        <div className="mx-auto flex w-full max-w-lg flex-col gap-6 px-4 pb-32 pt-4">
+          <div className="flex flex-col gap-4">
+            <PhoneInput
+              value={isFullRoom ? activeGuest?.phone || "" : phone}
+              onChange={(v) => (isFullRoom ? updateGuest(activeGuestIdx, { phone: v }) : setPhone(v))}
+              disabled={fieldsReadOnly}
+            />
+            <div className="flex items-center gap-2">
+              <div className={cn(BOOKING_FIELD_SHELL_CLASS, "min-w-0 flex-1", fieldsReadOnly && "pointer-events-none opacity-60")}>
                 <Input
                   value={isFullRoom ? activeGuest?.passportSeries ?? "" : passportSeries}
                   onChange={(e) =>
@@ -723,51 +700,110 @@ const Index = () => {
                       ? updateGuest(activeGuestIdx, { passportSeries: e.target.value.toUpperCase() })
                       : setPassportSeries(e.target.value.toUpperCase())
                   }
-                  placeholder="AB1234567"
-                  className="h-12 rounded-xl border-border/80 bg-background/50 text-base font-semibold tracking-wide"
+                  placeholder="Pasport yoki guvohnoma seriyasi"
+                  aria-label="Hujjat seriyasi"
+                  readOnly={fieldsReadOnly}
+                  disabled={fieldsReadOnly}
+                  className={BOOKING_SINGLE_LINE_INPUT_CLASS}
                   autoCapitalize="characters"
                 />
               </div>
-
-              <PhoneInput
-                value={isFullRoom ? activeGuest?.phone || "" : phone}
-                onChange={(v) => (isFullRoom ? updateGuest(activeGuestIdx, { phone: v }) : setPhone(v))}
+              {!fieldsReadOnly ? (
+                <button
+                  type="button"
+                  onClick={() => void handleParseFromPhoto()}
+                  disabled={aiParsing}
+                  title="Rasmdan AI orqali parse qilish"
+                  aria-label="Rasmdan AI orqali parse qilish"
+                  className="relative h-12 w-12 rounded-xl border border-primary/35 bg-primary/10 text-primary shadow-sm transition-all hover:bg-primary/20 active:scale-[0.97] shrink-0 disabled:opacity-50 inline-flex items-center justify-center overflow-hidden"
+                >
+                  {aiParsing ? (
+                    <>
+                      <span className="absolute h-5 w-5 rounded-full border border-primary/40 animate-ping" />
+                      <span className="absolute h-8 w-8 rounded-full border border-primary/25 animate-ping [animation-delay:220ms]" />
+                    </>
+                  ) : null}
+                  <Magnet className={cn("relative z-10 h-4 w-4", aiParsing && "animate-magnet-shake")} />
+                </button>
+              ) : null}
+            </div>
+            {aiExtracted ? (
+              <div className="rounded-xl border border-primary/30 bg-primary/5 px-3 py-2 text-xs">
+                <p className="font-bold text-primary mb-1">AI parse natijasi</p>
+                <p>
+                  <span className="font-semibold">Name:</span> {aiExtracted.name || "—"}
+                </p>
+                <p>
+                  <span className="font-semibold">Serial number:</span> {aiExtracted.serialNumber || "—"}
+                </p>
+                <p>
+                  <span className="font-semibold">Date of birth:</span> {aiExtracted.dateOfBirth || "—"}
+                </p>
+              </div>
+            ) : null}
+            {aiRawText ? (
+              <div className="rounded-xl border border-border/70 bg-muted/20 px-3 py-2 text-xs">
+                <p className="font-bold text-muted-foreground mb-1">AI raw extracted text (log)</p>
+                <pre className="whitespace-pre-wrap break-words text-[11px] leading-relaxed">{aiRawText}</pre>
+              </div>
+            ) : null}
+            {!fieldsReadOnly ? (
+              <RepeatGuestBanner
+                guest={repeatGuest}
+                onApply={handleAutoFill}
+                applied={!!repeatGuest && appliedRepeatKey === repeatLookupKey}
               />
-
-              <PriceInput
-                value={isFullRoom ? activeGuest?.price || "" : price}
-                onChange={(v) => (isFullRoom ? updateGuest(activeGuestIdx, { price: v }) : setPrice(v))}
-                nights={isFullRoom ? activeGuest?.nights || 1 : nights}
-                onNightsChange={(v) => (isFullRoom ? updateGuest(activeGuestIdx, { nights: v }) : setNights(v))}
-              />
-              <PaymentBlock
-                price={isFullRoom ? activeGuest?.price || "" : price}
-                paid={isFullRoom ? activeGuest?.paid || "" : paid}
-                nights={isFullRoom ? activeGuest?.nights || 1 : nights}
-                onPaidChange={(v) => (isFullRoom ? updateGuest(activeGuestIdx, { paid: v }) : setPaid(v))}
-              />
-
-              <Collapsible open={notesOpen} onOpenChange={setNotesOpen}>
-                <CollapsibleTrigger className="flex w-full items-center justify-between rounded-xl bg-muted/25 px-3 py-2.5 text-left text-sm font-semibold text-muted-foreground hover:bg-muted/40 transition-colors">
-                  <span>Izoh (ixtiyoriy)</span>
-                  <ChevronDown className={`h-4 w-4 shrink-0 transition-transform ${notesOpen ? "rotate-180" : ""}`} />
-                </CollapsibleTrigger>
-                <CollapsibleContent className="overflow-hidden pt-2 data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
-                  <NotesInput
-                    hideLabel
-                    value={isFullRoom ? activeGuest?.notes || "" : notes}
-                    onChange={(v) => (isFullRoom ? updateGuest(activeGuestIdx, { notes: v }) : setNotes(v))}
-                  />
-                </CollapsibleContent>
-              </Collapsible>
+            ) : null}
+            <PhotoUpload
+              variant="default"
+              readOnly={fieldsReadOnly}
+              photos={isFullRoom ? activeGuest?.photos || [] : photos}
+              onAdd={handlePhotos}
+              onRemove={removePhoto}
+              onReplace={replacePhoto}
+            />
           </div>
-        )}
+
+          <div className="flex flex-col gap-4">
+            <PriceInput
+              value={isFullRoom ? activeGuest?.price || "" : price}
+              onChange={(v) => (isFullRoom ? updateGuest(activeGuestIdx, { price: v }) : setPrice(v))}
+              nights={isFullRoom ? activeGuest?.nights || 1 : nights}
+              onNightsChange={(v) => (isFullRoom ? updateGuest(activeGuestIdx, { nights: v }) : setNights(v))}
+              disabled={fieldsReadOnly}
+            />
+            <PaymentBlock
+              price={isFullRoom ? activeGuest?.price || "" : price}
+              paid={isFullRoom ? activeGuest?.paid || "" : paid}
+              nights={isFullRoom ? activeGuest?.nights || 1 : nights}
+              onPaidChange={(v) => (isFullRoom ? updateGuest(activeGuestIdx, { paid: v }) : setPaid(v))}
+              disabled={fieldsReadOnly}
+            />
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <Label className="text-[0.8125rem] font-semibold leading-none text-foreground tracking-tight">
+              Izoh
+            </Label>
+            <NotesInput
+              hideLabel
+              disabled={fieldsReadOnly}
+              value={isFullRoom ? activeGuest?.notes || "" : notes}
+              onChange={(v) => (isFullRoom ? updateGuest(activeGuestIdx, { notes: v }) : setNotes(v))}
+            />
+          </div>
+        </div>
       </div>
 
       <div
         className="bg-card/95 backdrop-blur border-t border-border px-4 py-3 shrink-0"
         style={{ paddingBottom: "calc(0.75rem + env(safe-area-inset-bottom))" }}
       >
+        {saveError ? (
+          <div className="max-w-lg mx-auto mb-2 rounded-xl border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            <p className="font-semibold leading-snug">{saveError}</p>
+          </div>
+        ) : null}
         {isEditMode && prefill.bookingId && (
           <div className="max-w-lg mx-auto mb-2">
             <button
@@ -779,42 +815,46 @@ const Index = () => {
               disabled={saving || deleting}
               className="w-full h-11 rounded-xl font-bold text-sm border-2 border-destructive/50 text-destructive bg-destructive/5 hover:bg-destructive/10 transition-all active:scale-[0.99] disabled:opacity-50"
             >
-              Bronni bekor qilish
+              {isBronReservation ? "Bronni bekor qilish" : "Check-inni bekor qilish"}
             </button>
           </div>
         )}
-        {step === "choose" && !isEditMode ? (
-          <div className="max-w-lg mx-auto">
+        <div className="max-w-lg mx-auto grid grid-cols-2 gap-3">
+          <button
+            type="button"
+            onClick={handleBack}
+            disabled={saving}
+            className="h-14 rounded-2xl font-bold text-base bg-muted text-foreground border border-border/80 transition-all active:scale-[0.98] flex items-center justify-center gap-1.5 disabled:opacity-50"
+          >
+            <ChevronLeft className="h-5 w-5" />
+            Ortga
+          </button>
+          {isCheckInEditLocked ? (
             <button
               type="button"
-              onClick={handleBack}
-              className="w-full h-14 rounded-xl font-bold text-base bg-muted text-foreground border border-border transition-all active:scale-[0.98] flex items-center justify-center gap-1.5"
-            >
-              <ChevronLeft className="h-5 w-5" />
-              Ortga
-            </button>
-          </div>
-        ) : (
-          <div className="max-w-lg mx-auto grid grid-cols-2 gap-3">
-            <button
-              type="button"
-              onClick={() => (isEditMode ? handleBack() : setStep("choose"))}
+              onClick={() => setEditUnlocked(true)}
               disabled={saving}
-              className="h-14 rounded-2xl font-bold text-base bg-muted text-foreground border border-border/80 transition-all active:scale-[0.98] flex items-center justify-center gap-1.5 disabled:opacity-50"
+              className="h-14 rounded-2xl font-bold text-base bg-primary text-primary-foreground shadow-lg shadow-primary/25 transition-all active:scale-[0.98] disabled:opacity-50"
             >
-              <ChevronLeft className="h-5 w-5" />
-              {isEditMode ? "Ortga" : "Boshqa usul"}
+              O&apos;zgartirish
             </button>
+          ) : (
             <button
               type="button"
               onClick={handleSave}
               disabled={saving}
               className="h-14 rounded-2xl font-bold text-base bg-primary text-primary-foreground shadow-lg shadow-primary/25 transition-all active:scale-[0.98] disabled:opacity-50"
             >
-              {saving ? "Saqlanmoqda…" : isEditMode ? "O'zgartirish" : "Check-in"}
+              {saving
+                ? "Saqlanmoqda…"
+                : isBronReservation
+                  ? "Check-in qilish"
+                  : isEditMode
+                    ? "Saqlash"
+                    : "Check-in"}
             </button>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       {showCancelDialog && (
@@ -826,10 +866,9 @@ const Index = () => {
           aria-labelledby="cancel-booking-title"
         >
           <div className="bg-card rounded-2xl p-5 w-full max-w-sm shadow-xl border border-border animate-fade-in max-h-[90dvh] overflow-y-auto">
-            <h2 id="cancel-booking-title" className="text-lg font-extrabold text-foreground mb-1">
-              Bronni bekor qilish
+            <h2 id="cancel-booking-title" className="text-lg font-extrabold text-foreground mb-4">
+              {isBronReservation ? "Bronni bekor qilish" : "Check-inni bekor qilish"}
             </h2>
-            <p className="text-xs text-muted-foreground mb-4">Sababni tanlang, keyin tasdiqlang.</p>
             <RadioGroup value={cancelReasonValue} onValueChange={setCancelReasonValue} className="gap-3 mb-5">
               {BOOKING_CANCEL_REASONS.map((r) => (
                 <div key={r.value} className="flex items-start gap-3 rounded-xl border border-border p-3 has-[[data-state=checked]]:border-primary has-[[data-state=checked]]:bg-primary/5">
@@ -865,16 +904,13 @@ const Index = () => {
         </div>
       )}
 
-      {showConfirm && (
+      {showConfirm && isBronReservation && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
           style={{ paddingTop: "env(safe-area-inset-top)" }}
         >
           <div className="bg-card rounded-2xl mx-6 p-6 w-full max-w-sm shadow-xl animate-fade-in">
-            <h2 className="text-lg font-extrabold text-foreground mb-2">O'zgartirishni tasdiqlang</h2>
-            <p className="text-sm text-muted-foreground mb-5">
-              Mehmon ma'lumotlari o'zgartiriladi. Davom etasizmi?
-            </p>
+            <h2 className="text-lg font-extrabold text-foreground mb-5">Check-inni tasdiqlang</h2>
             <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"

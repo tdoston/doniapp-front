@@ -34,7 +34,6 @@ const StaffUsersPage = () => {
       setRole("staff");
       void queryClient.invalidateQueries({ queryKey: ["users"] });
     },
-    onError: () => {},
   });
 
   const deactivateMut = useMutation({
@@ -42,7 +41,6 @@ const StaffUsersPage = () => {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["users"] });
     },
-    onError: () => {},
   });
 
   const users = data?.users ?? [];
@@ -103,7 +101,7 @@ const StaffUsersPage = () => {
       {isLoading && <p className="text-center text-sm text-muted-foreground py-6">Yuklanmoqda…</p>}
       {isError && (
         <div className="text-center py-6">
-          <p className="text-sm text-destructive mb-2">API xatosi</p>
+          <p className="text-sm text-destructive mb-2">Ma&apos;lumot olinmadi</p>
           <Button type="button" variant="outline" size="sm" onClick={() => refetch()}>
             Qayta
           </Button>

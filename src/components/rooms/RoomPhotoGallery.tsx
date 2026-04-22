@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { X, ChevronLeft, ChevronRight, Upload, Share2, Image, Trash2, RefreshCw } from "lucide-react";
 
 interface RoomPhotoGalleryProps {
@@ -24,7 +24,9 @@ const RoomPhotoGallery = ({ roomName, photos, onUpload, onDelete, onReplace, onC
           text: `${roomName} xonasini ko'ring`,
           url: window.location.href,
         });
-      } catch {}
+      } catch {
+        void 0;
+      }
     } else {
       await navigator.clipboard.writeText(window.location.href);
     }
@@ -62,19 +64,37 @@ const RoomPhotoGallery = ({ roomName, photos, onUpload, onDelete, onReplace, onC
     if (activeIdx > 0) setActiveIdx(activeIdx - 1);
   };
 
+  useEffect(() => {
+    const prevOverflow = document.body.style.overflow;
+    const prevOverscroll = document.body.style.overscrollBehavior;
+    document.body.style.overflow = "hidden";
+    document.body.style.overscrollBehavior = "none";
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      document.body.style.overscrollBehavior = prevOverscroll;
+    };
+  }, []);
+
   return (
     <div className="fixed inset-0 z-50 bg-black/90 flex flex-col animate-fade-in">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 shrink-0">
+      <div
+        className="flex items-center justify-between px-4 py-3 shrink-0"
+        style={{ paddingTop: "calc(env(safe-area-inset-top) + 0.5rem)" }}
+      >
         <h3 className="text-white font-bold text-sm">{roomName}</h3>
         <div className="flex items-center gap-2">
           {photos.length > 0 && (
-            <button onClick={handleShare} className="p-2 rounded-full bg-white/10 text-white">
+            <button onClick={handleShare} className="inline-flex h-11 w-11 touch-manipulation items-center justify-center rounded-full bg-white/10 text-white">
               <Share2 className="w-5 h-5" />
             </button>
           )}
-          <button onClick={onClose} className="p-2 rounded-full bg-white/10 text-white">
-            <X className="w-5 h-5" />
+          <button
+            onClick={onClose}
+            className="inline-flex h-12 w-12 touch-manipulation items-center justify-center rounded-full bg-white/20 text-white active:scale-[0.98]"
+            aria-label="Yopish"
+          >
+            <X className="w-7 h-7" />
           </button>
         </div>
       </div>
@@ -143,11 +163,14 @@ const RoomPhotoGallery = ({ roomName, photos, onUpload, onDelete, onReplace, onC
       </div>
 
       {/* Bottom actions */}
-      <div className="px-4 pb-6 shrink-0 flex justify-center gap-3">
+      <div
+        className="px-4 pb-6 shrink-0 grid grid-cols-1 sm:flex sm:justify-center gap-2.5 sm:gap-3"
+        style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 0.75rem)" }}
+      >
         {photos.length > 0 && onReplace && (
           <button
             onClick={() => replaceRef.current?.click()}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/10 text-white text-sm font-semibold"
+            className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-white/10 text-white text-sm font-semibold"
           >
             <RefreshCw className="w-4 h-4" />
             Almashtirish
@@ -156,7 +179,7 @@ const RoomPhotoGallery = ({ roomName, photos, onUpload, onDelete, onReplace, onC
         {photos.length > 0 && onDelete && (
           <button
             onClick={handleDelete}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-destructive/20 text-destructive text-sm font-semibold"
+            className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-destructive/20 text-destructive text-sm font-semibold"
           >
             <Trash2 className="w-4 h-4" />
             O'chirish
@@ -165,7 +188,7 @@ const RoomPhotoGallery = ({ roomName, photos, onUpload, onDelete, onReplace, onC
         {photos.length < 3 && (
           <button
             onClick={() => fileRef.current?.click()}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/10 text-white text-sm font-semibold"
+            className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-white/10 text-white text-sm font-semibold"
           >
             <Upload className="w-4 h-4" />
             Qo'shish ({photos.length}/3)

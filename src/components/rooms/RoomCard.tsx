@@ -1,13 +1,18 @@
 import React, { useState, useRef, useCallback, useEffect } from "react";
-import { BedDouble, Plus, ImageIcon, Sparkles } from "lucide-react";
+import { BedDouble, ImageIcon, Sparkles } from "lucide-react";
+import { digitsFromSoumInput } from "@/lib/moneyInput";
 import RoomPhotoGallery from "./RoomPhotoGallery";
-import { formatCheckInDateTime } from "@/lib/dates";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 export type BedStatus = "empty" | "booked" | "selected" | "processing";
 
 export interface BedData {
   id: number;
   status: BedStatus;
+  /** `bron` — band; `check_in` — mehmon (band) */
+  bookingKind?: "bron" | "check_in";
+  /** Bron: taxminiy kelish vaqti */
+  expectedArrival?: string;
   guestName?: string;
   guestPhone?: string;
   checkedInBy?: string;
@@ -29,6 +34,9 @@ export interface RoomData {
   beds: BedData[];
   photos?: string[];
   cleaningStatus?: "clean" | "dirty";
+  /** true: xonani to'liq olish (bo'sh karavotlarga boshqa mehmon qo'yilmaydi) */
+  fullTaken?: boolean;
+  fullTakenMode?: "" | "check_in" | "bron";
   /** true: bo'sh karavotlarga yangi bron yo'q; band karavot tahrirlash mumkin */
   inactive?: boolean;
 }
@@ -37,20 +45,52 @@ interface RoomCardProps {
   room: RoomData;
   onBedTap: (roomId: string, bedId: number) => void;
   onBedLongPress: (roomId: string, bedId: number) => void;
-  onBookRoom: (roomId: string) => void;
+  onFullRoomBron?: (roomId: string) => void;
+  onToggleFullTaken?: (roomId: string, next: boolean, mode: "" | "check_in" | "bron") => void;
+  onCancelFullRoomBron?: (roomId: string) => Promise<boolean>;
 }
 
-const statusStyles: Record<BedStatus, string> = {
-  empty: "bg-accent text-accent-foreground",
-  booked: "bg-destructive/80 text-destructive-foreground",
-  selected: "bg-accent ring-4 ring-warning text-accent-foreground",
-  processing: "bg-primary/40 text-primary-foreground animate-pulse",
-};
+/** Faqat check-in: jami narx > 0 va to‘langanidan kam bo‘lsa — taxtada qarz belgisi. */
+function checkInHasDebt(bed: BedData): boolean {
+  if (bed.status !== "booked" || bed.bookingKind !== "check_in") return false;
+  const price = Number(digitsFromSoumInput(bed.price ?? "")) || 0;
+  const paid = Number(digitsFromSoumInput(bed.paid ?? "")) || 0;
+  const nights = bed.nights ?? 1;
+  const total = price * nights;
+  if (total <= 0) return false;
+  return paid < total;
+}
 
-const RoomCard = ({ room, onBedTap, onBedLongPress, onBookRoom }: RoomCardProps) => {
+function bedSurfaceClass(bed: BedData): string {
+  if (bed.status === "empty") return "bg-emerald-600 text-white";
+  if (bed.status === "booked") {
+    if (bed.bookingKind === "bron") return "bg-amber-400 text-amber-950";
+    return "bg-red-600 text-white";
+  }
+  const fallback: Record<Exclude<BedStatus, "empty" | "booked">, string> = {
+    selected: "bg-accent ring-2 ring-amber-400 text-accent-foreground",
+    processing: "bg-primary/40 text-primary-foreground animate-pulse",
+  };
+  return fallback[bed.status];
+}
+
+const RoomCard = ({
+  room,
+  onBedTap,
+  onBedLongPress,
+  onFullRoomBron,
+  onToggleFullTaken,
+  onCancelFullRoomBron,
+}: RoomCardProps) => {
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const touchStartRef = useRef<{ x: number; y: number } | null>(null);
+  const touchMovedRef = useRef(false);
   const [pressedBed, setPressedBed] = useState<number | null>(null);
   const [showGallery, setShowGallery] = useState(false);
+  const [showRoomActions, setShowRoomActions] = useState(false);
+  const [confirmRelease, setConfirmRelease] = useState(false);
+  const [confirmCancelBron, setConfirmCancelBron] = useState(false);
+  const [cancellingBron, setCancellingBron] = useState(false);
   /** Faqat UI: xona suratlari taxtadan keladi (GET /board). */
   const [photos, setPhotos] = useState<string[]>(room.photos || []);
 
@@ -65,9 +105,16 @@ const RoomCard = ({ room, onBedTap, onBedLongPress, onBookRoom }: RoomCardProps)
   }, [room.id, serverPhotosKey]);
 
   const handleTouchStart = useCallback(
-    (bedId: number) => {
+    (bedId: number, e?: React.TouchEvent<HTMLButtonElement>) => {
       const bed = room.beds.find((b) => b.id === bedId);
-      if (room.inactive && bed?.status === "empty") return;
+      if ((room.inactive || room.fullTaken) && bed?.status === "empty") return;
+      if (e?.touches?.[0]) {
+        touchStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+        touchMovedRef.current = false;
+      } else {
+        touchStartRef.current = null;
+        touchMovedRef.current = false;
+      }
       setPressedBed(bedId);
       timerRef.current = setTimeout(() => {
         onBedLongPress(room.id, bedId);
@@ -78,10 +125,21 @@ const RoomCard = ({ room, onBedTap, onBedLongPress, onBookRoom }: RoomCardProps)
     [room, onBedLongPress]
   );
 
+  const handleTouchMove = useCallback(() => {
+    if (!touchStartRef.current) return;
+    // Scroll paytida accidental tap/long-press bo'lmasin.
+    touchMovedRef.current = true;
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+    setPressedBed(null);
+  }, []);
+
   const handleTouchEnd = useCallback(
     (bedId: number) => {
       const bed = room.beds.find((b) => b.id === bedId);
-      if (room.inactive && bed?.status === "empty") {
+      if ((room.inactive || room.fullTaken) && bed?.status === "empty") {
         if (timerRef.current) {
           clearTimeout(timerRef.current);
           timerRef.current = null;
@@ -89,11 +147,13 @@ const RoomCard = ({ room, onBedTap, onBedLongPress, onBookRoom }: RoomCardProps)
         setPressedBed(null);
         return;
       }
-      if (timerRef.current) {
+      if (timerRef.current && !touchMovedRef.current) {
         clearTimeout(timerRef.current);
         timerRef.current = null;
         onBedTap(room.id, bedId);
       }
+      touchStartRef.current = null;
+      touchMovedRef.current = false;
       setPressedBed(null);
     },
     [room, onBedTap]
@@ -126,10 +186,15 @@ const RoomCard = ({ room, onBedTap, onBedLongPress, onBookRoom }: RoomCardProps)
 
   const cleaningStatus = room.cleaningStatus || "clean";
   const inactive = Boolean(room.inactive);
-  const emptyCount = room.beds.filter((b) => b.status === "empty").length;
+  const fullTaken = Boolean(room.fullTaken);
+  const fullTakenMode = room.fullTakenMode || "";
+  const allBedsEmpty = room.beds.length > 0 && room.beds.every((b) => b.status === "empty");
   const bookedCount = room.beds.filter((b) => b.status === "booked").length;
-  const allEmpty = emptyCount === room.totalBeds && room.totalBeds > 0;
-  const fullRoomDisabled = inactive || emptyCount === 0;
+  const checkInCount = room.beds.filter((b) => b.status === "booked" && b.bookingKind === "check_in").length;
+  const bronCount = room.beds.filter((b) => b.status === "booked" && b.bookingKind === "bron").length;
+  const canOpenRoomActions = !inactive;
+  const canFullCheckIn = !fullTaken && checkInCount > 0 && checkInCount < room.totalBeds;
+  const canFullBron = !fullTaken && allBedsEmpty;
 
   return (
     <>
@@ -138,9 +203,25 @@ const RoomCard = ({ room, onBedTap, onBedLongPress, onBookRoom }: RoomCardProps)
       >
         <div className="flex items-center justify-between px-4 py-3">
           <div className="min-w-0 flex-1">
-            <h3 className="text-sm font-bold text-card truncate">{room.name}</h3>
+            <button
+              type="button"
+              onClick={() => {
+                if (!canOpenRoomActions) return;
+                setConfirmRelease(false);
+                setConfirmCancelBron(false);
+                setShowRoomActions(true);
+              }}
+              className="text-left text-sm font-bold text-card truncate underline-offset-2 hover:underline"
+            >
+              {room.name}
+            </button>
             {inactive && (
-              <p className="text-[10px] font-semibold text-orange-300 mt-0.5">Nofaol — yangi bron yo&apos;q</p>
+              <p className="text-[10px] font-semibold text-orange-300 mt-0.5">Nofaol</p>
+            )}
+            {!inactive && fullTaken && (
+              <p className="text-[10px] font-semibold text-amber-300 mt-0.5">
+                To&apos;liq band {fullTakenMode === "bron" ? "(Bron)" : ""}
+              </p>
             )}
           </div>
           <div className="flex items-center gap-2 shrink-0">
@@ -163,81 +244,52 @@ const RoomCard = ({ room, onBedTap, onBedLongPress, onBookRoom }: RoomCardProps)
             </button>
           </div>
         </div>
-
         <div className="grid grid-cols-4 gap-3 px-4 pb-3">
           {room.beds.map((bed) => {
-            const checkInWhen = formatCheckInDateTime(bed.checkedInAt);
+            const debt = checkInHasDebt(bed);
             return (
             <button
               key={bed.id}
               type="button"
-              disabled={inactive && bed.status === "empty"}
-              onTouchStart={() => handleTouchStart(bed.id)}
+              disabled={(inactive || fullTaken) && bed.status === "empty"}
+              title={debt ? "Qarz bor" : undefined}
+              onTouchStart={(e) => handleTouchStart(bed.id, e)}
+              onTouchMove={handleTouchMove}
               onTouchEnd={() => handleTouchEnd(bed.id)}
+              onTouchCancel={() => {
+                if (timerRef.current) clearTimeout(timerRef.current);
+                touchStartRef.current = null;
+                touchMovedRef.current = false;
+                setPressedBed(null);
+              }}
               onMouseDown={() => handleTouchStart(bed.id)}
               onMouseUp={() => handleTouchEnd(bed.id)}
               onMouseLeave={() => {
                 if (timerRef.current) clearTimeout(timerRef.current);
+                touchStartRef.current = null;
+                touchMovedRef.current = false;
                 setPressedBed(null);
               }}
-              className={`flex flex-col items-center justify-center rounded-xl py-2.5 min-h-[84px] font-bold transition-all select-none ${
-                statusStyles[bed.status]
-              } ${pressedBed === bed.id ? "scale-95" : ""} ${
-                inactive && bed.status === "empty" ? "opacity-50 cursor-not-allowed" : ""
+              className={`relative flex flex-col items-center justify-center rounded-xl py-2.5 min-h-[56px] font-bold transition-all select-none ${bedSurfaceClass(
+                bed
+              )} ${pressedBed === bed.id ? "scale-95" : ""} ${
+                (inactive || fullTaken) && bed.status === "empty" ? "opacity-50 cursor-not-allowed" : ""
               }`}
             >
-              <BedDouble className="w-5 h-5 mb-0.5" />
-              <span className="text-xs">{bed.id}</span>
-              {bed.status === "booked" && bed.guestName && (
-                <span className="text-[10px] mt-0.5 opacity-90 truncate max-w-full px-1 text-center leading-tight">
-                  <span className="block truncate">{bed.guestName}</span>
-                  {checkInWhen ? (
-                    <span className="block truncate font-semibold opacity-95 mt-0.5">{checkInWhen}</span>
-                  ) : null}
+              {debt && (
+                <span
+                  className="absolute top-1 right-1 flex h-[14px] min-w-[14px] items-center justify-center rounded-full bg-amber-300 px-0.5 text-[9px] font-black leading-none text-amber-950 shadow-sm ring-1 ring-white/70"
+                  aria-hidden
+                >
+                  !
                 </span>
               )}
+              <BedDouble className="w-5 h-5 mb-0.5" />
+              <span className="text-xs">{bed.id}</span>
             </button>
-          );
+            );
           })}
         </div>
-
-        <button
-          type="button"
-          disabled={fullRoomDisabled}
-          onClick={() => onBookRoom(room.id)}
-          className={`relative flex items-center justify-between w-full px-4 py-3 text-sm font-bold transition-all ${
-            fullRoomDisabled
-              ? "bg-muted/20 text-muted-foreground cursor-not-allowed"
-              : allEmpty
-                ? "bg-gradient-to-r from-primary to-primary/80 text-primary-foreground active:scale-[0.99] shadow-lg shadow-primary/20"
-                : "bg-primary/15 text-primary active:bg-primary/25"
-          }`}
-        >
-          <span className="flex items-center gap-2">
-            <span className={`flex items-center justify-center w-7 h-7 rounded-lg ${
-              fullRoomDisabled ? "bg-muted/30" : allEmpty ? "bg-primary-foreground/20" : "bg-primary/20"
-            }`}>
-              <Plus className="w-4 h-4" />
-            </span>
-            <span className="text-left leading-tight">
-              <span className="block">To&apos;liq xona</span>
-              <span className={`block text-[10px] font-medium opacity-80`}>
-                {fullRoomDisabled
-                  ? inactive ? "Nofaol" : "Bo'sh joy yo'q"
-                  : allEmpty
-                    ? `Barcha ${room.totalBeds} karavot bo'sh`
-                    : `${emptyCount}/${room.totalBeds} karavot bo'sh`}
-              </span>
-            </span>
-          </span>
-          {!fullRoomDisabled && (
-            <span className={`flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold ${
-              allEmpty ? "bg-primary-foreground/20" : "bg-primary/20"
-            }`}>
-              {bookedCount > 0 ? `${bookedCount} band` : "Tayyor"}
-            </span>
-          )}
-        </button>
       </div>
 
       {showGallery && (
@@ -250,6 +302,144 @@ const RoomCard = ({ room, onBedTap, onBedLongPress, onBookRoom }: RoomCardProps)
           onClose={() => setShowGallery(false)}
         />
       )}
+      <Dialog
+        open={showRoomActions && canOpenRoomActions}
+        onOpenChange={(v) => {
+          setShowRoomActions(v);
+          if (!v) {
+            setConfirmRelease(false);
+            setConfirmCancelBron(false);
+          }
+        }}
+      >
+        <DialogContent className="max-w-[min(100vw-1rem,24rem)] rounded-3xl border-border/80 bg-card p-0 overflow-hidden shadow-2xl">
+          <div className="p-5 sm:p-6">
+            <DialogHeader className="text-left space-y-1">
+              <DialogTitle className="text-base font-extrabold">{room.name}</DialogTitle>
+              <p className="text-xs text-muted-foreground">
+                Xona holati:{" "}
+                {fullTaken ? (
+                  <span className="font-semibold text-amber-700 dark:text-amber-300">
+                    To&apos;liq band {fullTakenMode === "bron" ? "(Bron)" : ""}
+                  </span>
+                ) : (
+                  <span className="font-semibold text-emerald-700 dark:text-emerald-300">Ochiq</span>
+                )}
+              </p>
+            </DialogHeader>
+
+            <div className="mt-4 grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                disabled={!onToggleFullTaken || !canFullCheckIn}
+                onClick={() => {
+                  onToggleFullTaken?.(room.id, true, "check_in");
+                  setShowRoomActions(false);
+                }}
+                className="h-11 rounded-xl border border-red-500/40 bg-red-600/90 text-sm font-bold text-white disabled:opacity-40"
+              >
+                To&apos;liq band
+              </button>
+              <button
+                type="button"
+                disabled={!onFullRoomBron || !onToggleFullTaken || !canFullBron}
+                onClick={() => {
+                  onFullRoomBron?.(room.id);
+                  setShowRoomActions(false);
+                }}
+                className="h-11 rounded-xl border border-amber-400/50 bg-amber-400 text-sm font-bold text-amber-950 disabled:opacity-40"
+              >
+                To&apos;liq bron
+              </button>
+            </div>
+
+            {bronCount > 0 && onCancelFullRoomBron ? (
+              <>
+                {!confirmCancelBron ? (
+                  <button
+                    type="button"
+                    onClick={() => setConfirmCancelBron(true)}
+                    className="mt-3 h-11 w-full rounded-xl border border-amber-500/50 bg-amber-500/15 text-sm font-bold text-amber-800 dark:text-amber-200"
+                  >
+                    To&apos;liq bronni bekor qilish
+                  </button>
+                ) : (
+                  <div className="mt-3 rounded-xl border border-amber-500/40 bg-amber-500/10 p-3">
+                    <p className="text-xs font-semibold text-amber-800 dark:text-amber-200 mb-2">
+                      Tasdiqlaysizmi? Xonadagi barcha bron yozuvlari bekor qilinadi.
+                    </p>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setConfirmCancelBron(false)}
+                        className="h-10 rounded-xl border border-border bg-background text-sm font-bold text-foreground"
+                      >
+                        Yo&apos;q
+                      </button>
+                      <button
+                        type="button"
+                        disabled={cancellingBron}
+                        onClick={async () => {
+                          if (!onCancelFullRoomBron) return;
+                          setCancellingBron(true);
+                          const ok = await onCancelFullRoomBron(room.id);
+                          setCancellingBron(false);
+                          if (!ok) return;
+                          setConfirmCancelBron(false);
+                          setShowRoomActions(false);
+                        }}
+                        className="h-10 rounded-xl bg-amber-500 text-sm font-bold text-amber-950 disabled:opacity-50"
+                      >
+                        {cancellingBron ? "Bekor qilinmoqda…" : "Ha, bekor qilish"}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </>
+            ) : null}
+
+            {fullTaken ? (
+              <>
+                {!confirmRelease ? (
+                  <button
+                    type="button"
+                    onClick={() => setConfirmRelease(true)}
+                    className="mt-3 h-11 w-full rounded-xl border border-emerald-500/40 bg-emerald-500/90 text-sm font-bold text-white"
+                  >
+                    To&apos;liq bandni bekor qilish
+                  </button>
+                ) : (
+                  <div className="mt-3 rounded-xl border border-destructive/40 bg-destructive/10 p-3">
+                    <p className="text-xs font-semibold text-destructive mb-2">
+                      Tasdiqlaysizmi? Xona yana bo&apos;sh joylash uchun ochiladi.
+                    </p>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setConfirmRelease(false)}
+                        className="h-10 rounded-xl border border-border bg-background text-sm font-bold text-foreground"
+                      >
+                        Yo&apos;q
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onToggleFullTaken?.(room.id, false, "");
+                          setConfirmRelease(false);
+                          setShowRoomActions(false);
+                        }}
+                        className="h-10 rounded-xl bg-destructive text-sm font-bold text-destructive-foreground"
+                      >
+                        Ha, o&apos;chirish
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </>
+            ) : null}
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 };

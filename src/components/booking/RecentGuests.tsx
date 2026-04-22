@@ -13,9 +13,11 @@ export interface RecentGuest {
   lastVisit: string;
   price: number;
   paid?: number;
+  nights?: number;
   notes?: string;
   hostel?: string;
   room?: string;
+  photos?: string[];
 }
 
 interface RecentGuestsProps {
@@ -149,9 +151,11 @@ const RecentGuests = ({ open, onClose, onSelect }: RecentGuestsProps) => {
                   lastVisit: guest.lastVisit,
                   price: guest.price,
                   paid: guest.paid,
+                  nights: guest.nights,
                   notes: guest.notes,
                   hostel: guest.hostel,
                   room: guest.room,
+                  photos: guest.photos,
                 })
               }
               className="w-full flex items-center gap-3 px-4 py-3 hover:bg-muted/60 active:bg-muted transition-colors text-left border-b border-border/50"
@@ -160,9 +164,9 @@ const RecentGuests = ({ open, onClose, onSelect }: RecentGuestsProps) => {
                 <span className="text-base font-bold text-primary">{guest.name[0]}</span>
               </div>
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-bold text-foreground truncate">{guest.name}</span>
-                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground flex items-center gap-0.5">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="text-sm font-bold text-foreground truncate flex-1 min-w-0">{guest.name}</span>
+                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground flex items-center gap-0.5 shrink-0 whitespace-nowrap">
                     <Clock className="w-3 h-3" />
                     {guest.lastVisit}
                   </span>
