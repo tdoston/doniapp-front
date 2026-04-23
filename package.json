@@ -20,6 +20,8 @@
     "public:tunnel:jprq": "jprq http ${TUNNEL_PORT:-8080}",
     "build": "vite build",
     "build:dev": "vite build --mode development",
+    "start": "vite preview --host 0.0.0.0 --port ${PORT:-8080}",
+    "start:railway": "vite preview --host 0.0.0.0 --port ${PORT:-8080}",
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest run",
