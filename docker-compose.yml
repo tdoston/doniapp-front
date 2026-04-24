@@ -1,9 +1,12 @@
-# Asosiy ish: SQLite (django_backend/data/). Postgres ixtiyoriy:
+# Lokal Postgres (ixtiyoriy): Docker Desktop yoq bo'lsa
 #   docker compose --profile postgres up -d
+# Keyin django_backend/.env da:
+#   DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/swift_bookings
 services:
   db:
     image: postgres:16-alpine
     profiles: ["postgres"]
+    restart: unless-stopped
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
