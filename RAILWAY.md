@@ -12,7 +12,7 @@ This repo should be deployed as **two Railway services** from the same GitHub re
   - Build (har deploy, **staging/production** uchun bir xil):
     1. `DATABASE_URL` borligini tekshiradi (Postgres plugin backend bilan bog‘langan bo‘lishi kerak).
     2. `psql … -f sql/postgres_bootstrap.sql` — biznes jadvallar (`managed=False` bo‘lgani uchun `migrate` ularni yaratmaydi).
-    3. `python manage.py migrate --noinput`
+    3. `python manage.py migrate --noinput` — migratsiya `0002_guests_schema` ichida avval `postgres_bootstrap.sql` (shuning uchun faqat `migrate` ishlatilsa ham `bed_bookings` bo‘ladi).
     4. `python manage.py seed_initial_db` — Vodnik / Zargarlik / Tabarruk xonalari (idempotent).
   - Start: avval `bootstrap_postgres_schema` (Django orqali `sql/postgres_bootstrap.sql`), keyin `migrate`, `seed_initial_db`, so‘ng `gunicorn`. Shunda buildda `psql` ishlamagan bo‘lsa ham (`relation "bed_bookings" does not exist` kabi xatolar yo‘qoladi).
 
