@@ -16,6 +16,7 @@ dist-ssr
 !.env.example
 django_backend/.env
 django_backend/.env.*
+!django_backend/.env.example
 
 django_backend/data/*.sqlite
 django_backend/data/*.sqlite-*
