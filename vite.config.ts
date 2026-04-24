@@ -17,13 +17,19 @@ export default defineConfig(({ mode }) => {
     hmr: {
       overlay: false,
     },
-    allowedHosts: [".manus.computer", ".trycloudflare.com"],
+    allowedHosts: [".manus.computer", ".trycloudflare.com", ".up.railway.app"],
     proxy: {
       "/api": {
         target: apiProxyTarget,
         changeOrigin: true,
       },
     },
+  },
+  /** `vite preview` / Railway — host header tekshiruvi */
+  preview: {
+    host: "::",
+    port: 8080,
+    allowedHosts: [".manus.computer", ".trycloudflare.com", ".up.railway.app"],
   },
   plugins: [
     react(),
