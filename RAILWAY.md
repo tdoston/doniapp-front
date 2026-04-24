@@ -54,6 +54,14 @@ Agar Postgresni keyinroq ulasangiz, birinchi muvaffaqiyatli deploydan keyin **Re
 - `VITE_API_BASE=https://${{backend.RAILWAY_PUBLIC_DOMAIN}}/api`
   - If Railway UI doesn't resolve this expression automatically in your project, paste explicit backend URL.
 
+## HTTP 500 / «Internal Server Error»
+
+- **Avval deploy log** (Railway → backend → Deployments → build yoki deploy log).
+- Ko‘pincha: migratsiya qo‘llanmagan (`cancel_reason_options` yoki `rooms.inactive` yo‘q) — **Run command:**  
+  `python manage.py migrate --noinput && python manage.py seed_initial_db`  
+  keyin **Redeploy**.
+- Yangi javob: sxema xatosi bo‘lsa API ba’zan **503** + `code: db_schema_mismatch` (HTML 500 o‘rniga).
+
 ## Taxta: «Maʼlumotlar bazasiga ulanib boʼlmadi»
 
 Frontend bu matnni **faqat** API `503` va `code: db_unavailable` da ko‘rsatadi (Django Postgres `OperationalError`). Boshqa xatolarda («Serverga ulanib bo‘lmadi») odatda **noto‘g‘ri `VITE_API_BASE`**, CORS yoki tarmoq.

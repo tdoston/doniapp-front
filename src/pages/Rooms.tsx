@@ -53,6 +53,12 @@ function boardLoadErrorCopy(error: unknown): { title: string; hint: string } {
         hint: "Server Postgres bilan bog'lanolmayapti. Railwayda Postgres servisini va DATABASE_URL ni tekshiring.",
       };
     }
+    if (error.status === 503 && code === "db_schema_mismatch") {
+      return {
+        title: "Ma'lumotlar bazasi sxemasi eski.",
+        hint: "Railway Run: `python manage.py migrate --noinput && python manage.py seed_initial_db`, so'ng Redeploy.",
+      };
+    }
     if (error.status === 0) {
       return {
         title: "Serverga ulanib bo'lmadi.",
