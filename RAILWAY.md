@@ -9,8 +9,23 @@ This repo should be deployed as **two Railway services** from the same GitHub re
 - **Builder:** Nixpacks (auto)
 - Uses: `django_backend/nixpacks.toml`
   - Install: `pip install -r requirements.txt`
-  - Build: `python manage.py migrate --noinput`
+  - Build (har deploy, **staging/production** uchun bir xil):
+    1. `DATABASE_URL` borligini tekshiradi (Postgres plugin backend bilan bog‘langan bo‘lishi kerak).
+    2. `psql … -f sql/postgres_bootstrap.sql` — biznes jadvallar (`managed=False` bo‘lgani uchun `migrate` ularni yaratmaydi).
+    3. `python manage.py migrate --noinput`
+    4. `python manage.py seed_initial_db` — Vodnik / Zargarlik / Tabarruk xonalari (idempotent).
   - Start: `gunicorn swiftbookings.wsgi:application --bind 0.0.0.0:$PORT ...`
+
+### Git push → auto deploy
+
+Railway har `main` pushda build qiladi: yuqoridagi **build** bosqichida migratsiya va seed avtomatik ishlaydi. Qo‘lda faqat maxsus holatda:
+
+- **Bitta marta qayta seed:** Railway → backend service → **Deploy** → **Run command:**  
+  `python manage.py seed_initial_db`
+- **Faqat migratsiya (buildsiz):**  
+  `python manage.py migrate --noinput`
+
+Agar Postgresni keyinroq ulasangiz, birinchi muvaffaqiyatli deploydan keyin **Redeploy** qiling — build qayta `psql` + `migrate` + `seed` ni ishga tushiradi.
 
 ### Backend environment variables
 
