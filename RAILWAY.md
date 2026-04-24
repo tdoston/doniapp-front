@@ -1,4 +1,4 @@
-# Railway Deploy (2 Services)
+# Railway Deploy (Frontend + Backend alohida)
 
 This repo should be deployed as **two Railway services** from the same GitHub repository.
 
@@ -38,10 +38,11 @@ This repo should be deployed as **two Railway services** from the same GitHub re
 - `VITE_API_BASE=https://${{backend.RAILWAY_PUBLIC_DOMAIN}}/api`
   - If Railway UI doesn't resolve this expression automatically in your project, paste explicit backend URL.
 
-## Notes
+## Important
 
-- Railway deploys each service independently (one service = one app process).
-- Frontend and backend must be separate services.
+- Railway `one service = one deployment` ishlaydi.
+- Frontend va backendni alohida service sifatida deploy qiling.
+- Rootdagi eski monolit Docker ishlatilmaydi; bu repo Nixpacks bilan 2-service oqimga moslangan.
 - After first successful deploy, test:
   - `https://<backend-domain>/api/health`
   - Frontend app loads and API calls succeed.
