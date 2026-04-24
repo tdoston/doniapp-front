@@ -1,0 +1,12 @@
+.git
+.gitignore
+node_modules
+dist
+dev-dist
+django_backend/.venv
+django_backend/data
+*.log
+.DS_Store
+terminals
+agent-transcripts
+assets
