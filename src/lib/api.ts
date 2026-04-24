@@ -28,13 +28,19 @@ export class ApiError extends Error {
 }
 
 export async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(apiUrl(path), {
-    ...init,
-    headers: {
-      "Content-Type": "application/json",
-      ...(init?.headers ?? {}),
-    },
-  });
+  let res: Response;
+  try {
+    res = await fetch(apiUrl(path), {
+      ...init,
+      headers: {
+        "Content-Type": "application/json",
+        ...(init?.headers ?? {}),
+      },
+    });
+  } catch (e) {
+    const msg = e instanceof TypeError ? e.message : "Tarmoq xatosi";
+    throw new ApiError(msg, 0, { network: true });
+  }
   const text = await res.text();
   let data: unknown = null;
   try {

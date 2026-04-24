@@ -53,6 +53,13 @@ Agar Postgresni keyinroq ulasangiz, birinchi muvaffaqiyatli deploydan keyin **Re
 - `VITE_API_BASE=https://${{backend.RAILWAY_PUBLIC_DOMAIN}}/api`
   - If Railway UI doesn't resolve this expression automatically in your project, paste explicit backend URL.
 
+## Taxta: «Maʼlumotlar bazasiga ulanib boʼlmadi»
+
+Frontend bu matnni **faqat** API `503` va `code: db_unavailable` da ko‘rsatadi (Django Postgres `OperationalError`). Boshqa xatolarda («Serverga ulanib bo‘lmadi») odatda **noto‘g‘ri `VITE_API_BASE`**, CORS yoki tarmoq.
+
+- **Backend → Postgres:** Postgres servisini backend bilan bog‘lang, `DATABASE_URL` backend variablesda bo‘lsin. TCP proxy / public URL da `sslmode=require` bo‘lmasa, `POSTGRES_SSLMODE=require` qo‘ying.
+- **Frontend → Backend:** `VITE_API_BASE=https://<backend>.up.railway.app/api` (oxirida `/api`).
+
 ## Important
 
 - Railway `one service = one deployment` ishlaydi.

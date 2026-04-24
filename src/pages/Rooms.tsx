@@ -26,6 +26,32 @@ import { normalizeExpectedLocal } from "@/lib/bronTime";
 
 const LAST_ACTIVE_HOSTEL_KEY = "rooms:lastActiveHostel";
 
+function boardLoadErrorCopy(error: unknown): { title: string; hint: string } {
+  if (error instanceof ApiError) {
+    const code =
+      typeof error.body === "object" && error.body && "code" in error.body
+        ? String((error.body as { code?: unknown }).code ?? "")
+        : "";
+    if (error.status === 503 && code === "db_unavailable") {
+      return {
+        title: "Ma'lumotlar bazasiga ulanib bo'lmadi.",
+        hint: "Server Postgres bilan bog'lanolmayapti. Railwayda Postgres servisini va DATABASE_URL ni tekshiring.",
+      };
+    }
+    if (error.status === 0) {
+      return {
+        title: "Serverga ulanib bo'lmadi.",
+        hint: "Internetni tekshiring. Productionda VITE_API_BASE to'g'ri backend manziliga ishora qilishi kerak.",
+      };
+    }
+    return {
+      title: error.message || "So'rov xatosi",
+      hint: error.status ? `HTTP ${error.status}` : "",
+    };
+  }
+  return { title: "Noma'lum xato", hint: "Qayta urinib ko'ring." };
+}
+
 const RoomsPage = () => {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [activeHostel, setActiveHostel] = useState<string>(() => {
@@ -424,7 +450,8 @@ const RoomsPage = () => {
 
   const renderContent = () => {
     switch (activeTab) {
-      case "rooms":
+      case "rooms": {
+        const boardErr = boardQuery.isError ? boardLoadErrorCopy(boardQuery.error) : null;
         return (
           <>
             <StatCards stats={stats} pending={statsPending} />
@@ -432,10 +459,10 @@ const RoomsPage = () => {
             {boardQuery.isLoading && (
               <p className="text-center text-sm text-muted-foreground py-10">Yuklanmoqda…</p>
             )}
-            {boardQuery.isError && (
+            {boardQuery.isError && boardErr && (
               <div className="px-4 py-8 text-center space-y-3">
-                <p className="text-sm text-destructive font-medium">Ma&apos;lumotlar bazasiga ulanib bo&apos;lmadi.</p>
-                <p className="text-xs text-muted-foreground">Internetni tekshirib, qayta urinib ko&apos;ring.</p>
+                <p className="text-sm text-destructive font-medium">{boardErr.title}</p>
+                {boardErr.hint ? <p className="text-xs text-muted-foreground">{boardErr.hint}</p> : null}
                 <Button type="button" variant="outline" size="sm" onClick={() => boardQuery.refetch()}>
                   Qayta urinish
                 </Button>
@@ -458,6 +485,7 @@ const RoomsPage = () => {
             )}
           </>
         );
+      }
       case "guests":
         return (
           <GuestsPage
