@@ -12,18 +12,18 @@ This repo should be deployed as **two Railway services** from the same GitHub re
   - Build (har deploy, **staging/production** uchun bir xil):
     1. `DATABASE_URL` borligini tekshiradi (Postgres plugin backend bilan bog‘langan bo‘lishi kerak).
     2. `psql … -f sql/postgres_bootstrap.sql` — biznes jadvallar (`managed=False` bo‘lgani uchun `migrate` ularni yaratmaydi).
-    3. `python manage.py migrate --noinput` — migratsiya `0002_guests_schema` ichida avval `postgres_bootstrap.sql` (shuning uchun faqat `migrate` ishlatilsa ham `bed_bookings` bo‘ladi).
-    4. `python manage.py seed_initial_db` — Vodnik / Zargarlik / Tabarruk xonalari (idempotent).
-  - Start: avval `bootstrap_postgres_schema` (Django orqali `sql/postgres_bootstrap.sql`), keyin `migrate`, `seed_initial_db`, so‘ng `gunicorn`. Shunda buildda `psql` ishlamagan bo‘lsa ham (`relation "bed_bookings" does not exist` kabi xatolar yo‘qoladi).
+    3. `python manage.py migrate --noinput` — shu yerda **`api.0008`** (`rooms.inactive`, `cancel_reason_options`) va boshqa migratsiyalar qo‘llanadi.
+    4. `python manage.py seed_initial_db` — **faqat migrate dan keyin**: seed `rooms.inactive` ustuniga yozadi; 0008 dan oldin ishlatilsa xato bo‘lishi mumkin.
+  - Start: `bootstrap_postgres_schema` → **`migrate --noinput`** → **`seed_initial_db`** → `gunicorn` (xuddi shu tartib).
   - Katalog API (DRF): `GET /api/catalog/hostels`, `GET /api/catalog/rooms?hostel=Vodnik`, `GET /api/catalog/cancel-reasons?scope=booking_checkin|bron_board`.
 
 ### Git push → auto deploy
 
 Railway har `main` pushda build qiladi: yuqoridagi **build** bosqichida migratsiya va seed avtomatik ishlaydi. Qo‘lda faqat maxsus holatda:
 
-- **Bitta marta qayta seed:** Railway → backend service → **Deploy** → **Run command:**  
-  `python manage.py seed_initial_db`
-- **Faqat DDL + migratsiya (buildsiz):**  
+- **Bitta marta qayta seed:** avval migratsiya bo‘lganini tekshirib, keyin:  
+  `python manage.py migrate --noinput && python manage.py seed_initial_db`
+- **Faqat DDL + migratsiya (seed siz):**  
   `python manage.py bootstrap_postgres_schema && python manage.py migrate --noinput`
 
 Agar Postgresni keyinroq ulasangiz, birinchi muvaffaqiyatli deploydan keyin **Redeploy** qiling — build qayta `psql` + `migrate` + `seed` ni ishga tushiradi.
