@@ -14,7 +14,7 @@ This repo should be deployed as **two Railway services** from the same GitHub re
     2. `psql … -f sql/postgres_bootstrap.sql` — biznes jadvallar (`managed=False` bo‘lgani uchun `migrate` ularni yaratmaydi).
     3. `python manage.py migrate --noinput`
     4. `python manage.py seed_initial_db` — Vodnik / Zargarlik / Tabarruk xonalari (idempotent).
-  - Start: `gunicorn swiftbookings.wsgi:application --bind 0.0.0.0:$PORT ...`
+  - Start: avval `bootstrap_postgres_schema` (Django orqali `sql/postgres_bootstrap.sql`), keyin `migrate`, `seed_initial_db`, so‘ng `gunicorn`. Shunda buildda `psql` ishlamagan bo‘lsa ham (`relation "bed_bookings" does not exist` kabi xatolar yo‘qoladi).
 
 ### Git push → auto deploy
 
@@ -22,8 +22,8 @@ Railway har `main` pushda build qiladi: yuqoridagi **build** bosqichida migratsi
 
 - **Bitta marta qayta seed:** Railway → backend service → **Deploy** → **Run command:**  
   `python manage.py seed_initial_db`
-- **Faqat migratsiya (buildsiz):**  
-  `python manage.py migrate --noinput`
+- **Faqat DDL + migratsiya (buildsiz):**  
+  `python manage.py bootstrap_postgres_schema && python manage.py migrate --noinput`
 
 Agar Postgresni keyinroq ulasangiz, birinchi muvaffaqiyatli deploydan keyin **Redeploy** qiling — build qayta `psql` + `migrate` + `seed` ni ishga tushiradi.
 
