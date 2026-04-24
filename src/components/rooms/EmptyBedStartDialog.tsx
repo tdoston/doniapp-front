@@ -7,7 +7,6 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Textarea } from "@/components/ui/textarea";
 import ScrollTimePicker from "@/components/ui/ScrollTimePicker";
 import { formatBronArrivalHuman, normalizeExpectedLocal } from "@/lib/bronTime";
-import { BRON_BOARD_CANCEL_REASONS } from "@/lib/bookingCancelReasons";
 import PhoneInput from "@/components/booking/PhoneInput";
 import { Input } from "@/components/ui/input";
 import { formatNotesWithContactDetails } from "@/lib/bookingNotesContact";
@@ -47,6 +46,8 @@ interface EmptyBedStartDialogProps {
   onUpdateBronDraftNote?: (bookingId: string, notes: string) => Promise<void>;
   /** Mavjud bronni taxtadan bekor qilish (`cancelReason` jurnal uchun). */
   onCancelExistingBron?: (bookingId: string, cancelReason: string) => Promise<void>;
+  /** `null` — yuklanmoqda; bo'sh massiv — API bo'sh. */
+  bronCancelReasons: { value: string; label: string }[] | null;
 }
 
 const EmptyBedStartDialog = ({
@@ -58,6 +59,7 @@ const EmptyBedStartDialog = ({
   onConfirmBron,
   onUpdateBronDraftNote,
   onCancelExistingBron,
+  bronCancelReasons,
 }: EmptyBedStartDialogProps) => {
   const [step, setStep] = useState<Step>("menu");
   const [expectedArrivalIso, setExpectedArrivalIso] = useState(() => normalizeExpectedLocal(undefined, stayDateIso));
@@ -89,7 +91,8 @@ const EmptyBedStartDialog = ({
 
   const handleConfirmCancelExistingBron = async () => {
     if (!existingBron?.bookingId || !onCancelExistingBron) return;
-    const meta = BRON_BOARD_CANCEL_REASONS.find((r) => r.value === cancelReasonValue);
+    const list = bronCancelReasons ?? [];
+    const meta = list.find((r) => r.value === cancelReasonValue);
     if (!meta) return;
     const detail =
       meta.value === "other" && cancelOtherNote.trim()
@@ -260,17 +263,21 @@ const EmptyBedStartDialog = ({
               </p>
             </DialogHeader>
             <RadioGroup value={cancelReasonValue} onValueChange={setCancelReasonValue} className="gap-3 mt-4">
-              {BRON_BOARD_CANCEL_REASONS.map((r) => (
-                <div
-                  key={r.value}
-                  className="flex items-start gap-3 rounded-xl border border-border p-3 has-[[data-state=checked]]:border-primary has-[[data-state=checked]]:bg-primary/5"
-                >
-                  <RadioGroupItem value={r.value} id={`board-cancel-${r.value}`} className="mt-0.5" />
-                  <Label htmlFor={`board-cancel-${r.value}`} className="text-sm font-medium leading-snug cursor-pointer flex-1">
-                    {r.label}
-                  </Label>
-                </div>
-              ))}
+              {bronCancelReasons === null ? (
+                <p className="text-sm text-muted-foreground py-2">Sabablari yuklanmoqda…</p>
+              ) : (
+                bronCancelReasons.map((r) => (
+                  <div
+                    key={r.value}
+                    className="flex items-start gap-3 rounded-xl border border-border p-3 has-[[data-state=checked]]:border-primary has-[[data-state=checked]]:bg-primary/5"
+                  >
+                    <RadioGroupItem value={r.value} id={`board-cancel-${r.value}`} className="mt-0.5" />
+                    <Label htmlFor={`board-cancel-${r.value}`} className="text-sm font-medium leading-snug cursor-pointer flex-1">
+                      {r.label}
+                    </Label>
+                  </div>
+                ))
+              )}
             </RadioGroup>
             {cancelReasonValue === "other" ? (
               <Textarea
@@ -301,7 +308,7 @@ const EmptyBedStartDialog = ({
               <Button
                 type="button"
                 variant="destructive"
-                disabled={submitting || !cancelReasonValue}
+                disabled={submitting || !cancelReasonValue || bronCancelReasons === null || bronCancelReasons.length === 0}
                 onClick={() => void handleConfirmCancelExistingBron()}
                 className="h-14 rounded-2xl font-bold text-base shadow-md"
               >

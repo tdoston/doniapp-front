@@ -1,12 +1,47 @@
 /**
- * Django REST `/api` (SQLite). Filial bo'yicha xona katalogi frontendda statik;
- * taxta / mehmonlar / tozalash: GET /board, /guests/recent, /cleaning; yozuvlar: /bookings.
+ * Django `/api` — taxta, mehmonlar, katalog (hostel/xona/sabablar).
+ * Bazaviy URL: `VITE_API_BASE` (masalan `/api` yoki `https://host/.../api`) yoki
+ * `VITE_API_URL` / `REACT_APP_API_URL` (faqat origin, `/api` qo‘shiladi).
  */
-/** Dev: `/api` (Vite → backend). Prod: masalan `https://api.example.com/api` */
-const API_BASE = (import.meta.env.VITE_API_BASE ?? "/api").replace(/\/$/, "");
+function resolveApiBase(): string {
+  const base = (import.meta.env.VITE_API_BASE ?? "").trim().replace(/\/$/, "");
+  const originUrl = (import.meta.env.VITE_API_URL ?? "").trim().replace(/\/$/, "");
+  const reactOrigin = (import.meta.env.REACT_APP_API_URL ?? "").trim().replace(/\/$/, "");
+  if (base) return base;
+  if (originUrl) return `${originUrl}/api`;
+  if (reactOrigin) return `${reactOrigin}/api`;
+  return "/api";
+}
+
+const API_BASE = resolveApiBase();
 
 /** React Query: `invalidateQueries({ queryKey: ["recentGuests"] })` barcha limitlarni yangilaydi */
 export const recentGuestsQueryKey = (limit: number) => ["recentGuests", limit] as const;
+
+export const catalogHostelsQueryKey = ["catalog", "hostels"] as const;
+export const catalogRoomsQueryKey = (hostel: string) => ["catalog", "rooms", hostel] as const;
+export const catalogCancelReasonsQueryKey = (scope: string) => ["catalog", "cancel-reasons", scope] as const;
+
+export const CANCEL_SCOPE_BOOKING_CHECKIN = "booking_checkin";
+export const CANCEL_SCOPE_BRON_BOARD = "bron_board";
+
+export type HostelDto = { id: number; name: string };
+export type RoomCatalogRow = { code: string; name: string; bed_count: number; inactive: boolean; room_kind: string };
+export type CancelReasonDto = { value: string; label: string; sort_order: number };
+
+export async function fetchHostels(): Promise<HostelDto[]> {
+  return fetchJson<HostelDto[]>("/catalog/hostels");
+}
+
+export async function fetchRoomCatalog(hostel: string): Promise<RoomCatalogRow[]> {
+  const q = new URLSearchParams({ hostel });
+  return fetchJson<RoomCatalogRow[]>(`/catalog/rooms?${q.toString()}`);
+}
+
+export async function fetchCancelReasons(scope: string): Promise<CancelReasonDto[]> {
+  const q = new URLSearchParams({ scope });
+  return fetchJson<CancelReasonDto[]>(`/catalog/cancel-reasons?${q.toString()}`);
+}
 
 function apiUrl(path: string): string {
   const p = path.startsWith("/") ? path : `/${path}`;

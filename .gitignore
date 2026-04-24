@@ -35,3 +35,4 @@ django_backend/**/__pycache__
 *.sln
 *.sw?
 notes
+dev-dist/

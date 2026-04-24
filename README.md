@@ -1,7 +1,7 @@
 # DoniHostel (swift-bookings)
 
 - **Backend:** `django_backend/` — REST `/api/*`, SQLite: `django_backend/data/swift_bookings.sqlite`, `npm run db:reset` → `seed_demo_sqlite`.
-- **Frontend:** Vite + React; **filial bo‘yicha xonalar** `src/data/staticRooms.ts` (kodlar DB `rooms.code` bilan mos); **bron/mehmon/statistika** DBdan.
+- **Frontend:** Vite + React; **filial va xona katalogi** `GET /api/catalog/hostels`, `GET /api/catalog/rooms?hostel=…`; **bron/mehmon/statistika** DBdan.
 - **Dev:** `npm run dev:stack` (Vite + Django `:3001`).
 
 ### Telegram Mini App

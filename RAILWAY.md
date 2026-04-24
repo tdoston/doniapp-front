@@ -15,6 +15,7 @@ This repo should be deployed as **two Railway services** from the same GitHub re
     3. `python manage.py migrate --noinput` — migratsiya `0002_guests_schema` ichida avval `postgres_bootstrap.sql` (shuning uchun faqat `migrate` ishlatilsa ham `bed_bookings` bo‘ladi).
     4. `python manage.py seed_initial_db` — Vodnik / Zargarlik / Tabarruk xonalari (idempotent).
   - Start: avval `bootstrap_postgres_schema` (Django orqali `sql/postgres_bootstrap.sql`), keyin `migrate`, `seed_initial_db`, so‘ng `gunicorn`. Shunda buildda `psql` ishlamagan bo‘lsa ham (`relation "bed_bookings" does not exist` kabi xatolar yo‘qoladi).
+  - Katalog API (DRF): `GET /api/catalog/hostels`, `GET /api/catalog/rooms?hostel=Vodnik`, `GET /api/catalog/cancel-reasons?scope=booking_checkin|bron_board`.
 
 ### Git push → auto deploy
 

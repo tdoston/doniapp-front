@@ -8,11 +8,11 @@ function expectedArrivalFromNotes(notes: string | undefined): string {
 }
 
 /**
- * Statik filial xonalari + GET /board (DB) bronlari va tozalash holati.
+ * Katalog xonalari (API) + GET /board (DB) bronlari va tozalash holati.
  * @param _boardDateIso Taxta sanasi (caller bilan API mosligi).
  */
 export function mergeStaticRoomsWithBoard(
-  staticRooms: RoomData[],
+  roomTemplates: RoomData[],
   bookings: BoardBookingRow[],
   cleaningByRoomCode: Record<string, "clean" | "dirty">,
   fullTakenByRoomCode: Record<string, boolean>,
@@ -24,7 +24,7 @@ export function mergeStaticRoomsWithBoard(
     byKey.set(`${b.roomCode}:${b.bedIndex}`, b);
   }
 
-  return staticRooms.map((room) => {
+  return roomTemplates.map((room) => {
     const cleaningStatus = cleaningByRoomCode[room.id] ?? "dirty";
     const fullTaken = Boolean(fullTakenByRoomCode[room.id]);
     const mode = fullTakenModeByRoomCode[room.id];

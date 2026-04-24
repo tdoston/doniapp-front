@@ -15,9 +15,12 @@ import RepeatGuestBanner, { type RepeatGuest } from "@/components/booking/Repeat
 import type { BookingPrefillState } from "@/types/bookingPrefill";
 import {
   ApiError,
+  CANCEL_SCOPE_BOOKING_CHECKIN,
+  catalogCancelReasonsQueryKey,
   createBooking,
   deleteBooking,
   digitsOnly,
+  fetchCancelReasons,
   fetchRecentGuests,
   patchBooking,
   parseDocumentPhoto,
@@ -28,7 +31,6 @@ import { computeGuestLookupKey, lineHasValidGuestIdentity, normalizePassportSeri
 import { BOOKING_FIELD_SHELL_CLASS, BOOKING_SINGLE_LINE_INPUT_CLASS } from "@/lib/bookingFieldStyles";
 import { cn } from "@/lib/utils";
 import { checkInLabel } from "@/lib/dates";
-import { BOOKING_CANCEL_REASONS } from "@/lib/bookingCancelReasons";
 import { formatBronArrivalHuman } from "@/lib/bronTime";
 import { bookingSaveErrorUz } from "@/lib/bookingSaveErrorUz";
 import {
@@ -103,6 +105,12 @@ const Index = () => {
     queryKey: recentGuestsQueryKey(recentLimit),
     queryFn: () => fetchRecentGuests(recentLimit),
     staleTime: 60_000,
+  });
+
+  const { data: bookingCancelReasonRows = [], isLoading: bookingCancelReasonsLoading } = useQuery({
+    queryKey: catalogCancelReasonsQueryKey(CANCEL_SCOPE_BOOKING_CHECKIN),
+    queryFn: () => fetchCancelReasons(CANCEL_SCOPE_BOOKING_CHECKIN),
+    staleTime: 60 * 60_000,
   });
 
   const guestLookup = useMemo(() => {
@@ -567,7 +575,7 @@ const Index = () => {
   };
 
   const handleConfirmCancelBooking = async () => {
-    const reasonLabel = BOOKING_CANCEL_REASONS.find((r) => r.value === cancelReasonValue)?.label;
+    const reasonLabel = bookingCancelReasonRows.find((r) => r.value === cancelReasonValue)?.label;
     if (!reasonLabel || deleting) return;
     setDeleting(true);
     try {
@@ -870,14 +878,21 @@ const Index = () => {
               {isBronReservation ? "Bronni bekor qilish" : "Check-inni bekor qilish"}
             </h2>
             <RadioGroup value={cancelReasonValue} onValueChange={setCancelReasonValue} className="gap-3 mb-5">
-              {BOOKING_CANCEL_REASONS.map((r) => (
-                <div key={r.value} className="flex items-start gap-3 rounded-xl border border-border p-3 has-[[data-state=checked]]:border-primary has-[[data-state=checked]]:bg-primary/5">
-                  <RadioGroupItem value={r.value} id={`cancel-${r.value}`} className="mt-0.5" />
-                  <Label htmlFor={`cancel-${r.value}`} className="text-sm font-medium leading-snug cursor-pointer flex-1">
-                    {r.label}
-                  </Label>
-                </div>
-              ))}
+              {bookingCancelReasonsLoading ? (
+                <p className="text-sm text-muted-foreground py-2">Sabablari yuklanmoqda…</p>
+              ) : (
+                bookingCancelReasonRows.map((r) => (
+                  <div
+                    key={r.value}
+                    className="flex items-start gap-3 rounded-xl border border-border p-3 has-[[data-state=checked]]:border-primary has-[[data-state=checked]]:bg-primary/5"
+                  >
+                    <RadioGroupItem value={r.value} id={`cancel-${r.value}`} className="mt-0.5" />
+                    <Label htmlFor={`cancel-${r.value}`} className="text-sm font-medium leading-snug cursor-pointer flex-1">
+                      {r.label}
+                    </Label>
+                  </div>
+                ))
+              )}
             </RadioGroup>
             <div className="grid grid-cols-2 gap-2">
               <button
@@ -894,7 +909,12 @@ const Index = () => {
               <button
                 type="button"
                 onClick={() => void handleConfirmCancelBooking()}
-                disabled={deleting || !cancelReasonValue}
+                disabled={
+                  deleting ||
+                  !cancelReasonValue ||
+                  bookingCancelReasonsLoading ||
+                  bookingCancelReasonRows.length === 0
+                }
                 className="h-12 rounded-xl font-bold text-sm bg-destructive text-destructive-foreground shadow-md transition-all active:scale-[0.98] disabled:opacity-50"
               >
                 {deleting ? "…" : "Tasdiqlash"}

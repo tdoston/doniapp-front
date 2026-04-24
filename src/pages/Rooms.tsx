@@ -13,14 +13,29 @@ import CleaningPage from "@/pages/Cleaning";
 import GuestsPage from "@/pages/Guests";
 import PaymentsPage from "@/pages/Payments";
 import StaffUsersPage from "@/pages/StaffUsers";
-import { ApiError, createBooking, deleteBooking, fetchBoard, patchBooking, patchCleaning, type IdentityOverlapWarning } from "@/lib/api";
+import {
+  ApiError,
+  CANCEL_SCOPE_BRON_BOARD,
+  catalogCancelReasonsQueryKey,
+  catalogHostelsQueryKey,
+  catalogRoomsQueryKey,
+  createBooking,
+  deleteBooking,
+  fetchBoard,
+  fetchCancelReasons,
+  fetchHostels,
+  fetchRoomCatalog,
+  patchBooking,
+  patchCleaning,
+  type IdentityOverlapWarning,
+} from "@/lib/api";
 import type { BookingPrefillState } from "@/types/bookingPrefill";
 import type { RecentGuestDto } from "@/lib/api";
 import { PENDING_CHECKIN_GUEST_KEY, recentGuestToBookingPrefillFields } from "@/lib/recentGuestPrefill";
 import { splitContactForPrefill } from "@/lib/guestIdentity";
 import { Button } from "@/components/ui/button";
-import { STATIC_HOSTELS, getStaticRoomsForHostel } from "@/data/staticRooms";
 import { mergeStaticRoomsWithBoard } from "@/lib/mergeBoard";
+import { roomCatalogToRoomData } from "@/lib/roomCatalog";
 import { formatIdentityOverlapWarningsUz, LAST_BOOKING_IDENTITY_OVERLAP_KEY } from "@/lib/identityOverlapWarning";
 import { normalizeExpectedLocal } from "@/lib/bronTime";
 
@@ -41,7 +56,7 @@ function boardLoadErrorCopy(error: unknown): { title: string; hint: string } {
     if (error.status === 0) {
       return {
         title: "Serverga ulanib bo'lmadi.",
-        hint: "Internetni tekshiring. Productionda VITE_API_BASE to'g'ri backend manziliga ishora qilishi kerak.",
+        hint: "Internetni tekshiring. Productionda VITE_API_BASE yoki VITE_API_URL to'g'ri backendga ishora qilishi kerak.",
       };
     }
     return {
@@ -54,15 +69,7 @@ function boardLoadErrorCopy(error: unknown): { title: string; hint: string } {
 
 const RoomsPage = () => {
   const [selectedDate, setSelectedDate] = useState(new Date());
-  const [activeHostel, setActiveHostel] = useState<string>(() => {
-    try {
-      const saved = sessionStorage.getItem(LAST_ACTIVE_HOSTEL_KEY);
-      if (saved && STATIC_HOSTELS.includes(saved as (typeof STATIC_HOSTELS)[number])) return saved;
-    } catch {
-      void 0;
-    }
-    return STATIC_HOSTELS[0];
-  });
+  const [activeHostel, setActiveHostel] = useState<string>("");
   const [activeTab, setActiveTab] = useState("rooms");
   const [emptyBedCtx, setEmptyBedCtx] = useState<EmptyBedTarget | null>(null);
   const [recentFromBedCtx, setRecentFromBedCtx] = useState<EmptyBedTarget | null>(null);
@@ -97,12 +104,51 @@ const RoomsPage = () => {
 
   const stayDateIso = useMemo(() => format(selectedDate, "yyyy-MM-dd"), [selectedDate]);
 
+  const hostelsQuery = useQuery({
+    queryKey: catalogHostelsQueryKey,
+    queryFn: fetchHostels,
+    staleTime: 30 * 60_000,
+  });
+
+  useEffect(() => {
+    const rows = hostelsQuery.data ?? [];
+    if (!rows.length) return;
+    const names = rows.map((h) => h.name);
+    setActiveHostel((prev) => {
+      if (prev && names.includes(prev)) return prev;
+      try {
+        const saved = sessionStorage.getItem(LAST_ACTIVE_HOSTEL_KEY);
+        if (saved && names.includes(saved)) return saved;
+      } catch {
+        void 0;
+      }
+      return names[0];
+    });
+  }, [hostelsQuery.data]);
+
+  const roomsCatalogQuery = useQuery({
+    queryKey: catalogRoomsQueryKey(activeHostel),
+    queryFn: () => fetchRoomCatalog(activeHostel),
+    enabled: Boolean(activeHostel),
+    staleTime: 30 * 60_000,
+  });
+
+  const bronCancelReasonsQuery = useQuery({
+    queryKey: catalogCancelReasonsQueryKey(CANCEL_SCOPE_BRON_BOARD),
+    queryFn: () => fetchCancelReasons(CANCEL_SCOPE_BRON_BOARD),
+    staleTime: 60 * 60_000,
+  });
+
   const boardQuery = useQuery({
     queryKey: ["board", activeHostel, stayDateIso],
     queryFn: () => fetchBoard(activeHostel, stayDateIso),
+    enabled: Boolean(activeHostel),
   });
 
-  const roomTemplates = useMemo(() => getStaticRoomsForHostel(activeHostel), [activeHostel]);
+  const roomTemplates = useMemo(
+    () => roomCatalogToRoomData(roomsCatalogQuery.data ?? []),
+    [roomsCatalogQuery.data]
+  );
 
   const currentRooms = useMemo(
     () =>
@@ -133,11 +179,27 @@ const RoomsPage = () => {
     [currentRooms]
   );
 
+  const catalogReady = useMemo(
+    () =>
+      !hostelsQuery.isLoading &&
+      !hostelsQuery.isError &&
+      Boolean(activeHostel) &&
+      !roomsCatalogQuery.isLoading &&
+      !roomsCatalogQuery.isError,
+    [
+      hostelsQuery.isLoading,
+      hostelsQuery.isError,
+      activeHostel,
+      roomsCatalogQuery.isLoading,
+      roomsCatalogQuery.isError,
+    ]
+  );
+
   const stats = useMemo(() => {
     const base = boardQuery.data?.stats ?? { empty: 0, guests: 0, debt: 0, revenue: 0 };
     return { ...base, empty: openEmptyBeds };
   }, [boardQuery.data?.stats, openEmptyBeds]);
-  const statsPending = !boardQuery.isSuccess;
+  const statsPending = !catalogReady || !boardQuery.isSuccess;
 
   const roomOptions = currentRooms.map((r) => ({ id: r.id, name: r.name, totalBeds: r.totalBeds }));
 
@@ -410,6 +472,7 @@ const RoomsPage = () => {
     if (refreshing) return;
     setRefreshing(true);
     try {
+      await queryClient.invalidateQueries({ queryKey: ["catalog"] });
       await queryClient.invalidateQueries({ queryKey: ["board"] });
       await queryClient.invalidateQueries({ queryKey: ["recentGuests"] });
       await queryClient.invalidateQueries({ queryKey: ["cleaning"] });
@@ -452,14 +515,46 @@ const RoomsPage = () => {
     switch (activeTab) {
       case "rooms": {
         const boardErr = boardQuery.isError ? boardLoadErrorCopy(boardQuery.error) : null;
+        const hostelsErr = hostelsQuery.isError ? boardLoadErrorCopy(hostelsQuery.error) : null;
+        const roomsCatErr = roomsCatalogQuery.isError ? boardLoadErrorCopy(roomsCatalogQuery.error) : null;
         return (
           <>
             <StatCards stats={stats} pending={statsPending} />
             <DateSelector selectedDate={selectedDate} onSelect={setSelectedDate} />
-            {boardQuery.isLoading && (
-              <p className="text-center text-sm text-muted-foreground py-10">Yuklanmoqda…</p>
+            {hostelsQuery.isLoading && (
+              <p className="text-center text-sm text-muted-foreground py-10">Filiallar yuklanmoqda…</p>
             )}
-            {boardQuery.isError && boardErr && (
+            {hostelsQuery.isError && hostelsErr && (
+              <div className="px-4 py-8 text-center space-y-3">
+                <p className="text-sm text-destructive font-medium">{hostelsErr.title}</p>
+                {hostelsErr.hint ? <p className="text-xs text-muted-foreground">{hostelsErr.hint}</p> : null}
+                <Button type="button" variant="outline" size="sm" onClick={() => void hostelsQuery.refetch()}>
+                  Qayta urinish
+                </Button>
+              </div>
+            )}
+            {!hostelsQuery.isLoading && !hostelsQuery.isError && !activeHostel && (
+              <p className="text-center text-sm text-muted-foreground py-10">Filial topilmadi.</p>
+            )}
+            {!hostelsQuery.isLoading &&
+              !hostelsQuery.isError &&
+              Boolean(activeHostel) &&
+              roomsCatalogQuery.isLoading && (
+                <p className="text-center text-sm text-muted-foreground py-10">Xonalar katalogi yuklanmoqda…</p>
+              )}
+            {roomsCatalogQuery.isError && roomsCatErr && (
+              <div className="px-4 py-8 text-center space-y-3">
+                <p className="text-sm text-destructive font-medium">{roomsCatErr.title}</p>
+                {roomsCatErr.hint ? <p className="text-xs text-muted-foreground">{roomsCatErr.hint}</p> : null}
+                <Button type="button" variant="outline" size="sm" onClick={() => void roomsCatalogQuery.refetch()}>
+                  Qayta urinish
+                </Button>
+              </div>
+            )}
+            {catalogReady && boardQuery.isLoading && (
+              <p className="text-center text-sm text-muted-foreground py-10">Taxta yuklanmoqda…</p>
+            )}
+            {catalogReady && boardQuery.isError && boardErr && (
               <div className="px-4 py-8 text-center space-y-3">
                 <p className="text-sm text-destructive font-medium">{boardErr.title}</p>
                 {boardErr.hint ? <p className="text-xs text-muted-foreground">{boardErr.hint}</p> : null}
@@ -468,7 +563,7 @@ const RoomsPage = () => {
                 </Button>
               </div>
             )}
-            {!boardQuery.isError && (
+            {catalogReady && !boardQuery.isError && (
               <div className="pt-3">
                 {currentRooms.map((room) => (
                   <RoomCard
@@ -549,18 +644,18 @@ const RoomsPage = () => {
         )}
         {(activeTab === "rooms" || activeTab === "cleaning") && (
           <div className="flex">
-            {STATIC_HOSTELS.map((h) => (
+            {(hostelsQuery.data ?? []).map((h) => (
               <button
-                key={h}
+                key={h.id}
                 type="button"
-                onClick={() => setActiveHostel(h)}
+                onClick={() => setActiveHostel(h.name)}
                 className={`flex-1 py-2.5 text-sm font-bold transition-all border-b-2 ${
-                  activeHostel === h
+                  activeHostel === h.name
                     ? "border-primary text-primary bg-primary/5"
                     : "border-transparent text-muted-foreground"
                 }`}
               >
-                {h}
+                {h.name}
               </button>
             ))}
           </div>
@@ -587,6 +682,7 @@ const RoomsPage = () => {
       <EmptyBedStartDialog
         context={emptyBedCtx}
         stayDateIso={stayDateIso}
+        bronCancelReasons={bronCancelReasonsQuery.isLoading ? null : (bronCancelReasonsQuery.data ?? [])}
         onClose={() => setEmptyBedCtx(null)}
         onYangiMehmon={goNewGuestBooking}
         onAvvalKelgan={(ctx) => {
