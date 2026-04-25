@@ -407,14 +407,6 @@ const RoomsPage = () => {
         new Set(bronBeds.map((b) => b.bookingId).filter((id): id is string => Boolean(id)))
       );
       try {
-        // Defensive fallback: if bron cards exist but ids are missing (legacy/inconsistent data),
-        // at least release full-room lock so room does not stay blocked.
-        if (bronBookingIds.length === 0) {
-          await patchCleaning(roomId, { hostel: activeHostel, fullTaken: false, fullTakenMode: "" });
-          await queryClient.invalidateQueries({ queryKey: ["board"] });
-          await queryClient.invalidateQueries({ queryKey: ["recentGuests"] });
-          return bronBeds.length > 0 || Boolean(room.fullTaken);
-        }
         for (const id of bronBookingIds) {
           try {
             await deleteBooking(id, "Xona bo‘yicha to‘liq bron bekor qilindi");
@@ -423,6 +415,7 @@ const RoomsPage = () => {
             if (!(e instanceof ApiError) || e.status !== 404) throw e;
           }
         }
+        // Always release room-level lock even if bron ids were missing/stale.
         await patchCleaning(roomId, { hostel: activeHostel, fullTaken: false, fullTakenMode: "" });
         await queryClient.invalidateQueries({ queryKey: ["board"] });
         await queryClient.invalidateQueries({ queryKey: ["recentGuests"] });
