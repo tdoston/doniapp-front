@@ -1,12 +1,21 @@
 /**
  * Django `/api` — taxta, mehmonlar, katalog (hostel/xona/sabablar).
  * Bazaviy URL: `VITE_API_BASE` (masalan `/api` yoki `https://host/.../api`) yoki
- * `VITE_API_URL` / `REACT_APP_API_URL` (faqat origin, `/api` qo‘shiladi).
+ * `VITE_API_URL` / `REACT_APP_API_URL` (faqat origin, `/api` qo'shiladi).
+ *
+ * Railway ichki DNS orqali avtomatik ulanish:
+ *   1. `VITE_API_BASE`      — aniq ko'rsatilgan URL (birinchi tekshiriladi)
+ *   2. `VITE_API_URL`       — faqat origin, `/api` qo'shiladi
+ *   3. `REACT_APP_API_URL`  — faqat origin, `/api` qo'shiladi
+ *   4. Railway hostname (`.up.railway.app`) — ichki DNS: `http://doniapp-back.railway.internal/api`
+ *   5. Mahalliy ishlab chiqish uchun: `/api`
  */
 function resolveApiBase(): string {
   const base = (import.meta.env.VITE_API_BASE ?? "").trim().replace(/\/$/, "");
   const originUrl = (import.meta.env.VITE_API_URL ?? "").trim().replace(/\/$/, "");
   const reactOrigin = (import.meta.env.REACT_APP_API_URL ?? "").trim().replace(/\/$/, "");
+
+  // 1. Explicit VITE_API_BASE takes highest priority.
   if (base) {
     // Guardrail: if only origin is provided (no path), assume Django API lives under `/api`.
     if (base.startsWith("http://") || base.startsWith("https://")) {
@@ -19,10 +28,22 @@ function resolveApiBase(): string {
     }
     return base;
   }
+
+  // 2. VITE_API_URL origin.
   if (originUrl) return `${originUrl}/api`;
+
+  // 3. REACT_APP_API_URL origin.
   if (reactOrigin) return `${reactOrigin}/api`;
+
+  // 4. Auto-detect Railway: use internal DNS when running on a Railway-hosted domain.
+  if (typeof window !== "undefined" && window.location.hostname.includes(".up.railway.app")) {
+    return "http://doniapp-back.railway.internal/api";
+  }
+
+  // 5. Local development fallback.
   return "/api";
 }
+
 
 const API_BASE = resolveApiBase();
 
