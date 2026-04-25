@@ -400,13 +400,24 @@ const RoomsPage = () => {
     async (roomId: string): Promise<boolean> => {
       const room = currentRooms.find((r) => r.id === roomId);
       if (!room) return false;
-      const bronBookingIds = room.beds
-        .filter((b) => b.status === "booked" && b.bookingKind === "bron" && !!b.bookingId)
-        .map((b) => b.bookingId as string);
-      if (bronBookingIds.length === 0) return false;
+      const bronBeds = room.beds.filter((b) => b.status === "booked" && b.bookingKind === "bron");
+      const bronBookingIds = bronBeds.map((b) => b.bookingId).filter((id): id is string => Boolean(id));
       try {
+        // Defensive fallback: if bron cards exist but ids are missing (legacy/inconsistent data),
+        // at least release full-room lock so room does not stay blocked.
+        if (bronBookingIds.length === 0) {
+          await patchCleaning(roomId, { hostel: activeHostel, fullTaken: false, fullTakenMode: "" });
+          await queryClient.invalidateQueries({ queryKey: ["board"] });
+          await queryClient.invalidateQueries({ queryKey: ["recentGuests"] });
+          return bronBeds.length > 0;
+        }
         for (const id of bronBookingIds) {
-          await deleteBooking(id, "Xona bo‘yicha to‘liq bron bekor qilindi");
+          try {
+            await deleteBooking(id, "Xona bo‘yicha to‘liq bron bekor qilindi");
+          } catch (e) {
+            // If one bron already got cancelled elsewhere, continue cancelling others.
+            if (!(e instanceof ApiError) || e.status !== 404) throw e;
+          }
         }
         await patchCleaning(roomId, { hostel: activeHostel, fullTaken: false, fullTakenMode: "" });
         await queryClient.invalidateQueries({ queryKey: ["board"] });
