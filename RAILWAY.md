@@ -69,6 +69,14 @@ Frontend bu matnni **faqat** API `503` va `code: db_unavailable` da ko‘rsatadi
 - **Backend → Postgres:** Postgres servisini backend bilan bog‘lang, `DATABASE_URL` backend variablesda bo‘lsin. TCP proxy / public URL da `sslmode=require` bo‘lmasa, `POSTGRES_SSLMODE=require` qo‘ying.
 - **Frontend → Backend:** `VITE_API_BASE=https://<backend>.up.railway.app/api` (oxirida `/api`).
 
+## Deploy versiyasi «ulanmayapti» — qayerdan tekshirish
+
+| Ekranda / brauzer | Ehtimoliy sabab | Tekshiruv / tuzatish |
+|-------------------|-----------------|----------------------|
+| **«Serverga ulanib bo‘lmadi»** + `Internetni tekshiring` | Frontend noto‘g‘ri URLga urilyapti yoki **CORS** blok | 1) Frontend **Variables** da `VITE_API_BASE=https://<backend>.up.railway.app/api` (yoki faqat origin — kod avtomatik `/api` qo‘shadi). 2) **Redeploy** frontend (Vite `import.meta.env` **build** vaqtida yoziladi). 3) Brauzer konsoli: CORS xatosi bo‘lsa backendda `CORS_EXTRA_ORIGINS` ga frontend URL yoki (Railwayda) `RAILWAY_ENVIRONMENT` bilan default `*.up.railway.app` CORS yoqilgan. |
+| **«Maʼlumotlar bazasiga ulanib boʼlmadi»** | Backend Postgresga ulanmayapti | Backend servisda **Postgres plugin** bog‘langan va `DATABASE_URL` bor. `https://<backend>/api/health` — DB yo‘q bo‘lsa 503. TCP proxy uchun `POSTGRES_SSLMODE=require` (`.env.example` / `settings`). |
+| Build **DATABASE_URL required** | Postgres ulanmagan | Railway: Postgres → backend servisga **Connect** / reference variable. |
+
 ## Important
 
 - Railway `one service = one deployment` ishlaydi.
