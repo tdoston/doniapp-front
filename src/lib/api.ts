@@ -1,19 +1,50 @@
 /**
  * Django `/api` — taxta, mehmonlar, katalog (hostel/xona/sabablar).
  * Bazaviy URL: `VITE_API_BASE` (masalan `/api` yoki `https://host/.../api`) yoki
- * `VITE_API_URL` / `REACT_APP_API_URL` (faqat origin, `/api` qo‘shiladi).
+ * `VITE_API_URL` / `REACT_APP_API_URL` (faqat origin, `/api` qo'shiladi).
+ *
+ * Muhit o'zgaruvchilari o'rnatilmagan bo'lsa va ilova localhost'da ishlamayotgan
+ * bo'lsa, joriy domendan backend URL'i avtomatik tuziladi:
+ * `doniapp-front-<suffix>` → `doniapp-back-<suffix>`.
  */
 function resolveApiBase(): string {
   const base = (import.meta.env.VITE_API_BASE ?? "").trim().replace(/\/$/, "");
   const originUrl = (import.meta.env.VITE_API_URL ?? "").trim().replace(/\/$/, "");
   const reactOrigin = (import.meta.env.REACT_APP_API_URL ?? "").trim().replace(/\/$/, "");
+
+  // 1. VITE_API_BASE — to'liq URL yoki yo'l (masalan https://host/api yoki /api)
   if (base) return base;
+
+  // 2. VITE_API_URL — faqat origin, /api qo'shiladi
   if (originUrl) return `${originUrl}/api`;
+
+  // 3. REACT_APP_API_URL — faqat origin, /api qo'shiladi
   if (reactOrigin) return `${reactOrigin}/api`;
+
+  // 4. Produksiyada (localhost emas) joriy domendan backend URL'ini tuzamiz.
+  //    doniapp-front-<suffix>.up.railway.app → doniapp-back-<suffix>.up.railway.app
+  if (typeof window !== "undefined") {
+    const hostname = window.location.hostname;
+    const isLocal =
+      hostname === "localhost" ||
+      hostname === "127.0.0.1" ||
+      hostname.startsWith("192.168.") ||
+      hostname.startsWith("10.") ||
+      hostname.endsWith(".local");
+
+    if (!isLocal) {
+      const backendHostname = hostname.replace(/^doniapp-front(?=-|$)/, "doniapp-back");
+      const protocol = window.location.protocol;
+      return `${protocol}//${backendHostname}/api`;
+    }
+  }
+
+  // 5. Lokal ishlab chiqish uchun Vite proksi orqali nisbiy yo'l
   return "/api";
 }
 
 const API_BASE = resolveApiBase();
+
 
 /** React Query: `invalidateQueries({ queryKey: ["recentGuests"] })` barcha limitlarni yangilaydi */
 export const recentGuestsQueryKey = (limit: number) => ["recentGuests", limit] as const;
