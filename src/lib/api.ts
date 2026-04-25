@@ -7,7 +7,18 @@ function resolveApiBase(): string {
   const base = (import.meta.env.VITE_API_BASE ?? "").trim().replace(/\/$/, "");
   const originUrl = (import.meta.env.VITE_API_URL ?? "").trim().replace(/\/$/, "");
   const reactOrigin = (import.meta.env.REACT_APP_API_URL ?? "").trim().replace(/\/$/, "");
-  if (base) return base;
+  if (base) {
+    // Guardrail: if only origin is provided (no path), assume Django API lives under `/api`.
+    if (base.startsWith("http://") || base.startsWith("https://")) {
+      try {
+        const u = new URL(base);
+        if (!u.pathname || u.pathname === "/") return `${base}/api`;
+      } catch {
+        // Ignore URL parse errors and fall back to raw value.
+      }
+    }
+    return base;
+  }
   if (originUrl) return `${originUrl}/api`;
   if (reactOrigin) return `${reactOrigin}/api`;
   return "/api";
