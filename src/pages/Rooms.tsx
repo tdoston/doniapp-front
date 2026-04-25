@@ -373,6 +373,8 @@ const RoomsPage = () => {
             expectedArrival: normalizeExpectedLocal(undefined, stayDateIso),
           })),
         });
+        // Keep room-level lock state in sync with "full bron" action.
+        await patchCleaning(roomId, { hostel: activeHostel, fullTaken: true, fullTakenMode: "bron" });
         await queryClient.invalidateQueries({ queryKey: ["board"] });
         await queryClient.invalidateQueries({ queryKey: ["recentGuests"] });
       } catch (e) {
@@ -401,7 +403,9 @@ const RoomsPage = () => {
       const room = currentRooms.find((r) => r.id === roomId);
       if (!room) return false;
       const bronBeds = room.beds.filter((b) => b.status === "booked" && b.bookingKind === "bron");
-      const bronBookingIds = bronBeds.map((b) => b.bookingId).filter((id): id is string => Boolean(id));
+      const bronBookingIds = Array.from(
+        new Set(bronBeds.map((b) => b.bookingId).filter((id): id is string => Boolean(id)))
+      );
       try {
         // Defensive fallback: if bron cards exist but ids are missing (legacy/inconsistent data),
         // at least release full-room lock so room does not stay blocked.
@@ -409,7 +413,7 @@ const RoomsPage = () => {
           await patchCleaning(roomId, { hostel: activeHostel, fullTaken: false, fullTakenMode: "" });
           await queryClient.invalidateQueries({ queryKey: ["board"] });
           await queryClient.invalidateQueries({ queryKey: ["recentGuests"] });
-          return bronBeds.length > 0;
+          return bronBeds.length > 0 || Boolean(room.fullTaken);
         }
         for (const id of bronBookingIds) {
           try {
