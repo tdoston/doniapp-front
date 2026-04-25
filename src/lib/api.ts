@@ -1,7 +1,10 @@
 /**
  * Django `/api` — taxta, mehmonlar, katalog (hostel/xona/sabablar).
  * Bazaviy URL: `VITE_API_BASE` (masalan `/api` yoki `https://host/.../api`) yoki
- * `VITE_API_URL` / `REACT_APP_API_URL` (faqat origin, `/api` qo‘shiladi).
+ * `VITE_API_URL` / `REACT_APP_API_URL` (faqat origin, `/api` qo'shiladi).
+ *
+ * Railway muhitida (hostname `.up.railway.app` bilan tugasa) ichki DNS ishlatiladi:
+ * `doniapp-back.railway.internal` — tarmoq ichida xavfsiz va tez.
  */
 function resolveApiBase(): string {
   const base = (import.meta.env.VITE_API_BASE ?? "").trim().replace(/\/$/, "");
@@ -10,6 +13,10 @@ function resolveApiBase(): string {
   if (base) return base;
   if (originUrl) return `${originUrl}/api`;
   if (reactOrigin) return `${reactOrigin}/api`;
+  // Railway muhitida ichki DNS orqali backend bilan bog'lanish
+  if (typeof window !== "undefined" && window.location.hostname.endsWith(".up.railway.app")) {
+    return "http://doniapp-back.railway.internal/api";
+  }
   return "/api";
 }
 
