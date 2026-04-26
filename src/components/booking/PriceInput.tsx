@@ -2,6 +2,8 @@ import { Minus, Plus } from "lucide-react";
 import { BOOKING_FIELD_SHELL_CLASS, BOOKING_SINGLE_LINE_INPUT_CLASS } from "@/lib/bookingFieldStyles";
 import { cn } from "@/lib/utils";
 import { digitsFromSoumInput, formatSoumDisplay } from "@/lib/moneyInput";
+import { getCheckInHint } from "@/lib/checkInTimeHint";
+import { useEffect, useState } from "react";
 
 interface PriceInputProps {
   value: string;
@@ -16,6 +18,13 @@ const CHIPS = [150000, 100000, 80000, 70000];
 const PriceInput = ({ value, onChange, nights, onNightsChange, disabled }: PriceInputProps) => {
   const priceNum = Number(digitsFromSoumInput(value)) || 0;
   const totalPrice = priceNum * nights;
+
+  // Vaqt o'zgarishini har daqiqada yangilab turamiz (faqat UI eslatma)
+  const [hint, setHint] = useState(() => getCheckInHint());
+  useEffect(() => {
+    const id = setInterval(() => setHint(getCheckInHint()), 60_000);
+    return () => clearInterval(id);
+  }, []);
 
   const handleChip = (amount: number) => {
     if (disabled) return;
@@ -33,6 +42,24 @@ const PriceInput = ({ value, onChange, nights, onNightsChange, disabled }: Price
   return (
     <div className="space-y-2">
       <label className="text-[0.8125rem] font-semibold leading-none text-foreground tracking-tight">Narx / kecha</label>
+      {hint.tone ? (
+        <div
+          className={cn(
+            "flex items-center justify-between gap-2 rounded-lg border px-3 py-2 text-[0.75rem] font-semibold",
+            hint.tone === "full" &&
+              "border-destructive/30 bg-destructive/10 text-destructive",
+            hint.tone === "half" &&
+              "border-primary/30 bg-primary/10 text-primary",
+            hint.tone === "soon" &&
+              "border-border bg-muted text-muted-foreground"
+          )}
+        >
+          <span className="truncate">{hint.label}</span>
+          <span className="shrink-0 text-[0.6875rem] font-bold uppercase tracking-wider opacity-80">
+            {hint.detail}
+          </span>
+        </div>
+      ) : null}
       <div className={cn(BOOKING_FIELD_SHELL_CLASS, disabled && "pointer-events-none opacity-60")}>
         <input
           type="text"
