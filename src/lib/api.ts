@@ -41,7 +41,14 @@ export type RoomCatalogRow = { code: string; name: string; bed_count: number; in
 export type CancelReasonDto = { value: string; label: string; sort_order: number };
 
 export async function fetchHostels(): Promise<HostelDto[]> {
-  return fetchJson<HostelDto[]>("/catalog/hostels");
+  const raw = await fetchJson<unknown>("/catalog/hostels");
+  if (Array.isArray(raw)) return raw as HostelDto[];
+  if (raw && typeof raw === "object") {
+    const obj = raw as Record<string, unknown>;
+    const candidates = [obj.results, obj.hostels, obj.data];
+    for (const c of candidates) if (Array.isArray(c)) return c as HostelDto[];
+  }
+  return [];
 }
 
 export async function fetchRoomCatalog(hostel: string): Promise<RoomCatalogRow[]> {
