@@ -124,7 +124,7 @@ export type RecentGuestDto = {
   passportSeries?: string;
   lastVisit: string;
   price: number;
-  paid: number;
+  paid?: number;
   /** Oxirgi faol yozuvdagi kechalar (qarz / narx hisobi bilan mos) */
   nights?: number;
   notes?: string;
