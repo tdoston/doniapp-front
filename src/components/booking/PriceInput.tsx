@@ -49,7 +49,7 @@ const PriceInput = ({ value, onChange, nights, onNightsChange, disabled }: Price
             hint.tone === "full" &&
               "border-destructive/30 bg-destructive/10 text-destructive",
             hint.tone === "half" &&
-              "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-400",
+              "border-primary/30 bg-primary/10 text-primary",
             hint.tone === "soon" &&
               "border-border bg-muted text-muted-foreground"
           )}
