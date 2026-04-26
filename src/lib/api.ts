@@ -53,12 +53,24 @@ export async function fetchHostels(): Promise<HostelDto[]> {
 
 export async function fetchRoomCatalog(hostel: string): Promise<RoomCatalogRow[]> {
   const q = new URLSearchParams({ hostel });
-  return fetchJson<RoomCatalogRow[]>(`/catalog/rooms?${q.toString()}`);
+  const raw = await fetchJson<unknown>(`/catalog/rooms?${q.toString()}`);
+  if (Array.isArray(raw)) return raw as RoomCatalogRow[];
+  if (raw && typeof raw === "object") {
+    const obj = raw as Record<string, unknown>;
+    for (const c of [obj.results, obj.rooms, obj.data]) if (Array.isArray(c)) return c as RoomCatalogRow[];
+  }
+  return [];
 }
 
 export async function fetchCancelReasons(scope: string): Promise<CancelReasonDto[]> {
   const q = new URLSearchParams({ scope });
-  return fetchJson<CancelReasonDto[]>(`/catalog/cancel-reasons?${q.toString()}`);
+  const raw = await fetchJson<unknown>(`/catalog/cancel-reasons?${q.toString()}`);
+  if (Array.isArray(raw)) return raw as CancelReasonDto[];
+  if (raw && typeof raw === "object") {
+    const obj = raw as Record<string, unknown>;
+    for (const c of [obj.results, obj.reasons, obj.data]) if (Array.isArray(c)) return c as CancelReasonDto[];
+  }
+  return [];
 }
 
 function apiUrl(path: string): string {
