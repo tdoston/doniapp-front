@@ -1,4 +1,5 @@
 /// <reference types="vite/client" />
+/// <reference types="vite-plugin-pwa/client" />
 
 interface ImportMetaEnv {
   /** API yo'li: devda `/api` (Vite proksi), prod yoki previewda masalan `https://api.host.com/api` */
