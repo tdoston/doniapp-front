@@ -41,6 +41,32 @@ import { normalizeExpectedLocal } from "@/lib/bronTime";
 
 const LAST_ACTIVE_HOSTEL_KEY = "rooms:lastActiveHostel";
 
+function RoomCardSkeleton() {
+  return (
+    <div className="mx-4 mb-3 rounded-2xl border border-border bg-card overflow-hidden animate-pulse">
+      <div className="px-4 pt-3 pb-2 flex items-center justify-between">
+        <div className="h-4 w-24 rounded-md bg-muted" />
+        <div className="h-4 w-12 rounded-md bg-muted" />
+      </div>
+      <div className="px-4 pb-3 flex gap-2">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="flex-1 h-14 rounded-xl bg-muted" />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function RoomListSkeleton() {
+  return (
+    <div className="pt-3">
+      {[1, 2, 3, 4].map((i) => (
+        <RoomCardSkeleton key={i} />
+      ))}
+    </div>
+  );
+}
+
 function boardLoadErrorCopy(error: unknown): { title: string; hint: string } {
   if (error instanceof ApiError) {
     const code =
@@ -542,10 +568,10 @@ const RoomsPage = () => {
           <>
             <StatCards stats={stats} pending={statsPending} />
             <DateSelector selectedDate={selectedDate} onSelect={setSelectedDate} />
-            {hostelsQuery.isLoading && (
-              <p className="text-center text-sm text-muted-foreground py-10">Filiallar yuklanmoqda…</p>
+            {(hostelsQuery.isLoading || roomsCatalogQuery.isLoading || (catalogReady && boardQuery.isLoading) || refreshing) && (
+              <RoomListSkeleton />
             )}
-            {hostelsQuery.isError && hostelsErr && (
+            {!refreshing && hostelsQuery.isError && hostelsErr && (
               <div className="px-4 py-8 text-center space-y-3">
                 <p className="text-sm text-destructive font-medium">{hostelsErr.title}</p>
                 {hostelsErr.hint ? <p className="text-xs text-muted-foreground">{hostelsErr.hint}</p> : null}
@@ -557,13 +583,7 @@ const RoomsPage = () => {
             {!hostelsQuery.isLoading && !hostelsQuery.isError && !activeHostel && (
               <p className="text-center text-sm text-muted-foreground py-10">Filial topilmadi.</p>
             )}
-            {!hostelsQuery.isLoading &&
-              !hostelsQuery.isError &&
-              Boolean(activeHostel) &&
-              roomsCatalogQuery.isLoading && (
-                <p className="text-center text-sm text-muted-foreground py-10">Xonalar katalogi yuklanmoqda…</p>
-              )}
-            {roomsCatalogQuery.isError && roomsCatErr && (
+            {!refreshing && roomsCatalogQuery.isError && roomsCatErr && (
               <div className="px-4 py-8 text-center space-y-3">
                 <p className="text-sm text-destructive font-medium">{roomsCatErr.title}</p>
                 {roomsCatErr.hint ? <p className="text-xs text-muted-foreground">{roomsCatErr.hint}</p> : null}
@@ -572,10 +592,7 @@ const RoomsPage = () => {
                 </Button>
               </div>
             )}
-            {catalogReady && boardQuery.isLoading && (
-              <p className="text-center text-sm text-muted-foreground py-10">Taxta yuklanmoqda…</p>
-            )}
-            {catalogReady && boardQuery.isError && boardErr && (
+            {!refreshing && catalogReady && boardQuery.isError && boardErr && (
               <div className="px-4 py-8 text-center space-y-3">
                 <p className="text-sm text-destructive font-medium">{boardErr.title}</p>
                 {boardErr.hint ? <p className="text-xs text-muted-foreground">{boardErr.hint}</p> : null}
@@ -584,7 +601,7 @@ const RoomsPage = () => {
                 </Button>
               </div>
             )}
-            {catalogReady && !boardQuery.isError && (
+            {!refreshing && catalogReady && !boardQuery.isLoading && !boardQuery.isError && (
               <div className="pt-3">
                 {currentRooms.map((room) => (
                   <RoomCard
@@ -647,19 +664,14 @@ const RoomsPage = () => {
             <RefreshCw className={`h-5 w-5 ${refreshing ? "animate-spin [animation-duration:1.4s]" : ""}`} />
           </button>
         </div>
-        {(pullDistance > 0 || refreshing) && (
+        {pullDistance > 0 && !refreshing && (
           <div className="px-4 pb-2">
             <div className="mb-1 flex items-center justify-between text-[11px] font-semibold text-muted-foreground">
-              <span>{refreshing ? "Yangilanmoqda..." : "Yangilash uchun torting"}</span>
-              <span className="tabular-nums">
-                {`${Math.min(100, Math.round((pullDistance / 44) * 100))}%`}
-              </span>
+              <span>Yangilash uchun torting</span>
+              <span className="tabular-nums">{`${Math.min(100, Math.round((pullDistance / 44) * 100))}%`}</span>
             </div>
             <div className="h-2 rounded-full bg-muted overflow-hidden">
-              <div
-                className={`h-full transition-all ${refreshing ? "bg-gradient-to-r from-primary/60 via-primary to-primary/60 animate-pulse" : "bg-primary"}`}
-                style={{ width: `${refreshing ? 100 : Math.min(100, (pullDistance / 44) * 100)}%` }}
-              />
+              <div className="h-full bg-primary transition-all" style={{ width: `${Math.min(100, (pullDistance / 44) * 100)}%` }} />
             </div>
           </div>
         )}
