@@ -22,6 +22,44 @@
 </head>
 
   <body>
+    <div id="page-loader">
+      <div id="page-loader-bar"></div>
+    </div>
+    <style>
+      #page-loader {
+        position: fixed;
+        inset: 0;
+        z-index: 9999;
+        background: #0f172a;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 0;
+        transition: opacity 0.35s ease, visibility 0.35s ease;
+      }
+      #page-loader.done {
+        opacity: 0;
+        visibility: hidden;
+      }
+      #page-loader-bar {
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 3px;
+        width: 0%;
+        background: linear-gradient(90deg, #6366f1, #8b5cf6, #a78bfa);
+        border-radius: 0 2px 2px 0;
+        box-shadow: 0 0 12px #8b5cf6aa;
+        animation: loader-grow 1.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+      }
+      @keyframes loader-grow {
+        0%   { width: 0%; opacity: 1; }
+        60%  { width: 75%; opacity: 1; }
+        90%  { width: 90%; opacity: 1; }
+        100% { width: 92%; opacity: 1; }
+      }
+    </style>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
