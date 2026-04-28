@@ -15,7 +15,7 @@ interface StatCardsProps {
 }
 
 const StatCards = ({ stats, pending }: StatCardsProps) => {
-  const [showRevenue, setShowRevenue] = useState(true);
+  const [showFinancials, setShowFinancials] = useState(true);
   const n = (v: number) => (pending ? "—" : v);
   const totalBeds = stats.empty + stats.guests;
   return (
@@ -35,20 +35,33 @@ const StatCards = ({ stats, pending }: StatCardsProps) => {
         <span className="text-xs font-semibold text-[hsl(215,40%,35%)]">Mehmon</span>
       </div>
       <div
-        className={`rounded-xl p-4 flex flex-col items-center justify-center bg-[hsl(var(--debt))] min-h-[80px] ${pending ? "animate-pulse opacity-70" : ""}`}
+        className={`rounded-xl p-4 flex flex-col items-center justify-center bg-[hsl(var(--debt))] min-h-[80px] relative overflow-hidden ${pending ? "animate-pulse opacity-70" : ""}`}
       >
-        <span className="text-3xl font-extrabold text-destructive">{n(stats.debt)}</span>
+        {!pending && !showFinancials ? (
+          <div className="absolute inset-0 backdrop-blur-md bg-white/20 dark:bg-black/20 border border-white/25 dark:border-white/10" />
+        ) : null}
+        <span className="text-3xl font-extrabold text-destructive z-[1]">
+          {pending ? "—" : showFinancials ? stats.debt : "•••"}
+        </span>
         <span className="text-xs font-semibold text-destructive">Qarzi</span>
       </div>
-      <div
-        className={`rounded-xl p-4 flex flex-col items-center justify-center bg-[hsl(var(--income))] min-h-[80px] relative ${pending ? "" : "cursor-pointer"}`}
-        onClick={() => !pending && setShowRevenue((p) => !p)}
-      >
-       <div className="absolute top-2 right-2 text-accent">
-          {showRevenue ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-        </div>
-        <span className="text-3xl font-extrabold text-accent">
-          {pending ? "—" : showRevenue ? stats.revenue : "•••"}
+      <div className="rounded-xl p-4 flex flex-col items-center justify-center bg-[hsl(var(--income))] min-h-[80px] relative overflow-hidden">
+        {!pending && !showFinancials ? (
+          <div className="absolute inset-0 backdrop-blur-md bg-white/20 dark:bg-black/20 border border-white/25 dark:border-white/10" />
+        ) : null}
+        <button
+          type="button"
+          disabled={pending}
+          onClick={() => setShowFinancials((p) => !p)}
+          className="absolute top-2 right-2 text-accent z-[2] disabled:opacity-50"
+          aria-label={showFinancials ? "Qarz va kirimni yashirish" : "Qarz va kirimni ko'rsatish"}
+          title={showFinancials ? "Yashirish" : "Ko'rsatish"}
+        >
+          {showFinancials ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+        </button>
+        <div className="absolute top-2 left-2 text-[10px] font-semibold text-accent/80 z-[2]">Qarz + Kirim</div>
+        <span className="text-3xl font-extrabold text-accent z-[1]">
+          {pending ? "—" : showFinancials ? stats.revenue : "•••"}
         </span>
         <span className="text-xs font-semibold text-accent">Kirim</span>
       </div>

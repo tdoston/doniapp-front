@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Camera, Check, ChevronDown, ChevronUp, ImagePlus, DoorClosed, ShowerHead, BedDouble, Users, X, ChevronLeft, ChevronRight, Share2, Trash2, RefreshCw } from "lucide-react";
 import { fetchCleaning, patchCleaning, type CleaningRoomDto } from "@/lib/api";
 import { readFileAsDataUrl } from "@/lib/files";
+import { usePhotoSourcePicker } from "@/hooks/usePhotoSourcePicker";
 
 type CleaningRoom = CleaningRoomDto;
 
@@ -51,9 +52,8 @@ const CleaningPage = ({ activeHostel, stayDateIso }: CleaningPageProps) => {
   const rooms = cleaningQuery.data?.rooms ?? [];
 
   const [expandedRoom, setExpandedRoom] = useState<string | null>(null);
-  const fileRef = useRef<HTMLInputElement>(null);
   const replaceRef = useRef<HTMLInputElement>(null);
-  const [activeUpload, setActiveUpload] = useState<{ roomId: string; type: "before" | "after" } | null>(null);
+  const activeUploadRef = useRef<{ roomId: string; type: "before" | "after" } | null>(null);
   const [gallery, setGallery] = useState<GalleryState | null>(null);
   const touchStartX = useRef(0);
 
@@ -63,28 +63,30 @@ const CleaningPage = ({ activeHostel, stayDateIso }: CleaningPageProps) => {
 
   const getRoomSnapshot = (roomId: string) => rooms.find((r) => r.id === roomId);
 
+  const { trigger: triggerUpload, sheet: uploadSheet } = usePhotoSourcePicker({
+    onFiles: async (files) => {
+      const file = files[0];
+      const ctx = activeUploadRef.current;
+      if (!file || !ctx) return;
+      const room = getRoomSnapshot(ctx.roomId);
+      if (!room) return;
+      const maxPhotos = getMaxPhotos(room);
+      const key = ctx.type === "before" ? "photosBefore" : "photosAfter";
+      try {
+        const dataUrl = await readFileAsDataUrl(file);
+        const next = [...room[key], dataUrl].slice(0, maxPhotos);
+        patchMut.mutate({ code: room.id, patch: { hostel: activeHostel, [key]: next } });
+      } catch {
+        /* ignore */
+      }
+      activeUploadRef.current = null;
+    },
+    multiple: false,
+  });
+
   const handlePhotoUpload = (roomId: string, type: "before" | "after") => {
-    setActiveUpload({ roomId, type });
-    fileRef.current?.click();
-  };
-
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !activeUpload) return;
-    const room = getRoomSnapshot(activeUpload.roomId);
-    if (!room) return;
-
-    const maxPhotos = getMaxPhotos(room);
-    const key = activeUpload.type === "before" ? "photosBefore" : "photosAfter";
-    try {
-      const dataUrl = await readFileAsDataUrl(file);
-      const next = [...room[key], dataUrl].slice(0, maxPhotos);
-      patchMut.mutate({ code: room.id, patch: { hostel: activeHostel, [key]: next } });
-    } catch {
-      /* ignore */
-    }
-    setActiveUpload(null);
-    e.target.value = "";
+    activeUploadRef.current = { roomId, type };
+    triggerUpload();
   };
 
   const markCleaned = (roomId: string) => {
@@ -234,8 +236,7 @@ const CleaningPage = ({ activeHostel, stayDateIso }: CleaningPageProps) => {
         </div>
       </div>
 
-      {/* Hidden file input */}
-      <input ref={fileRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFileChange} />
+      {uploadSheet}
 
       {/* Room list */}
       <div className="space-y-2 px-4 pt-1">

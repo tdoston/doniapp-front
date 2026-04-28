@@ -75,7 +75,13 @@ function boardLoadErrorCopy(error: unknown): { title: string; hint: string } {
 
 const RoomsPage = () => {
   const [selectedDate, setSelectedDate] = useState(new Date());
-  const [activeHostel, setActiveHostel] = useState<string>("");
+  const [activeHostel, setActiveHostel] = useState<string>(() => {
+    try {
+      return sessionStorage.getItem(LAST_ACTIVE_HOSTEL_KEY) || "";
+    } catch {
+      return "";
+    }
+  });
   const [activeTab, setActiveTab] = useState("rooms");
   const [emptyBedCtx, setEmptyBedCtx] = useState<EmptyBedTarget | null>(null);
   const [recentFromBedCtx, setRecentFromBedCtx] = useState<EmptyBedTarget | null>(null);
@@ -101,6 +107,7 @@ const RoomsPage = () => {
   }, []);
 
   useEffect(() => {
+    if (!activeHostel) return;
     try {
       sessionStorage.setItem(LAST_ACTIVE_HOSTEL_KEY, activeHostel);
     } catch {
