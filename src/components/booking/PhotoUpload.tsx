@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import { Camera, X, ChevronLeft, ChevronRight, RefreshCw } from "lucide-react";
+import { usePhotoSourcePicker } from "@/hooks/usePhotoSourcePicker";
 
 interface PhotoUploadProps {
   photos: string[];
@@ -10,15 +11,20 @@ interface PhotoUploadProps {
   hideLabel?: boolean;
   /** `express` — katta yuklash zonasi. */
   variant?: "default" | "express";
-  /** Faqat ko‘rish (taxtadan qayta ochilganda). */
+  /** Faqat ko'rish (taxtadan qayta ochilganda). */
   readOnly?: boolean;
 }
 
 const PhotoUpload = ({ photos, onAdd, onRemove, onReplace, hideLabel, variant = "default", readOnly }: PhotoUploadProps) => {
-  const inputRef = useRef<HTMLInputElement>(null);
-  const replaceRef = useRef<HTMLInputElement>(null);
   const [viewIdx, setViewIdx] = useState<number | null>(null);
   const touchStartX = useRef(0);
+
+  const { trigger: triggerAdd, sheet: addSheet } = usePhotoSourcePicker({
+    onFiles: onAdd,
+    multiple: true,
+  });
+
+  const replaceRef = useRef<HTMLInputElement>(null);
 
   const handleReplace = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -69,7 +75,7 @@ const PhotoUpload = ({ photos, onAdd, onRemove, onReplace, hideLabel, variant = 
                 type="button"
                 onClick={() => onRemove(i)}
                 className="absolute top-1 right-1 w-6 h-6 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center shadow-sm active:scale-95"
-                aria-label="Rasmni o‘chirish"
+                aria-label="Rasmni o'chirish"
               >
                 <X className="w-3.5 h-3.5" />
               </button>
@@ -79,7 +85,7 @@ const PhotoUpload = ({ photos, onAdd, onRemove, onReplace, hideLabel, variant = 
         {photos.length < 3 && !readOnly && (
           <button
             type="button"
-            onClick={() => inputRef.current?.click()}
+            onClick={triggerAdd}
             className={
               express
                 ? "min-h-[7.5rem] flex-1 min-w-[7rem] rounded-3xl border border-primary/30 bg-gradient-to-br from-primary/15 via-primary/10 to-accent/15 flex flex-col items-center justify-center gap-2 text-primary shadow-sm shadow-primary/15 hover:border-primary/45 hover:from-primary/20 hover:to-accent/20 active:scale-[0.99] transition-all"
@@ -100,14 +106,9 @@ const PhotoUpload = ({ photos, onAdd, onRemove, onReplace, hideLabel, variant = 
           </button>
         )}
       </div>
-      <input
-        ref={inputRef}
-        type="file"
-        accept="image/*"
-        multiple
-        className="hidden"
-        onChange={(e) => { if (e.target.files) onAdd(e.target.files); e.target.value = ""; }}
-      />
+
+      {addSheet}
+
       <input
         ref={replaceRef}
         type="file"
@@ -207,7 +208,7 @@ const PhotoUpload = ({ photos, onAdd, onRemove, onReplace, hideLabel, variant = 
             ) : null}
             {!readOnly && photos.length < 3 ? (
               <button
-                onClick={() => inputRef.current?.click()}
+                onClick={triggerAdd}
                 className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-white/10 text-white text-sm font-semibold"
               >
                 <Camera className="w-4 h-4" />
