@@ -36,3 +36,4 @@ django_backend/**/__pycache__
 *.sw?
 notes
 dev-dist/
+package-lock.json
