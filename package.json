@@ -13,7 +13,7 @@
     "django:admin": "npm run admin:ensure --prefix django_backend",
     "django:admin:reset": "npm run admin:reset --prefix django_backend",
     "telegram:verify": "npm run telegram:verify --prefix django_backend",
-    "public:tunnel": "npx --yes cloudflared tunnel --url http://127.0.0.1:${TUNNEL_PORT:-8080}",
+    "public:tunnel": "node scripts/ngrok-public.cjs",
     "public:tunnel:cf": "npx --yes cloudflared tunnel --url http://127.0.0.1:${TUNNEL_PORT:-8080}",
     "public:tunnel:ngrok": "node scripts/ngrok-public.cjs",
     "public:tunnel:lt": "npx --yes localtunnel@2.0.2 --print-requests --port ${TUNNEL_PORT:-8080}",

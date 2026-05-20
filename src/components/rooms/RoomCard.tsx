@@ -1,5 +1,5 @@
 import React, { useState, useRef, useCallback, useEffect } from "react";
-import { BedDouble, ImageIcon, Sparkles, Lock } from "lucide-react";
+import { BedDouble, ImageIcon, Sparkles } from "lucide-react";
 import { digitsFromSoumInput } from "@/lib/moneyInput";
 import RoomPhotoGallery from "./RoomPhotoGallery";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -107,7 +107,7 @@ const RoomCard = ({
   const handleTouchStart = useCallback(
     (bedId: number, e?: React.TouchEvent<HTMLButtonElement>) => {
       const bed = room.beds.find((b) => b.id === bedId);
-      if (room.inactive && bed?.status === "empty") return;
+      if ((room.inactive || room.fullTaken) && bed?.status === "empty") return;
       if (e?.touches?.[0]) {
         touchStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
         touchMovedRef.current = false;
@@ -116,7 +116,6 @@ const RoomCard = ({
         touchMovedRef.current = false;
       }
       setPressedBed(bedId);
-      if (room.fullTaken && bed?.status === "empty") return;
       timerRef.current = setTimeout(() => {
         onBedLongPress(room.id, bedId);
         setPressedBed(null);
@@ -140,22 +139,11 @@ const RoomCard = ({
   const handleTouchEnd = useCallback(
     (bedId: number) => {
       const bed = room.beds.find((b) => b.id === bedId);
-      if (room.inactive && bed?.status === "empty") {
+      if ((room.inactive || room.fullTaken) && bed?.status === "empty") {
         if (timerRef.current) {
           clearTimeout(timerRef.current);
           timerRef.current = null;
         }
-        setPressedBed(null);
-        return;
-      }
-      if (room.fullTaken && bed?.status === "empty") {
-        if (!touchMovedRef.current) {
-          setConfirmRelease(false);
-          setConfirmCancelBron(false);
-          setShowRoomActions(true);
-        }
-        touchStartRef.current = null;
-        touchMovedRef.current = false;
         setPressedBed(null);
         return;
       }
@@ -208,21 +196,11 @@ const RoomCard = ({
   const canFullCheckIn = !fullTaken && checkInCount > 0 && checkInCount < room.totalBeds;
   const canFullBron = !fullTaken && allBedsEmpty;
 
-  const isBronFull = !inactive && fullTaken && fullTakenMode === "bron";
-  const isCheckInFull = !inactive && fullTaken && fullTakenMode !== "bron";
-
   return (
     <>
       <div
-        className={`mx-4 mb-4 rounded-2xl overflow-hidden bg-foreground/90 animate-fade-in ${inactive ? "opacity-[0.88]" : ""} ${
-          isBronFull ? "ring-2 ring-amber-400/70" : isCheckInFull ? "ring-2 ring-red-500/70" : ""
-        }`}
+        className={`mx-4 mb-4 rounded-2xl overflow-hidden bg-foreground/90 animate-fade-in ${inactive ? "opacity-[0.88]" : ""}`}
       >
-        {/* Status stripe */}
-        {(isBronFull || isCheckInFull) && (
-          <div className={`h-1.5 w-full ${isBronFull ? "bg-amber-400" : "bg-red-600"}`} />
-        )}
-
         <div className="flex items-center justify-between px-4 py-3">
           <div className="min-w-0 flex-1">
             <button
@@ -240,24 +218,13 @@ const RoomCard = ({
             {inactive && (
               <p className="text-[10px] font-semibold text-orange-300 mt-0.5">Nofaol</p>
             )}
+            {!inactive && fullTaken && (
+              <p className="text-[10px] font-semibold text-amber-300 mt-0.5">
+                To&apos;liq band {fullTakenMode === "bron" ? "(Bron)" : ""}
+              </p>
+            )}
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            {(isBronFull || isCheckInFull) && (
-              <button
-                type="button"
-                onClick={() => {
-                  setConfirmRelease(false);
-                  setConfirmCancelBron(false);
-                  setShowRoomActions(true);
-                }}
-                className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-black uppercase tracking-wide active:scale-95 transition-transform ${
-                  isBronFull ? "bg-amber-400 text-amber-950" : "bg-red-600 text-white"
-                }`}
-              >
-                <Lock className="w-3 h-3" />
-                {isBronFull ? "Bron" : "Band"}
-              </button>
-            )}
             <div
               className={`flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold ${
                 cleaningStatus === "clean"
@@ -284,7 +251,7 @@ const RoomCard = ({
             <button
               key={bed.id}
               type="button"
-              disabled={inactive && bed.status === "empty"}
+              disabled={(inactive || fullTaken) && bed.status === "empty"}
               title={debt ? "Qarz bor" : undefined}
               onTouchStart={(e) => handleTouchStart(bed.id, e)}
               onTouchMove={handleTouchMove}
@@ -350,45 +317,43 @@ const RoomCard = ({
             <DialogHeader className="text-left space-y-1">
               <DialogTitle className="text-base font-extrabold">{room.name}</DialogTitle>
               <p className="text-xs text-muted-foreground">
-                Xonani to&apos;liq bron yoki band qilish:{" "}
-                {isBronFull ? (
-                  <span className="font-semibold text-amber-700 dark:text-amber-300">To&apos;liq bron</span>
-                ) : isCheckInFull ? (
-                  <span className="font-semibold text-red-600 dark:text-red-400">To&apos;liq band</span>
+                Xona holati:{" "}
+                {fullTaken ? (
+                  <span className="font-semibold text-amber-700 dark:text-amber-300">
+                    To&apos;liq band {fullTakenMode === "bron" ? "(Bron)" : ""}
+                  </span>
                 ) : (
-                  <span className="font-semibold">Tanlang</span>
+                  <span className="font-semibold text-emerald-700 dark:text-emerald-300">Ochiq</span>
                 )}
               </p>
             </DialogHeader>
 
-            {!fullTaken && !confirmCancelBron && !confirmRelease ? (
-              <div className="mt-4 grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  disabled={!onToggleFullTaken || !canFullCheckIn}
-                  onClick={() => {
-                    onToggleFullTaken?.(room.id, true, "check_in");
-                    setShowRoomActions(false);
-                  }}
-                  className="h-11 rounded-xl border border-red-500/40 bg-red-600/90 text-sm font-bold text-white disabled:opacity-40"
-                >
-                  To&apos;liq band
-                </button>
-                <button
-                  type="button"
-                  disabled={!onFullRoomBron || !onToggleFullTaken || !canFullBron}
-                  onClick={() => {
-                    onFullRoomBron?.(room.id);
-                    setShowRoomActions(false);
-                  }}
-                  className="h-11 rounded-xl border border-amber-400/50 bg-amber-400 text-sm font-bold text-amber-950 disabled:opacity-40"
-                >
-                  To&apos;liq bron
-                </button>
-              </div>
-            ) : null}
+            <div className="mt-4 grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                disabled={!onToggleFullTaken || !canFullCheckIn}
+                onClick={() => {
+                  onToggleFullTaken?.(room.id, true, "check_in");
+                  setShowRoomActions(false);
+                }}
+                className="h-11 rounded-xl border border-red-500/40 bg-red-600/90 text-sm font-bold text-white disabled:opacity-40"
+              >
+                To&apos;liq band
+              </button>
+              <button
+                type="button"
+                disabled={!onFullRoomBron || !onToggleFullTaken || !canFullBron}
+                onClick={() => {
+                  onFullRoomBron?.(room.id);
+                  setShowRoomActions(false);
+                }}
+                className="h-11 rounded-xl border border-amber-400/50 bg-amber-400 text-sm font-bold text-amber-950 disabled:opacity-40"
+              >
+                To&apos;liq bron
+              </button>
+            </div>
 
-            {isBronFull && onCancelFullRoomBron ? (
+            {bronCount > 0 && onCancelFullRoomBron ? (
               <>
                 {!confirmCancelBron ? (
                   <button
@@ -433,7 +398,7 @@ const RoomCard = ({
               </>
             ) : null}
 
-            {isCheckInFull ? (
+            {fullTaken ? (
               <>
                 {!confirmRelease ? (
                   <button

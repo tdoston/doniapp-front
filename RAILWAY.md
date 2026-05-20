@@ -1,87 +1,55 @@
-# Railway Deploy (Frontend + Backend alohida)
+# Railway — to'liq deploy
 
-This repo should be deployed as **two Railway services** from the same GitHub repository.
+## Servislar
 
-## 1) Backend service (Django API)
+| Servis | GitHub repo | Root Directory | URL |
+|--------|-------------|----------------|-----|
+| **doniapp-back** | `tdoston/doniapp-back` | `/` (manage.py ildizda) | https://doniapp-back-production.up.railway.app |
+| **doniapp-front** | `tdoston/doniapp-front` | `/` | https://doniapp-front-production.up.railway.app |
+| **Postgres** | plugin | — | `DATABASE_URL` → backend |
 
-- **Service name:** `backend`
-- **Root Directory:** `django_backend`
-- **Builder:** Nixpacks (auto)
-- Uses: `django_backend/nixpacks.toml`
-  - Install: `pip install -r requirements.txt`
-  - Build (har deploy, **staging/production** uchun bir xil):
-    1. `DATABASE_URL` borligini tekshiradi (Postgres plugin backend bilan bog‘langan bo‘lishi kerak).
-    2. `psql … -f sql/postgres_bootstrap.sql` — biznes jadvallar (`managed=False` bo‘lgani uchun `migrate` ularni yaratmaydi).
-    3. `python manage.py migrate --noinput` — shu yerda **`api.0008`** (`rooms.inactive`, `cancel_reason_options`) va boshqa migratsiyalar qo‘llanadi.
-    4. `python manage.py seed_initial_db` — **faqat migrate dan keyin**: seed `rooms.inactive` ustuniga yozadi; 0008 dan oldin ishlatilsa xato bo‘lishi mumkin.
-  - Start: `bootstrap_postgres_schema` → **`migrate --noinput`** → **`seed_initial_db`** → `gunicorn` (xuddi shu tartib).
-  - Katalog API (DRF): `GET /api/catalog/hostels`, `GET /api/catalog/rooms?hostel=Vodnik`, `GET /api/catalog/cancel-reasons?scope=booking_checkin|bron_board`.
+Monorepo `tdoston/swift-bookings` ham yangilangan (`django_backend/` + `.env.production`). Railway **Source** qaysi repoga ulangan bo‘lsa, shu repodan deploy qiladi.
 
-### Git push → auto deploy
+## Bir buyruqda GitHub push (ikkala prod repo)
 
-Railway har `main` pushda build qiladi: yuqoridagi **build** bosqichida migratsiya va seed avtomatik ishlaydi. Qo‘lda faqat maxsus holatda:
+```bash
+chmod +x scripts/deploy-railway.sh
+./scripts/deploy-railway.sh
+```
 
-- **Bitta marta qayta seed:** avval migratsiya bo‘lganini tekshirib, keyin:  
-  `python manage.py migrate --noinput && python manage.py seed_initial_db`
-- **Faqat DDL + migratsiya (seed siz):**  
-  `python manage.py bootstrap_postgres_schema && python manage.py migrate --noinput`
+## Railway Dashboard (har safar to'liq deploy)
 
-Agar Postgresni keyinroq ulasangiz, birinchi muvaffaqiyatli deploydan keyin **Redeploy** qiling — build qayta `psql` + `migrate` + `seed` ni ishga tushiradi.
+1. **Postgres** → **Restart** (Crashed bo‘lsa)
+2. **doniapp-back** → Settings:
+   - Source: `tdoston/doniapp-back`, branch `main`, Root `/`
+   - Variables: `DATABASE_URL` (reference), `DJANGO_SECRET_KEY`, `DJANGO_DEBUG=0`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_NOTIFY_CHAT_ID=-1003942993894`
+3. **doniapp-back** → **Deploy** / Redeploy
+4. **doniapp-front** → Settings:
+   - Source: `tdoston/doniapp-front`, branch `main`, Root `/`
+   - Build: `npm ci && npm run build` (yoki `.env.production` commitdan)
+5. **doniapp-front** → **Redeploy**
+6. BotFather `/setdomain` → `doniapp-front-production.up.railway.app`
 
-### Backend environment variables
+## Backend start (lokal bilan bir xil)
 
-- `DJANGO_DEBUG=0`
-- `DJANGO_SECRET_KEY=<strong-random-secret>`
-- `DJANGO_ALLOWED_HOSTS=*.up.railway.app,<your-custom-domain>`
-- Optional CORS/CSRF:
-  - `CORS_EXTRA_ORIGINS=https://<frontend-domain>`
-  - `CSRF_TRUSTED_EXTRA=https://<frontend-domain>`
-- Optional DB:
-  - `DATABASE_URL=<Railway Postgres URL>`
+`scripts/railway.sh start`: `bootstrap_postgres_schema` → `migrate` → `seed_initial_db` → `gunicorn`
 
-## 2) Frontend service (Vite)
+## Tekshiruv
 
-- **Service name:** `frontend`
-- **Root Directory:** `/` (repo root)
-- **Builder:** Nixpacks (auto)
-- Uses: root `nixpacks.toml`
-  - Install: `npm ci`
-  - Build: `npm run build`
-  - Start: `npm run start:railway`
+```bash
+curl -sS https://doniapp-back-production.up.railway.app/api/health
+# {"ok":true,"db":true,...}
 
-### Frontend environment variables
+curl -sS -X POST https://doniapp-back-production.up.railway.app/api/auth/password-login \
+  -H 'Content-Type: application/json' -d '{"login":"x","password":"y"}'
+# 400 — auth ishlayapti
+```
 
-- `VITE_API_BASE=https://${{backend.RAILWAY_PUBLIC_DOMAIN}}/api`
-  - If Railway UI doesn't resolve this expression automatically in your project, paste explicit backend URL.
+## CLI (ixtiyoriy)
 
-## HTTP 500 / «Internal Server Error»
-
-- **Avval deploy log** (Railway → backend → Deployments → build yoki deploy log).
-- Ko‘pincha: migratsiya qo‘llanmagan (`cancel_reason_options` yoki `rooms.inactive` yo‘q) — **Run command:**  
-  `python manage.py migrate --noinput && python manage.py seed_initial_db`  
-  keyin **Redeploy**.
-- Yangi javob: sxema xatosi bo‘lsa API ba’zan **503** + `code: db_schema_mismatch` (HTML 500 o‘rniga).
-
-## Taxta: «Maʼlumotlar bazasiga ulanib boʼlmadi»
-
-Frontend bu matnni **faqat** API `503` va `code: db_unavailable` da ko‘rsatadi (Django Postgres `OperationalError`). Boshqa xatolarda («Serverga ulanib bo‘lmadi») odatda **noto‘g‘ri `VITE_API_BASE`**, CORS yoki tarmoq.
-
-- **Backend → Postgres:** Postgres servisini backend bilan bog‘lang, `DATABASE_URL` backend variablesda bo‘lsin. TCP proxy / public URL da `sslmode=require` bo‘lmasa, `POSTGRES_SSLMODE=require` qo‘ying.
-- **Frontend → Backend:** `VITE_API_BASE=https://<backend>.up.railway.app/api` (oxirida `/api`).
-
-## Deploy versiyasi «ulanmayapti» — qayerdan tekshirish
-
-| Ekranda / brauzer | Ehtimoliy sabab | Tekshiruv / tuzatish |
-|-------------------|-----------------|----------------------|
-| **«Serverga ulanib bo‘lmadi»** + `Internetni tekshiring` | Frontend noto‘g‘ri URLga urilyapti yoki **CORS** blok | 1) Frontend **Variables** da `VITE_API_BASE=https://<backend>.up.railway.app/api` (yoki faqat origin — kod avtomatik `/api` qo‘shadi). 2) **Redeploy** frontend (Vite `import.meta.env` **build** vaqtida yoziladi). 3) Brauzer konsoli: CORS xatosi bo‘lsa backendda `CORS_EXTRA_ORIGINS` ga frontend URL yoki (Railwayda) `RAILWAY_ENVIRONMENT` bilan default `*.up.railway.app` CORS yoqilgan. |
-| **«Maʼlumotlar bazasiga ulanib boʼlmadi»** | Backend Postgresga ulanmayapti | Backend servisda **Postgres plugin** bog‘langan va `DATABASE_URL` bor. `https://<backend>/api/health` — DB yo‘q bo‘lsa 503. TCP proxy uchun `POSTGRES_SSLMODE=require` (`.env.example` / `settings`). |
-| Build **DATABASE_URL required** | Postgres ulanmagan | Railway: Postgres → backend servisga **Connect** / reference variable. |
-
-## Important
-
-- Railway `one service = one deployment` ishlaydi.
-- Frontend va backendni alohida service sifatida deploy qiling.
-- Rootdagi eski monolit Docker ishlatilmaydi; bu repo Nixpacks bilan 2-service oqimga moslangan.
-- After first successful deploy, test:
-  - `https://<backend-domain>/api/health`
-  - Frontend app loads and API calls succeed.
+```bash
+cd django_backend && railway login
+railway link   # project: humorous-simplicity
+railway redeploy -s doniapp-back
+railway logs -s doniapp-back --lines 100
+```

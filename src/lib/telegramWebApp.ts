@@ -6,6 +6,16 @@ export function isTelegramWebApp(): boolean {
   return Boolean(typeof window !== "undefined" && window.Telegram?.WebApp);
 }
 
+export function getTelegramInitData(): string {
+  try {
+    const tg = window.Telegram?.WebApp;
+    const raw = tg?.initData;
+    return typeof raw === "string" ? raw : "";
+  } catch {
+    return "";
+  }
+}
+
 export function initTelegramMiniApp(): void {
   const tg = window.Telegram?.WebApp;
   if (!tg) return;

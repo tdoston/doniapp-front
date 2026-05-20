@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
-import { RefreshCw } from "lucide-react";
+import { RefreshCw, Share2 } from "lucide-react";
 import DateSelector from "@/components/rooms/DateSelector";
 import StatCards from "@/components/rooms/StatCards";
 import RoomCard, { type RoomData } from "@/components/rooms/RoomCard";
@@ -12,7 +12,7 @@ import BottomNav from "@/components/rooms/BottomNav";
 import CleaningPage from "@/pages/Cleaning";
 import GuestsPage from "@/pages/Guests";
 import PaymentsPage from "@/pages/Payments";
-import StaffUsersPage from "@/pages/StaffUsers";
+import ProfilePage from "@/pages/Profile";
 import {
   ApiError,
   CANCEL_SCOPE_BRON_BOARD,
@@ -27,6 +27,7 @@ import {
   fetchRoomCatalog,
   patchBooking,
   patchCleaning,
+  type AuthUserDto,
   type IdentityOverlapWarning,
 } from "@/lib/api";
 import type { BookingPrefillState } from "@/types/bookingPrefill";
@@ -40,32 +41,6 @@ import { formatIdentityOverlapWarningsUz, LAST_BOOKING_IDENTITY_OVERLAP_KEY } fr
 import { normalizeExpectedLocal } from "@/lib/bronTime";
 
 const LAST_ACTIVE_HOSTEL_KEY = "rooms:lastActiveHostel";
-
-function RoomCardSkeleton() {
-  return (
-    <div className="mx-4 mb-3 rounded-2xl border border-border bg-card overflow-hidden animate-pulse">
-      <div className="px-4 pt-3 pb-2 flex items-center justify-between">
-        <div className="h-4 w-24 rounded-md bg-muted" />
-        <div className="h-4 w-12 rounded-md bg-muted" />
-      </div>
-      <div className="px-4 pb-3 flex gap-2">
-        {[1, 2, 3].map((i) => (
-          <div key={i} className="flex-1 h-14 rounded-xl bg-muted" />
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function RoomListSkeleton() {
-  return (
-    <div className="pt-3">
-      {[1, 2, 3, 4].map((i) => (
-        <RoomCardSkeleton key={i} />
-      ))}
-    </div>
-  );
-}
 
 function boardLoadErrorCopy(error: unknown): { title: string; hint: string } {
   if (error instanceof ApiError) {
@@ -99,15 +74,16 @@ function boardLoadErrorCopy(error: unknown): { title: string; hint: string } {
   return { title: "Noma'lum xato", hint: "Qayta urinib ko'ring." };
 }
 
-const RoomsPage = () => {
+type RoomsPageProps = {
+  currentUser: AuthUserDto;
+  currentUserRole: "super_admin" | "admin" | "staff";
+  onLogout: () => void;
+  onMeUpdate: (next: AuthUserDto) => void;
+};
+
+const RoomsPage = ({ currentUser, onLogout, onMeUpdate }: RoomsPageProps) => {
   const [selectedDate, setSelectedDate] = useState(new Date());
-  const [activeHostel, setActiveHostel] = useState<string>(() => {
-    try {
-      return sessionStorage.getItem(LAST_ACTIVE_HOSTEL_KEY) || "";
-    } catch {
-      return "";
-    }
-  });
+  const [activeHostel, setActiveHostel] = useState<string>("");
   const [activeTab, setActiveTab] = useState("rooms");
   const [emptyBedCtx, setEmptyBedCtx] = useState<EmptyBedTarget | null>(null);
   const [recentFromBedCtx, setRecentFromBedCtx] = useState<EmptyBedTarget | null>(null);
@@ -133,7 +109,6 @@ const RoomsPage = () => {
   }, []);
 
   useEffect(() => {
-    if (!activeHostel) return;
     try {
       sessionStorage.setItem(LAST_ACTIVE_HOSTEL_KEY, activeHostel);
     } catch {
@@ -406,8 +381,6 @@ const RoomsPage = () => {
             expectedArrival: normalizeExpectedLocal(undefined, stayDateIso),
           })),
         });
-        // Keep room-level lock state in sync with "full bron" action.
-        await patchCleaning(roomId, { hostel: activeHostel, fullTaken: true, fullTakenMode: "bron" });
         await queryClient.invalidateQueries({ queryKey: ["board"] });
         await queryClient.invalidateQueries({ queryKey: ["recentGuests"] });
       } catch (e) {
@@ -435,20 +408,14 @@ const RoomsPage = () => {
     async (roomId: string): Promise<boolean> => {
       const room = currentRooms.find((r) => r.id === roomId);
       if (!room) return false;
-      const bronBeds = room.beds.filter((b) => b.status === "booked" && b.bookingKind === "bron");
-      const bronBookingIds = Array.from(
-        new Set(bronBeds.map((b) => b.bookingId).filter((id): id is string => Boolean(id)))
-      );
+      const bronBookingIds = room.beds
+        .filter((b) => b.status === "booked" && b.bookingKind === "bron" && !!b.bookingId)
+        .map((b) => b.bookingId as string);
+      if (bronBookingIds.length === 0) return false;
       try {
         for (const id of bronBookingIds) {
-          try {
-            await deleteBooking(id, "Xona bo‘yicha to‘liq bron bekor qilindi");
-          } catch (e) {
-            // If one bron already got cancelled elsewhere, continue cancelling others.
-            if (!(e instanceof ApiError) || e.status !== 404) throw e;
-          }
+          await deleteBooking(id, "Xona bo‘yicha to‘liq bron bekor qilindi");
         }
-        // Always release room-level lock even if bron ids were missing/stale.
         await patchCleaning(roomId, { hostel: activeHostel, fullTaken: false, fullTakenMode: "" });
         await queryClient.invalidateQueries({ queryKey: ["board"] });
         await queryClient.invalidateQueries({ queryKey: ["recentGuests"] });
@@ -530,6 +497,29 @@ const RoomsPage = () => {
     }
   }, [activeTab, boardQuery, queryClient, refreshing]);
 
+  const handleShare = useCallback(async () => {
+    const shareUrl = window.location.origin;
+    const shareData = {
+      title: "DoniHostel",
+      text: "DoniHostel ilovasi",
+      url: shareUrl,
+    };
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+        return;
+      }
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(shareUrl);
+        window.alert("Link nusxalandi");
+        return;
+      }
+    } catch {
+      return;
+    }
+    window.alert(shareUrl);
+  }, []);
+
   const [touchStartY, setTouchStartY] = useState<number | null>(null);
   const [pullEligible, setPullEligible] = useState(false);
 
@@ -568,10 +558,10 @@ const RoomsPage = () => {
           <>
             <StatCards stats={stats} pending={statsPending} />
             <DateSelector selectedDate={selectedDate} onSelect={setSelectedDate} />
-            {(hostelsQuery.isLoading || roomsCatalogQuery.isLoading || (catalogReady && boardQuery.isLoading) || refreshing) && (
-              <RoomListSkeleton />
+            {hostelsQuery.isLoading && (
+              <p className="text-center text-sm text-muted-foreground py-10">Filiallar yuklanmoqda…</p>
             )}
-            {!refreshing && hostelsQuery.isError && hostelsErr && (
+            {hostelsQuery.isError && hostelsErr && (
               <div className="px-4 py-8 text-center space-y-3">
                 <p className="text-sm text-destructive font-medium">{hostelsErr.title}</p>
                 {hostelsErr.hint ? <p className="text-xs text-muted-foreground">{hostelsErr.hint}</p> : null}
@@ -583,7 +573,13 @@ const RoomsPage = () => {
             {!hostelsQuery.isLoading && !hostelsQuery.isError && !activeHostel && (
               <p className="text-center text-sm text-muted-foreground py-10">Filial topilmadi.</p>
             )}
-            {!refreshing && roomsCatalogQuery.isError && roomsCatErr && (
+            {!hostelsQuery.isLoading &&
+              !hostelsQuery.isError &&
+              Boolean(activeHostel) &&
+              roomsCatalogQuery.isLoading && (
+                <p className="text-center text-sm text-muted-foreground py-10">Xonalar katalogi yuklanmoqda…</p>
+              )}
+            {roomsCatalogQuery.isError && roomsCatErr && (
               <div className="px-4 py-8 text-center space-y-3">
                 <p className="text-sm text-destructive font-medium">{roomsCatErr.title}</p>
                 {roomsCatErr.hint ? <p className="text-xs text-muted-foreground">{roomsCatErr.hint}</p> : null}
@@ -592,7 +588,10 @@ const RoomsPage = () => {
                 </Button>
               </div>
             )}
-            {!refreshing && catalogReady && boardQuery.isError && boardErr && (
+            {catalogReady && boardQuery.isLoading && (
+              <p className="text-center text-sm text-muted-foreground py-10">Taxta yuklanmoqda…</p>
+            )}
+            {catalogReady && boardQuery.isError && boardErr && (
               <div className="px-4 py-8 text-center space-y-3">
                 <p className="text-sm text-destructive font-medium">{boardErr.title}</p>
                 {boardErr.hint ? <p className="text-xs text-muted-foreground">{boardErr.hint}</p> : null}
@@ -601,7 +600,7 @@ const RoomsPage = () => {
                 </Button>
               </div>
             )}
-            {!refreshing && catalogReady && !boardQuery.isLoading && !boardQuery.isError && (
+            {catalogReady && !boardQuery.isError && (
               <div className="pt-3">
                 {currentRooms.map((room) => (
                   <RoomCard
@@ -632,8 +631,8 @@ const RoomsPage = () => {
         return <PaymentsPage />;
       case "cleaning":
         return <CleaningPage activeHostel={activeHostel} stayDateIso={stayDateIso} />;
-      case "staff":
-        return <StaffUsersPage />;
+      case "profile":
+        return <ProfilePage me={currentUser} onLogout={onLogout} onMeUpdate={onMeUpdate} />;
       default:
         return null;
     }
@@ -653,25 +652,41 @@ const RoomsPage = () => {
             <img src="/logo-mehmon-uyi.png" alt="Mehmon Uyi" className="h-10 w-10 shrink-0 object-contain" />
             <span className="truncate">DoniHostel</span>
           </h1>
-          <button
-            type="button"
-            onClick={() => void refreshAll()}
-            disabled={refreshing}
-            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-border bg-background text-foreground/80 active:scale-[0.98] disabled:opacity-50"
-            title="Yangilash"
-            aria-label="Yangilash"
-          >
-            <RefreshCw className={`h-5 w-5 ${refreshing ? "animate-spin [animation-duration:1.4s]" : ""}`} />
-          </button>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={() => void handleShare()}
+              className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-border bg-background text-foreground/80 active:scale-[0.98]"
+              title="Ulashish"
+              aria-label="Ulashish"
+            >
+              <Share2 className="h-5 w-5" />
+            </button>
+            <button
+              type="button"
+              onClick={() => void refreshAll()}
+              disabled={refreshing}
+              className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-border bg-background text-foreground/80 active:scale-[0.98] disabled:opacity-50"
+              title="Yangilash"
+              aria-label="Yangilash"
+            >
+              <RefreshCw className={`h-5 w-5 ${refreshing ? "animate-spin [animation-duration:1.4s]" : ""}`} />
+            </button>
+          </div>
         </div>
-        {pullDistance > 0 && !refreshing && (
+        {(pullDistance > 0 || refreshing) && (
           <div className="px-4 pb-2">
             <div className="mb-1 flex items-center justify-between text-[11px] font-semibold text-muted-foreground">
-              <span>Yangilash uchun torting</span>
-              <span className="tabular-nums">{`${Math.min(100, Math.round((pullDistance / 44) * 100))}%`}</span>
+              <span>{refreshing ? "Yangilanmoqda..." : "Yangilash uchun torting"}</span>
+              <span className="tabular-nums">
+                {`${Math.min(100, Math.round((pullDistance / 44) * 100))}%`}
+              </span>
             </div>
             <div className="h-2 rounded-full bg-muted overflow-hidden">
-              <div className="h-full bg-primary transition-all" style={{ width: `${Math.min(100, (pullDistance / 44) * 100)}%` }} />
+              <div
+                className={`h-full transition-all ${refreshing ? "bg-gradient-to-r from-primary/60 via-primary to-primary/60 animate-pulse" : "bg-primary"}`}
+                style={{ width: `${refreshing ? 100 : Math.min(100, (pullDistance / 44) * 100)}%` }}
+              />
             </div>
           </div>
         )}

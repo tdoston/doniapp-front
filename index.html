@@ -22,55 +22,6 @@
 </head>
 
   <body>
-    <div id="page-loader">
-      <div class="shimmer-row tall"></div>
-      <div class="shimmer-row short"></div>
-      <div class="shimmer-cards">
-        <div class="shimmer-card"></div>
-        <div class="shimmer-card"></div>
-        <div class="shimmer-card"></div>
-      </div>
-      <div class="shimmer-cards">
-        <div class="shimmer-card"></div>
-        <div class="shimmer-card"></div>
-      </div>
-    </div>
-    <style>
-      #page-loader {
-        position: fixed;
-        inset: 0;
-        z-index: 9999;
-        background: #0f172a;
-        padding: 3.5rem 1rem 1rem;
-        display: flex;
-        flex-direction: column;
-        gap: 0.75rem;
-        transition: opacity 0.3s ease, visibility 0.3s ease;
-        overflow: hidden;
-      }
-      #page-loader.done {
-        opacity: 0;
-        visibility: hidden;
-      }
-      .shimmer-row, .shimmer-card {
-        background: linear-gradient(90deg, #1e293b 25%, #334155 50%, #1e293b 75%);
-        background-size: 200% 100%;
-        animation: shimmer 1.4s infinite linear;
-        border-radius: 0.75rem;
-      }
-      .shimmer-row.tall  { height: 2.5rem; width: 55%; }
-      .shimmer-row.short { height: 1rem; width: 35%; margin-top: -0.25rem; }
-      .shimmer-cards {
-        display: flex;
-        gap: 0.75rem;
-        margin-top: 0.25rem;
-      }
-      .shimmer-card { height: 9rem; flex: 1; }
-      @keyframes shimmer {
-        0%   { background-position: 200% 0; }
-        100% { background-position: -200% 0; }
-      }
-    </style>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

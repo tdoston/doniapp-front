@@ -17,7 +17,14 @@ export default defineConfig(({ mode }) => {
     hmr: {
       overlay: false,
     },
-    allowedHosts: [".manus.computer", ".trycloudflare.com", ".up.railway.app"],
+    allowedHosts: [
+      ".manus.computer",
+      ".trycloudflare.com",
+      ".ngrok-free.app",
+      ".ngrok.io",
+      ".ngrok.app",
+      ".up.railway.app",
+    ],
     proxy: {
       "/api": {
         target: apiProxyTarget,
@@ -29,7 +36,14 @@ export default defineConfig(({ mode }) => {
   preview: {
     host: "::",
     port: 8080,
-    allowedHosts: [".manus.computer", ".trycloudflare.com", ".up.railway.app"],
+    allowedHosts: [
+      ".manus.computer",
+      ".trycloudflare.com",
+      ".ngrok-free.app",
+      ".ngrok.io",
+      ".ngrok.app",
+      ".up.railway.app",
+    ],
   },
   plugins: [
     react(),
