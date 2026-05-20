@@ -1,0 +1,7 @@
+# doniapp-front — Root Directory: / (repo root)
+
+[build]
+buildCommand = "npm ci && npm run build"
+
+[deploy]
+startCommand = "npm run start:railway"
