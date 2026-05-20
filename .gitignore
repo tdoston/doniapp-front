@@ -37,3 +37,4 @@ django_backend/**/__pycache__
 notes
 dev-dist/
 
+!.env.production

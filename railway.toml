@@ -1,4 +1,4 @@
-# doniapp-front — Root Directory: / (repo root)
+# doniapp-front — repo root
 
 [build]
 buildCommand = "npm ci && npm run build"
