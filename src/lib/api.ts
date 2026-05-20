@@ -21,6 +21,13 @@ function resolveApiBase(): string {
   }
   if (originUrl) return `${originUrl}/api`;
   if (reactOrigin) return `${reactOrigin}/api`;
+  // Production fallback: frontend buildda VITE_API_BASE unutilgan bo‘lsa ham backendga urinish.
+  if (typeof window !== "undefined") {
+    const h = window.location.hostname;
+    if (h.includes("doniapp-front") || (h.endsWith(".up.railway.app") && !h.includes("doniapp-back"))) {
+      return "https://doniapp-back-production.up.railway.app/api";
+    }
+  }
   return "/api";
 }
 
@@ -92,18 +99,95 @@ export class ApiError extends Error {
   }
 }
 
+const AUTH_TOKEN_KEY = "auth:bearerToken";
+
+export type AuthUserDto = {
+  id: number;
+  telegram_user_id: number;
+  display_name: string;
+  role: "super_admin" | "admin" | "staff";
+  avatar_url?: string;
+};
+
+export type TelegramLoginPayload = {
+  id: number;
+  first_name?: string;
+  last_name?: string;
+  username?: string;
+  photo_url?: string;
+  auth_date: number;
+  hash: string;
+};
+
+export function getAuthToken(): string {
+  try {
+    return localStorage.getItem(AUTH_TOKEN_KEY) || "";
+  } catch {
+    return "";
+  }
+}
+
+export function setAuthToken(token: string): void {
+  try {
+    if (!token) {
+      localStorage.removeItem(AUTH_TOKEN_KEY);
+      return;
+    }
+    localStorage.setItem(AUTH_TOKEN_KEY, token);
+  } catch {
+    void 0;
+  }
+}
+
+export function clearAuthToken(): void {
+  try {
+    localStorage.removeItem(AUTH_TOKEN_KEY);
+  } catch {
+    void 0;
+  }
+}
+
+export async function authTelegram(initData: string): Promise<{ token: string; user: AuthUserDto }> {
+  return fetchJson("/auth/telegram", { method: "POST", body: JSON.stringify({ initData }) });
+}
+
+export async function authTelegramLogin(payload: TelegramLoginPayload): Promise<{ token: string; user: AuthUserDto }> {
+  return fetchJson("/auth/telegram-login", { method: "POST", body: JSON.stringify(payload) });
+}
+
+export async function authPasswordLogin(params: { login: string; password: string }): Promise<{ token: string; user: AuthUserDto }> {
+  return fetchJson("/auth/password-login", { method: "POST", body: JSON.stringify(params) });
+}
+
+export async function fetchMe(): Promise<{ user: AuthUserDto }> {
+  return fetchJson("/auth/me");
+}
+
+export async function patchMe(body: Partial<{ avatar_url: string; display_name: string }>): Promise<{ user: AuthUserDto }> {
+  return fetchJson("/auth/me", { method: "PATCH", body: JSON.stringify(body) });
+}
+
 export async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
   let res: Response;
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    ...((init?.headers as Record<string, string> | undefined) ?? {}),
+  };
+  const token = getAuthToken();
+  if (token && !("Authorization" in headers)) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
   try {
     res = await fetch(apiUrl(path), {
       ...init,
-      headers: {
-        "Content-Type": "application/json",
-        ...(init?.headers ?? {}),
-      },
+      headers,
     });
   } catch (e) {
-    const msg = e instanceof TypeError ? e.message : "Tarmoq xatosi";
+    const raw = e instanceof TypeError ? e.message : "Tarmoq xatosi";
+    const msg =
+      raw === "Failed to fetch"
+        ? "Serverga ulanib bo‘lmadi (tarmoq yoki CORS). Backend ishlayaptimi va VITE_API_BASE to‘g‘rimi?"
+        : raw;
     throw new ApiError(msg, 0, { network: true });
   }
   const text = await res.text();
@@ -118,6 +202,9 @@ export async function fetchJson<T>(path: string, init?: RequestInit): Promise<T>
     if (typeof data === "object" && data && "error" in data) {
       const raw = (data as { error: unknown }).error;
       msg = typeof raw === "string" ? raw : JSON.stringify(raw);
+    } else if (res.status === 404) {
+      msg =
+        "API topilmadi (404). Backend eski versiyada bo'lishi mumkin — Railway da `swift-bookings` / `django_backend` deploy qiling.";
     }
     throw new ApiError(msg || "So'rov xatosi", res.status, data);
   }
@@ -196,9 +283,12 @@ export type StaffUserDto = {
   id: number;
   login: string;
   display_name: string;
-  role: string;
+  role: "super_admin" | "admin" | "staff";
   active: boolean;
   created_at: string;
+  auth_provider?: "telegram" | "password";
+  telegram_user_id?: number | null;
+  avatar_url?: string;
 };
 
 export async function fetchUsers(): Promise<{ users: StaffUserDto[] }> {
@@ -216,7 +306,14 @@ export async function createUser(body: {
 
 export async function patchUser(
   id: number,
-  body: Partial<{ display_name: string; password: string; role: "admin" | "staff"; active: boolean }>
+  body: Partial<{
+    login: string;
+    display_name: string;
+    password: string;
+    role: "super_admin" | "admin" | "staff";
+    active: boolean;
+    avatar_url: string;
+  }>
 ): Promise<{ ok: boolean; updated: boolean }> {
   return fetchJson(`/users/${id}`, { method: "PATCH", body: JSON.stringify(body) });
 }
