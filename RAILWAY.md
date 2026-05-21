@@ -1,55 +1,57 @@
-# Railway — to'liq deploy
+# Railway — to'liq deploy (front + back + DB)
 
-## Servislar
+## 1. Postgres
 
-| Servis | GitHub repo | Root Directory | URL |
-|--------|-------------|----------------|-----|
-| **doniapp-back** | `tdoston/doniapp-back` | `/` (manage.py ildizda) | https://doniapp-back-production.up.railway.app |
-| **doniapp-front** | `tdoston/doniapp-front` | `/` | https://doniapp-front-production.up.railway.app |
-| **Postgres** | plugin | — | `DATABASE_URL` → backend |
+1. Railway project → **New** → **Database** → **PostgreSQL**
+2. Postgres → **doniapp-back** → **Connect** / **Add Variable Reference**
+3. Backend Variables da paydo bo'ladi: **`DATABASE_URL`** (`postgres.railway.internal:5432/...`)
 
-Monorepo `tdoston/swift-bookings` ham yangilangan (`django_backend/` + `.env.production`). Railway **Source** qaysi repoga ulangan bo‘lsa, shu repodan deploy qiladi.
+## 2. doniapp-back
 
-## Bir buyruqda GitHub push (ikkala prod repo)
+| Sozlama | Qiymat |
+|---------|--------|
+| Source | `tdoston/doniapp-back`, branch `main`, Root **`/`** |
+| Build | `bash scripts/railway.sh build` → collectstatic |
+| Pre-deploy / Release | `bash scripts/railway.sh release` → bootstrap + migrate + seed |
+| Start | `bash scripts/railway.sh start` → migrate + gunicorn |
 
-```bash
-chmod +x scripts/deploy-railway.sh
-./scripts/deploy-railway.sh
-```
+**Variables:** `django_backend/railway.env.example` dan nusxa oling.
 
-## Railway Dashboard (har safar to'liq deploy)
+## 3. doniapp-front
 
-1. **Postgres** → **Restart** (Crashed bo‘lsa)
-2. **doniapp-back** → Settings:
-   - Source: `tdoston/doniapp-back`, branch `main`, Root `/`
-   - Variables: `DATABASE_URL` (reference), `DJANGO_SECRET_KEY`, `DJANGO_DEBUG=0`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_NOTIFY_CHAT_ID=-1003942993894`
-3. **doniapp-back** → **Deploy** / Redeploy
-4. **doniapp-front** → Settings:
-   - Source: `tdoston/doniapp-front`, branch `main`, Root `/`
-   - Build: `npm ci && npm run build` (yoki `.env.production` commitdan)
-5. **doniapp-front** → **Redeploy**
-6. BotFather `/setdomain` → `doniapp-front-production.up.railway.app`
+| Sozlama | Qiymat |
+|---------|--------|
+| Source | `tdoston/doniapp-front`, branch `main`, Root **`/`** |
+| Build | `rm -rf dist && npm ci && npm run build` |
+| Start | `npm run start:railway` |
 
-## Backend start (lokal bilan bir xil)
+**Variables:** `railway.env.example` yoki `.env.production` (commitda).
 
-`scripts/railway.sh start`: `bootstrap_postgres_schema` → `migrate` → `seed_initial_db` → `gunicorn`
+BotFather: `/setdomain` → `doniapp-front-production.up.railway.app`
 
-## Tekshiruv
+## 4. Deploy tartibi
+
+1. `./scripts/push-all-repos.sh` — GitHub ga push
+2. Postgres **Restart** (agar Crashed)
+3. **doniapp-back** → Deploy (release DB, keyin start)
+4. **doniapp-front** → Deploy
+5. Tekshiruv:
 
 ```bash
 curl -sS https://doniapp-back-production.up.railway.app/api/health
-# {"ok":true,"db":true,...}
+# {"ok":true,"db":true,"ready":true}
 
-curl -sS -X POST https://doniapp-back-production.up.railway.app/api/auth/password-login \
-  -H 'Content-Type: application/json' -d '{"login":"x","password":"y"}'
-# 400 — auth ishlayapti
+curl -sI https://doniapp-front-production.up.railway.app/ | head -3
+# HTTP/2 200
 ```
 
-## CLI (ixtiyoriy)
+Brauzer: inkognito yoki Service Worker unregister (PWA cache).
+
+## 5. CLI
 
 ```bash
-cd django_backend && railway login
-railway link   # project: humorous-simplicity
+cd django_backend && railway login && railway link
 railway redeploy -s doniapp-back
-railway logs -s doniapp-back --lines 100
+railway redeploy -s doniapp-front
+railway logs -s doniapp-back --lines 80
 ```

@@ -1,7 +1,10 @@
-# doniapp-front — repo root
+# doniapp-front — Root: /
 
 [build]
 buildCommand = "rm -rf dist && npm ci && npm run build"
 
 [deploy]
+healthcheckPath = "/"
+healthcheckTimeout = 60
+restartPolicyType = "ON_FAILURE"
 startCommand = "npm run start:railway"
