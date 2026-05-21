@@ -5,5 +5,13 @@ import { registerSW } from "virtual:pwa-register";
 import "./index.css";
 
 initTelegramMiniApp();
-registerSW({ immediate: true });
+
+const updateSW = registerSW({
+  immediate: true,
+  onRegisteredSW(_url, registration) {
+    void registration?.update();
+  },
+});
+void updateSW;
+
 createRoot(document.getElementById("root")!).render(<App />);

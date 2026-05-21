@@ -38,3 +38,4 @@ django_backend/**/__pycache__
 *.sw?
 notes
 dev-dist/
+push-all-repos.log

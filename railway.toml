@@ -1,7 +1,7 @@
 # doniapp-front — repo root
 
 [build]
-buildCommand = "npm ci && npm run build"
+buildCommand = "rm -rf dist && npm ci && npm run build"
 
 [deploy]
 startCommand = "npm run start:railway"
