@@ -1,5 +1,5 @@
 import React from "react";
-import { BedDouble, Users, Receipt, Sparkles, UserCircle2 } from "lucide-react";
+import { BedDouble, Users, Wallet, Sparkles, UserCircle2 } from "lucide-react";
 
 interface BottomNavProps {
   active: string;
@@ -9,7 +9,7 @@ interface BottomNavProps {
 const TABS = [
   { id: "rooms", label: "Xonalar", icon: BedDouble },
   { id: "guests", label: "Mehmonlar", icon: Users },
-  { id: "payments", label: "To'lov", icon: Receipt },
+  { id: "payments", label: "To'lov", icon: Wallet },
   { id: "cleaning", label: "Tozalik", icon: Sparkles },
   { id: "profile", label: "Profil", icon: UserCircle2 },
 ];

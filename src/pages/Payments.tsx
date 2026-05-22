@@ -1,6 +1,6 @@
 import React, { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Receipt } from "lucide-react";
+import { Wallet } from "lucide-react";
 import { fetchRecentGuests, recentGuestsQueryKey } from "@/lib/api";
 import { checkInLabel } from "@/lib/dates";
 
@@ -24,7 +24,7 @@ const PaymentsPage = () => {
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
-        <Receipt className="w-12 h-12 mb-3 opacity-40 animate-pulse" />
+        <Wallet className="w-12 h-12 mb-3 opacity-40 animate-pulse" />
         <p className="text-sm font-semibold">Yuklanmoqda…</p>
       </div>
     );
@@ -33,7 +33,7 @@ const PaymentsPage = () => {
   if (isError) {
     return (
       <div className="flex flex-col items-center justify-center py-16 px-6 text-center text-muted-foreground">
-        <Receipt className="w-12 h-12 mb-3 opacity-40" />
+        <Wallet className="w-12 h-12 mb-3 opacity-40" />
         <p className="text-sm font-semibold text-destructive">Ma&apos;lumot olinmadi</p>
         <button type="button" onClick={() => refetch()} className="mt-3 text-xs font-bold text-primary underline">
           Qayta urinish
@@ -45,7 +45,7 @@ const PaymentsPage = () => {
   if (rows.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
-        <Receipt className="w-12 h-12 mb-3 opacity-40" />
+        <Wallet className="w-12 h-12 mb-3 opacity-40" />
         <p className="text-sm font-semibold">To&apos;lov yozuvlari yo&apos;q</p>
       </div>
     );
