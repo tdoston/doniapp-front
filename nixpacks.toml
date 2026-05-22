@@ -8,7 +8,7 @@ nixPkgs = ["nodejs_22"]
 cmds = ["npm ci"]
 
 [phases.build]
-cmds = ["npm run build"]
+cmds = ["rm -rf dist node_modules/.vite 2>/dev/null || true", "npm run build"]
 
 [start]
 cmd = "npm run start:railway"

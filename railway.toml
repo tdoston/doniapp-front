@@ -1,7 +1,8 @@
 # doniapp-front — Root: /
 
 [build]
-buildCommand = "rm -rf dist && npm ci && npm run build"
+# install: nixpacks.toml npm ci (ikkinchi npm ci .vite EBUSY beradi)
+buildCommand = "rm -rf dist node_modules/.vite 2>/dev/null || true && npm run build"
 
 [deploy]
 healthcheckPath = "/"

@@ -22,7 +22,7 @@
 | Sozlama | Qiymat |
 |---------|--------|
 | Source | `tdoston/doniapp-front`, branch `main`, Root **`/`** |
-| Build | `rm -rf dist && npm ci && npm run build` |
+| Build | `npm ci` (nixpacks install) + `npm run build` (`.vite` EBUSY — `npm ci` buildda takrorlanmaydi) |
 | Start | `npm run start:railway` |
 
 **Variables:** `railway.env.example` yoki `.env.production` (commitda).
