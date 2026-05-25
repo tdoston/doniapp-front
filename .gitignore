@@ -39,5 +39,3 @@ django_backend/**/__pycache__
 notes
 dev-dist/
 push-all-repos.log
-
-!.env.production
