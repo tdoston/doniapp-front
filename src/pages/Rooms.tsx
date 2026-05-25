@@ -39,6 +39,7 @@ import { mergeStaticRoomsWithBoard } from "@/lib/mergeBoard";
 import { roomCatalogToRoomData } from "@/lib/roomCatalog";
 import { formatIdentityOverlapWarningsUz, LAST_BOOKING_IDENTITY_OVERLAP_KEY } from "@/lib/identityOverlapWarning";
 import { normalizeExpectedLocal } from "@/lib/bronTime";
+import { useUiLanguage } from "@/lib/ui-language";
 
 const LAST_ACTIVE_HOSTEL_KEY = "rooms:lastActiveHostel";
 
@@ -82,6 +83,7 @@ type RoomsPageProps = {
 };
 
 const RoomsPage = ({ currentUser, onLogout, onMeUpdate }: RoomsPageProps) => {
+  const { t } = useUiLanguage();
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [activeHostel, setActiveHostel] = useState<string>("");
   const [activeTab, setActiveTab] = useState("rooms");
@@ -559,44 +561,44 @@ const RoomsPage = ({ currentUser, onLogout, onMeUpdate }: RoomsPageProps) => {
             <StatCards stats={stats} pending={statsPending} />
             <DateSelector selectedDate={selectedDate} onSelect={setSelectedDate} />
             {hostelsQuery.isLoading && (
-              <p className="text-center text-sm text-muted-foreground py-10">Filiallar yuklanmoqda…</p>
+              <p className="text-center text-sm text-muted-foreground py-10">{t("Filiallar yuklanmoqda…", "Филиалы загружаются…")}</p>
             )}
             {hostelsQuery.isError && hostelsErr && (
               <div className="px-4 py-8 text-center space-y-3">
                 <p className="text-sm text-destructive font-medium">{hostelsErr.title}</p>
                 {hostelsErr.hint ? <p className="text-xs text-muted-foreground">{hostelsErr.hint}</p> : null}
                 <Button type="button" variant="outline" size="sm" onClick={() => void hostelsQuery.refetch()}>
-                  Qayta urinish
+                  {t("Qayta urinish", "Повторить")}
                 </Button>
               </div>
             )}
             {!hostelsQuery.isLoading && !hostelsQuery.isError && !activeHostel && (
-              <p className="text-center text-sm text-muted-foreground py-10">Filial topilmadi.</p>
+              <p className="text-center text-sm text-muted-foreground py-10">{t("Filial topilmadi.", "Филиал не найден.")}</p>
             )}
             {!hostelsQuery.isLoading &&
               !hostelsQuery.isError &&
               Boolean(activeHostel) &&
               roomsCatalogQuery.isLoading && (
-                <p className="text-center text-sm text-muted-foreground py-10">Xonalar katalogi yuklanmoqda…</p>
+                <p className="text-center text-sm text-muted-foreground py-10">{t("Xonalar katalogi yuklanmoqda…", "Каталог комнат загружается…")}</p>
               )}
             {roomsCatalogQuery.isError && roomsCatErr && (
               <div className="px-4 py-8 text-center space-y-3">
                 <p className="text-sm text-destructive font-medium">{roomsCatErr.title}</p>
                 {roomsCatErr.hint ? <p className="text-xs text-muted-foreground">{roomsCatErr.hint}</p> : null}
                 <Button type="button" variant="outline" size="sm" onClick={() => void roomsCatalogQuery.refetch()}>
-                  Qayta urinish
+                  {t("Qayta urinish", "Повторить")}
                 </Button>
               </div>
             )}
             {catalogReady && boardQuery.isLoading && (
-              <p className="text-center text-sm text-muted-foreground py-10">Taxta yuklanmoqda…</p>
+              <p className="text-center text-sm text-muted-foreground py-10">{t("Taxta yuklanmoqda…", "Доска загружается…")}</p>
             )}
             {catalogReady && boardQuery.isError && boardErr && (
               <div className="px-4 py-8 text-center space-y-3">
                 <p className="text-sm text-destructive font-medium">{boardErr.title}</p>
                 {boardErr.hint ? <p className="text-xs text-muted-foreground">{boardErr.hint}</p> : null}
                 <Button type="button" variant="outline" size="sm" onClick={() => boardQuery.refetch()}>
-                  Qayta urinish
+                  {t("Qayta urinish", "Повторить")}
                 </Button>
               </div>
             )}
@@ -657,8 +659,8 @@ const RoomsPage = ({ currentUser, onLogout, onMeUpdate }: RoomsPageProps) => {
               type="button"
               onClick={() => void handleShare()}
               className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-border bg-background text-foreground/80 active:scale-[0.98]"
-              title="Ulashish"
-              aria-label="Ulashish"
+              title={t("Ulashish", "Поделиться")}
+              aria-label={t("Ulashish", "Поделиться")}
             >
               <Share2 className="h-5 w-5" />
             </button>
@@ -667,8 +669,8 @@ const RoomsPage = ({ currentUser, onLogout, onMeUpdate }: RoomsPageProps) => {
               onClick={() => void refreshAll()}
               disabled={refreshing}
               className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-border bg-background text-foreground/80 active:scale-[0.98] disabled:opacity-50"
-              title="Yangilash"
-              aria-label="Yangilash"
+              title={t("Yangilash", "Обновить")}
+              aria-label={t("Yangilash", "Обновить")}
             >
               <RefreshCw className={`h-5 w-5 ${refreshing ? "animate-spin [animation-duration:1.4s]" : ""}`} />
             </button>
@@ -677,7 +679,7 @@ const RoomsPage = ({ currentUser, onLogout, onMeUpdate }: RoomsPageProps) => {
         {(pullDistance > 0 || refreshing) && (
           <div className="px-4 pb-2">
             <div className="mb-1 flex items-center justify-between text-[11px] font-semibold text-muted-foreground">
-              <span>{refreshing ? "Yangilanmoqda..." : "Yangilash uchun torting"}</span>
+              <span>{refreshing ? t("Yangilanmoqda...", "Обновляется...") : t("Yangilash uchun torting", "Потяните для обновления")}</span>
               <span className="tabular-nums">
                 {`${Math.min(100, Math.round((pullDistance / 44) * 100))}%`}
               </span>
@@ -719,7 +721,7 @@ const RoomsPage = ({ currentUser, onLogout, onMeUpdate }: RoomsPageProps) => {
               onClick={() => setIdentityOverlapBanner(null)}
               className="shrink-0 text-xs font-bold px-2 py-1 rounded-lg bg-amber-500/25 hover:bg-amber-500/35 active:scale-[0.98] transition-colors"
             >
-              Yopish
+              {t("Yopish", "Закрыть")}
             </button>
           </div>
         </div>

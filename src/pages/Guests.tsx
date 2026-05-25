@@ -13,8 +13,9 @@ import {
 } from "@/lib/api";
 import { checkInLabel } from "@/lib/dates";
 import { PENDING_CHECKIN_GUEST_KEY } from "@/lib/recentGuestPrefill";
+import { useUiLanguage } from "@/lib/ui-language";
 
-const FILTERS = ["Hammasi", "Bugun", "Kecha", "2-3 kun"] as const;
+const FILTERS = ["all", "today", "yesterday", "twoThreeDays"] as const;
 type FilterKey = (typeof FILTERS)[number];
 
 interface GuestsPageProps {
@@ -23,9 +24,10 @@ interface GuestsPageProps {
 }
 
 const GuestsPage = ({ onGuestPickForCheckIn }: GuestsPageProps) => {
+  const { lang, t } = useUiLanguage();
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState<FilterKey>("Hammasi");
+  const [filter, setFilter] = useState<FilterKey>("all");
   const [selectedGuest, setSelectedGuest] = useState<RecentGuestDto | null>(null);
 
   const limit = 200;
@@ -87,13 +89,13 @@ const GuestsPage = ({ onGuestPickForCheckIn }: GuestsPageProps) => {
         (g.passportSeries || "").toLowerCase().includes(q);
 
       if (!matchesSearch) return false;
-      if (filter === "Hammasi") return true;
+      if (filter === "all") return true;
 
       try {
         const d = parseISO(g.lastVisit);
-        if (filter === "Bugun") return isToday(d);
-        if (filter === "Kecha") return isYesterday(d);
-        if (filter === "2-3 kun") {
+        if (filter === "today") return isToday(d);
+        if (filter === "yesterday") return isYesterday(d);
+        if (filter === "twoThreeDays") {
           const days = differenceInCalendarDays(new Date(), d);
           return days >= 2 && days <= 3;
         }
@@ -113,7 +115,7 @@ const GuestsPage = ({ onGuestPickForCheckIn }: GuestsPageProps) => {
           type="text"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Ism, telefon yoki pasport qidirish…"
+          placeholder={t("Ism, telefon yoki pasport qidirish…", "Поиск по имени, телефону или паспорту…")}
           className="w-full h-11 pl-9 pr-9 rounded-xl border-2 border-primary/40 bg-card text-sm font-medium focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors"
         />
         {search && (
@@ -121,7 +123,7 @@ const GuestsPage = ({ onGuestPickForCheckIn }: GuestsPageProps) => {
             type="button"
             onClick={() => setSearch("")}
             className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7 rounded-full text-muted-foreground hover:bg-muted text-xs"
-            aria-label="Tozalash"
+            aria-label={t("Tozalash", "Очистить")}
           >
             ✕
           </button>
@@ -132,6 +134,14 @@ const GuestsPage = ({ onGuestPickForCheckIn }: GuestsPageProps) => {
       <div className="flex gap-2 mb-3 overflow-x-auto -mx-1 px-1 scrollbar-none">
         {FILTERS.map((f) => {
           const active = filter === f;
+          const label =
+            f === "all"
+              ? t("Hammasi", "Все")
+              : f === "today"
+                ? t("Bugun", "Сегодня")
+                : f === "yesterday"
+                  ? t("Kecha", "Вчера")
+                  : t("2-3 kun", "2-3 дня");
           return (
             <button
               key={f}
@@ -143,7 +153,7 @@ const GuestsPage = ({ onGuestPickForCheckIn }: GuestsPageProps) => {
                   : "bg-secondary text-muted-foreground hover:bg-muted"
               }`}
             >
-              {f}
+              {label}
             </button>
           );
         })}
@@ -153,20 +163,20 @@ const GuestsPage = ({ onGuestPickForCheckIn }: GuestsPageProps) => {
       {isLoading && (
         <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
           <Users className="w-10 h-10 mb-2 opacity-40 animate-pulse" />
-          <p className="text-sm font-semibold">Yuklanmoqda…</p>
+          <p className="text-sm font-semibold">{t("Yuklanmoqda…", "Загрузка…")}</p>
         </div>
       )}
 
       {isError && (
         <div className="flex flex-col items-center justify-center py-12 px-6 text-center">
           <Users className="w-10 h-10 mb-2 opacity-40 text-muted-foreground" />
-          <p className="text-sm font-semibold text-destructive">Ma&apos;lumot olinmadi</p>
+          <p className="text-sm font-semibold text-destructive">{t("Ma'lumot olinmadi", "Не удалось загрузить данные")}</p>
           <button
             type="button"
             onClick={() => refetch()}
             className="mt-3 text-xs font-bold text-primary underline"
           >
-            Qayta urinish
+            {t("Qayta urinish", "Повторить")}
           </button>
         </div>
       )}
@@ -174,15 +184,15 @@ const GuestsPage = ({ onGuestPickForCheckIn }: GuestsPageProps) => {
       {!isLoading && !isError && guests.length === 0 && (
         <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
           <Users className="w-10 h-10 mb-2 opacity-40" />
-          <p className="text-sm font-semibold">Hozircha mehmon yo&apos;q</p>
+          <p className="text-sm font-semibold">{t("Hozircha mehmon yo'q", "Пока нет гостей")}</p>
         </div>
       )}
 
       {!isLoading && !isError && guests.length > 0 && filtered.length === 0 && (
         <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
           <Search className="w-8 h-8 mb-2 opacity-40" />
-          <p className="text-sm font-semibold">Mehmon topilmadi</p>
-          <p className="text-xs mt-1">Boshqa kalit so&apos;z bilan urinib ko&apos;ring</p>
+          <p className="text-sm font-semibold">{t("Mehmon topilmadi", "Гость не найден")}</p>
+          <p className="text-xs mt-1">{t("Boshqa kalit so'z bilan urinib ko'ring", "Попробуйте другой поисковый запрос")}</p>
         </div>
       )}
 
@@ -194,7 +204,7 @@ const GuestsPage = ({ onGuestPickForCheckIn }: GuestsPageProps) => {
             <span className="font-bold text-foreground">Mehmonni joylashtirish</span> ni bosing.
           </p>
           <p className="text-[11px] text-muted-foreground font-semibold mb-2 px-1">
-            {filtered.length} ta mehmon
+            {lang === "ru" ? `${filtered.length} гостей` : `${filtered.length} ta mehmon`}
           </p>
           <ul className="space-y-2">
             {filtered.map((g) => {
@@ -230,7 +240,7 @@ const GuestsPage = ({ onGuestPickForCheckIn }: GuestsPageProps) => {
                         </span>
                         <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground inline-flex items-center gap-0.5 shrink-0">
                           <Clock className="w-3 h-3" />
-                          {checkInLabel(g.lastVisit)}
+                          {checkInLabel(g.lastVisit, lang)}
                         </span>
                       </div>
 

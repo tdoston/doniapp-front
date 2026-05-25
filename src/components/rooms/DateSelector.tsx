@@ -1,6 +1,7 @@
 import React from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { format, addDays, subDays, isToday } from "date-fns";
+import { addDays, subDays, isToday } from "date-fns";
+import { useUiLanguage } from "@/lib/ui-language";
 
 interface DateSelectorProps {
   selectedDate: Date;
@@ -8,13 +9,18 @@ interface DateSelectorProps {
 }
 
 const DateSelector = ({ selectedDate, onSelect }: DateSelectorProps) => {
+  const { lang, t } = useUiLanguage();
   const goBack = () => onSelect(subDays(selectedDate, 1));
   const goForward = () => onSelect(addDays(selectedDate, 1));
   const goToday = () => onSelect(new Date());
 
   const label = isToday(selectedDate)
-    ? "Bugun"
-    : format(selectedDate, "d-MMMM, yyyy");
+    ? t("Bugun", "Сегодня")
+    : new Intl.DateTimeFormat(lang === "ru" ? "ru-RU" : "uz-UZ", {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      }).format(selectedDate);
 
   return (
     <div className="flex items-center justify-between px-4 py-2 bg-card border-b border-border">

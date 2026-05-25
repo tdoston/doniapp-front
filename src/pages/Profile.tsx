@@ -8,6 +8,7 @@ import { StaffUsersList, type RoleId } from "@/pages/StaffUsers";
 import { BOOKING_FIELD_SHELL_CLASS } from "@/lib/bookingFieldStyles";
 import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useUiLanguage } from "@/lib/ui-language";
 
 type ProfileRole = AuthUserDto["role"];
 
@@ -79,6 +80,7 @@ type ProfilePageProps = {
 };
 
 const ProfilePage = ({ me, onLogout, onMeUpdate }: ProfilePageProps) => {
+  const { lang, setLang, t } = useUiLanguage();
   const meta = ROLE_META[me.role] ?? ROLE_META.staff;
   const RoleIcon = meta.icon;
   const isSuperAdmin = me.role === "super_admin";
@@ -91,6 +93,12 @@ const ProfilePage = ({ me, onLogout, onMeUpdate }: ProfilePageProps) => {
   const avatarUrl = me.avatar_url || "";
   const trimDraftName = draftName.trim();
   const hasNameChanges = trimDraftName.length > 0 && trimDraftName !== (me.display_name || "");
+  const roleLabel =
+    me.role === "super_admin"
+      ? t("Super Admin", "Супер-админ")
+      : me.role === "admin"
+        ? t("Menedjer", "Менеджер")
+        : t("Administrator", "Администратор");
 
   useEffect(() => {
     if (!profileEditOpen) setDraftName(me.display_name || "");
@@ -107,11 +115,11 @@ const ProfilePage = ({ me, onLogout, onMeUpdate }: ProfilePageProps) => {
     e.target.value = "";
     if (!file) return;
     if (!file.type.startsWith("image/")) {
-      setError("Faqat rasm fayli yuboring");
+      setError(t("Faqat rasm fayli yuboring", "Загрузите только изображение"));
       return;
     }
     if (file.size > 8 * 1024 * 1024) {
-      setError("Rasm 8 MB dan oshmasin");
+      setError(t("Rasm 8 MB dan oshmasin", "Размер изображения не должен превышать 8 МБ"));
       return;
     }
     setBusy(true);
@@ -120,7 +128,7 @@ const ProfilePage = ({ me, onLogout, onMeUpdate }: ProfilePageProps) => {
       const res = await patchMe({ avatar_url: dataUrl });
       onMeUpdate(res.user);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Rasm yuklab bo'lmadi");
+      setError(err instanceof Error ? err.message : t("Rasm yuklab bo'lmadi", "Не удалось загрузить изображение"));
     } finally {
       setBusy(false);
     }
@@ -134,7 +142,7 @@ const ProfilePage = ({ me, onLogout, onMeUpdate }: ProfilePageProps) => {
       const res = await patchMe({ avatar_url: "" });
       onMeUpdate(res.user);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "O'chirib bo'lmadi");
+      setError(err instanceof Error ? err.message : t("O'chirib bo'lmadi", "Не удалось удалить"));
     } finally {
       setBusy(false);
     }
@@ -155,7 +163,7 @@ const ProfilePage = ({ me, onLogout, onMeUpdate }: ProfilePageProps) => {
   const onSaveName = async () => {
     if (nameBusy) return;
     if (!trimDraftName) {
-      setError("Ism bo'sh bo'lmasin");
+      setError(t("Ism bo'sh bo'lmasin", "Имя не должно быть пустым"));
       return;
     }
     if (!hasNameChanges) {
@@ -169,7 +177,7 @@ const ProfilePage = ({ me, onLogout, onMeUpdate }: ProfilePageProps) => {
       onMeUpdate(res.user);
       setProfileEditOpen(false);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Ismni saqlab bo'lmadi");
+      setError(err instanceof Error ? err.message : t("Ismni saqlab bo'lmadi", "Не удалось сохранить имя"));
     } finally {
       setNameBusy(false);
     }
@@ -178,7 +186,7 @@ const ProfilePage = ({ me, onLogout, onMeUpdate }: ProfilePageProps) => {
   return (
     <div className="mx-auto flex w-full max-w-lg flex-col gap-6 px-4 pt-4 pb-8">
       <div>
-        <Label className="text-[0.8125rem] font-semibold leading-none text-foreground tracking-tight">Profil</Label>
+        <Label className="text-[0.8125rem] font-semibold leading-none text-foreground tracking-tight">{t("Profil", "Профиль")}</Label>
         <div
           className={cn(BOOKING_FIELD_SHELL_CLASS, "mt-2 cursor-pointer p-4 active:scale-[0.995]")}
           onClick={onStartNameEdit}
@@ -187,7 +195,7 @@ const ProfilePage = ({ me, onLogout, onMeUpdate }: ProfilePageProps) => {
           onKeyDown={(e) => {
             if (e.key === "Enter" || e.key === " ") onStartNameEdit();
           }}
-          aria-label="Profilni tahrirlash"
+          aria-label={t("Profilni tahrirlash", "Редактировать профиль")}
         >
           <div className="flex flex-wrap items-start gap-3">
             <button
@@ -208,7 +216,9 @@ const ProfilePage = ({ me, onLogout, onMeUpdate }: ProfilePageProps) => {
                 {avatarUrl ? <AvatarImage src={avatarUrl} alt={me.display_name || "Avatar"} className="object-cover" /> : null}
                 <AvatarFallback className="rounded-xl bg-muted/80 text-muted-foreground">
                   <UserRound className="mx-auto h-9 w-9 opacity-80" strokeWidth={1.35} aria-hidden />
-                  <span className="sr-only">{me.display_name ? `${me.display_name} — profil rasmi` : "Profil rasmi yo'q"}</span>
+                  <span className="sr-only">
+                    {me.display_name ? `${me.display_name} — ${t("profil rasmi", "фото профиля")}` : t("Profil rasmi yo'q", "Фото профиля нет")}
+                  </span>
                 </AvatarFallback>
               </Avatar>
               <span className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/45 text-white opacity-0 transition-opacity group-hover:opacity-100 group-active:opacity-100">
@@ -226,7 +236,7 @@ const ProfilePage = ({ me, onLogout, onMeUpdate }: ProfilePageProps) => {
               <div>
                 <div className="flex items-start justify-between gap-2">
                   <h1 className="text-[1.125rem] sm:text-xl font-extrabold tracking-tight text-primary leading-tight truncate">
-                    {me.display_name || "Foydalanuvchi"}
+                    {me.display_name || t("Foydalanuvchi", "Пользователь")}
                   </h1>
                   <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-border bg-background text-muted-foreground">
                     <Pencil className="h-4 w-4" />
@@ -240,7 +250,7 @@ const ProfilePage = ({ me, onLogout, onMeUpdate }: ProfilePageProps) => {
                     )}
                   >
                     <RoleIcon className="h-3.5 w-3.5 shrink-0 opacity-90" aria-hidden />
-                    {meta.label}
+                    {roleLabel}
                   </span>
                 </div>
               </div>
@@ -254,10 +264,38 @@ const ProfilePage = ({ me, onLogout, onMeUpdate }: ProfilePageProps) => {
                   className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-destructive/35 bg-destructive/5 px-3 text-xs font-extrabold text-destructive transition-all hover:bg-destructive/10 active:scale-[0.98]"
                 >
                   <Trash2 className="h-3.5 w-3.5" />
-                  Rasmni olib tashlash
+                  {t("Rasmni olib tashlash", "Удалить фото")}
                 </button>
               ) : null}
             </div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <Label className="text-[0.8125rem] font-semibold leading-none text-foreground tracking-tight">{t("Til", "Язык")}</Label>
+        <div className={cn(BOOKING_FIELD_SHELL_CLASS, "mt-2 p-3")}>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => setLang("uz")}
+              className={cn(
+                "h-11 rounded-xl text-sm font-bold transition-all",
+                lang === "uz" ? "bg-primary text-primary-foreground shadow" : "bg-secondary text-muted-foreground"
+              )}
+            >
+              O&apos;zbek
+            </button>
+            <button
+              type="button"
+              onClick={() => setLang("ru")}
+              className={cn(
+                "h-11 rounded-xl text-sm font-bold transition-all",
+                lang === "ru" ? "bg-primary text-primary-foreground shadow" : "bg-secondary text-muted-foreground"
+              )}
+            >
+              Русский
+            </button>
           </div>
         </div>
       </div>
@@ -271,12 +309,12 @@ const ProfilePage = ({ me, onLogout, onMeUpdate }: ProfilePageProps) => {
       <Dialog open={profileEditOpen} onOpenChange={setProfileEditOpen}>
         <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Profilni tahrirlash</DialogTitle>
-            <DialogDescription>Jamoa userlarini tahrirlash oynasiga o'xshash.</DialogDescription>
+            <DialogTitle>{t("Profilni tahrirlash", "Редактировать профиль")}</DialogTitle>
+            <DialogDescription>{t("Profil ma'lumotlarini yangilang.", "Обновите данные профиля.")}</DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
             <div>
-              <Label className="text-xs">Profil rasmi</Label>
+              <Label className="text-xs">{t("Profil rasmi", "Фото профиля")}</Label>
               <div className="mt-1.5 flex items-center gap-3">
                 <button
                   type="button"
@@ -301,17 +339,17 @@ const ProfilePage = ({ me, onLogout, onMeUpdate }: ProfilePageProps) => {
                     className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-destructive/35 bg-destructive/5 px-3 text-xs font-extrabold text-destructive transition-all hover:bg-destructive/10 active:scale-[0.98]"
                   >
                     <Trash2 className="h-3.5 w-3.5" />
-                    Rasmni olib tashlash
+                    {t("Rasmni olib tashlash", "Удалить фото")}
                   </button>
                 ) : null}
               </div>
             </div>
             <div>
-              <Label className="text-xs">Ism</Label>
+              <Label className="text-xs">{t("Ism", "Имя")}</Label>
               <Input
                 value={draftName}
                 onChange={(e) => setDraftName(e.target.value)}
-                placeholder="Ismingiz"
+                placeholder={t("Ismingiz", "Ваше имя")}
                 maxLength={120}
                 disabled={nameBusy}
                 autoFocus
@@ -325,7 +363,7 @@ const ProfilePage = ({ me, onLogout, onMeUpdate }: ProfilePageProps) => {
                 className="inline-flex h-14 items-center justify-center gap-1.5 rounded-2xl border border-border/80 bg-muted font-bold text-base text-foreground transition-all active:scale-[0.98] disabled:opacity-50"
               >
                 <X className="h-4 w-4" />
-                Bekor
+                {t("Bekor", "Отмена")}
               </button>
               <button
                 type="button"
@@ -334,7 +372,7 @@ const ProfilePage = ({ me, onLogout, onMeUpdate }: ProfilePageProps) => {
                 className="inline-flex h-14 items-center justify-center gap-1.5 rounded-2xl bg-primary font-bold text-base text-primary-foreground shadow-lg shadow-primary/25 transition-all active:scale-[0.98] disabled:opacity-50"
               >
                 {nameBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
-                {nameBusy ? "Saqlanmoqda…" : "Saqlash"}
+                {nameBusy ? t("Saqlanmoqda…", "Сохранение…") : t("Saqlash", "Сохранить")}
               </button>
             </div>
           </div>
@@ -351,16 +389,16 @@ const ProfilePage = ({ me, onLogout, onMeUpdate }: ProfilePageProps) => {
             <LogOut className="h-5 w-5" />
           </span>
           <div className="min-w-0">
-            <p className="text-sm font-extrabold text-destructive">Chiqish</p>
-            <p className="text-xs font-medium text-muted-foreground">Sessiyani yakunlash</p>
+            <p className="text-sm font-extrabold text-destructive">{t("Chiqish", "Выйти")}</p>
+            <p className="text-xs font-medium text-muted-foreground">{t("Sessiyani yakunlash", "Завершить сессию")}</p>
           </div>
         </div>
       </button>
 
       {isSuperAdmin ? (
         <div className="flex flex-col gap-2">
-          <Label className="text-[0.8125rem] font-semibold leading-none text-foreground tracking-tight">Jamoa</Label>
-          <p className="text-sm font-medium text-muted-foreground">Userlar, rollar va kirish holatini boshqaring</p>
+          <Label className="text-[0.8125rem] font-semibold leading-none text-foreground tracking-tight">{t("Jamoa", "Команда")}</Label>
+          <p className="text-sm font-medium text-muted-foreground">{t("Userlar, rollar va kirish holatini boshqaring", "Управляйте пользователями, ролями и доступом")}</p>
           <StaffUsersList heading={false} />
         </div>
       ) : null}

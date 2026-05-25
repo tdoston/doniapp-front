@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Camera, Check, ChevronDown, ChevronUp, ImagePlus, DoorClosed, ShowerHead, BedDouble, Users, X, ChevronLeft, ChevronRight, Share2, Trash2, RefreshCw } from "lucide-react";
 import { fetchCleaning, patchCleaning, type CleaningRoomDto } from "@/lib/api";
 import { readFileAsDataUrl } from "@/lib/files";
+import { useUiLanguage } from "@/lib/ui-language";
 
 type CleaningRoom = CleaningRoomDto;
 
@@ -27,6 +28,7 @@ interface CleaningPageProps {
 }
 
 const CleaningPage = ({ activeHostel, stayDateIso }: CleaningPageProps) => {
+  const { t } = useUiLanguage();
   const queryClient = useQueryClient();
   const cleaningQueryKey = ["cleaning", activeHostel, stayDateIso] as const;
 
@@ -111,8 +113,8 @@ const CleaningPage = ({ activeHostel, stayDateIso }: CleaningPageProps) => {
     const room = rooms.find(r => r.id === gallery.roomId);
     if (!room) return [];
     return [
-      ...room.photosBefore.map(url => ({ url, label: "Oldin (Do)" })),
-      ...room.photosAfter.map(url => ({ url, label: "Keyin (Posle)" })),
+      ...room.photosBefore.map(url => ({ url, label: t("Oldin", "До") })),
+      ...room.photosAfter.map(url => ({ url, label: t("Keyin", "После") })),
     ];
   };
 
@@ -207,17 +209,17 @@ const CleaningPage = ({ activeHostel, stayDateIso }: CleaningPageProps) => {
   return (
     <div className="pb-4">
       {cleaningQuery.isLoading && (
-        <p className="text-center text-sm text-muted-foreground py-4 px-4">Tozalash ro&apos;yxati yuklanmoqda…</p>
+        <p className="text-center text-sm text-muted-foreground py-4 px-4">{t("Tozalash ro'yxati yuklanmoqda…", "Список уборки загружается…")}</p>
       )}
       {cleaningQuery.isError && (
         <div className="py-4 px-4 text-center space-y-2">
-          <p className="text-sm text-destructive font-medium">Ma&apos;lumot olinmadi. Iltimos, qayta urinib ko&apos;ring.</p>
+          <p className="text-sm text-destructive font-medium">{t("Ma'lumot olinmadi. Iltimos, qayta urinib ko'ring.", "Не удалось загрузить данные. Попробуйте снова.")}</p>
           <button
             type="button"
             onClick={() => cleaningQuery.refetch()}
             className="inline-flex h-9 items-center justify-center rounded-lg border border-border bg-background px-3 text-xs font-bold text-foreground active:scale-[0.98]"
           >
-            Qayta urinish
+            {t("Qayta urinish", "Повторить")}
           </button>
         </div>
       )}
@@ -226,11 +228,11 @@ const CleaningPage = ({ activeHostel, stayDateIso }: CleaningPageProps) => {
       <div className="grid grid-cols-2 gap-3 px-4 py-3">
         <div className="bg-destructive/10 rounded-xl p-4 flex flex-col items-center justify-center min-h-[80px]">
           <span className="text-3xl font-extrabold text-destructive">{dirtyCount}</span>
-          <span className="text-xs font-semibold text-destructive/70">Tozalanmagan</span>
+          <span className="text-xs font-semibold text-destructive/70">{t("Tozalanmagan", "Не убрано")}</span>
         </div>
         <div className="bg-green-500/10 rounded-xl p-4 flex flex-col items-center justify-center min-h-[80px]">
           <span className="text-3xl font-extrabold text-green-600">{cleanedCount}</span>
-          <span className="text-xs font-semibold text-green-600/70">Tozalangan</span>
+          <span className="text-xs font-semibold text-green-600/70">{t("Tozalangan", "Убрано")}</span>
         </div>
       </div>
 
@@ -294,7 +296,7 @@ const CleaningPage = ({ activeHostel, stayDateIso }: CleaningPageProps) => {
                         : "bg-green-500/20 text-green-600"
                     }`}
                   >
-                    {isDirty ? "Toza emas" : "Tayyor ✓"}
+                    {isDirty ? t("Toza emas", "Не убрано") : t("Tayyor ✓", "Готово ✓")}
                   </span>
                   {isExpanded ? (
                     <ChevronUp className="w-4 h-4 text-muted-foreground" />
@@ -310,13 +312,13 @@ const CleaningPage = ({ activeHostel, stayDateIso }: CleaningPageProps) => {
                     /* Side-by-side layout for single-photo rooms */
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <p className="text-[10px] font-semibold text-muted-foreground mb-1.5">Oldin</p>
+                        <p className="text-[10px] font-semibold text-muted-foreground mb-1.5">{t("Oldin", "До")}</p>
                         {room.photosBefore.length > 0 ? (
                           <button
-                            onClick={() => openGallery(room.id, "before", `${room.name} — Oldin`)}
+                            onClick={() => openGallery(room.id, "before", `${room.name} — ${t("Oldin", "До")}`)}
                             className="w-full h-24 rounded-lg overflow-hidden border border-border"
                           >
-                            <img src={room.photosBefore[0]} alt="Before" className="w-full h-full object-cover" />
+                            <img src={room.photosBefore[0]} alt={t("Oldin", "До")} className="w-full h-full object-cover" />
                           </button>
                         ) : (
                           <button
@@ -324,18 +326,18 @@ const CleaningPage = ({ activeHostel, stayDateIso }: CleaningPageProps) => {
                             className="w-full h-24 rounded-lg border-2 border-dashed border-muted-foreground/30 flex flex-col items-center justify-center gap-1 text-muted-foreground active:bg-secondary/50"
                           >
                             <Camera className="w-5 h-5" />
-                            <span className="text-[9px] font-semibold">Rasmga olish</span>
+                            <span className="text-[9px] font-semibold">{t("Rasmga olish", "Сделать фото")}</span>
                           </button>
                         )}
                       </div>
                       <div>
-                        <p className="text-[10px] font-semibold text-muted-foreground mb-1.5">Keyin</p>
+                        <p className="text-[10px] font-semibold text-muted-foreground mb-1.5">{t("Keyin", "После")}</p>
                         {room.photosAfter.length > 0 ? (
                           <button
-                            onClick={() => openGallery(room.id, "after", `${room.name} — Keyin`)}
+                            onClick={() => openGallery(room.id, "after", `${room.name} — ${t("Keyin", "После")}`)}
                             className="w-full h-24 rounded-lg overflow-hidden border border-border"
                           >
-                            <img src={room.photosAfter[0]} alt="After" className="w-full h-full object-cover" />
+                            <img src={room.photosAfter[0]} alt={t("Keyin", "После")} className="w-full h-full object-cover" />
                           </button>
                         ) : (
                           <button
@@ -343,7 +345,7 @@ const CleaningPage = ({ activeHostel, stayDateIso }: CleaningPageProps) => {
                             className="w-full h-24 rounded-lg border-2 border-dashed border-muted-foreground/30 flex flex-col items-center justify-center gap-1 text-muted-foreground active:bg-secondary/50"
                           >
                             <ImagePlus className="w-5 h-5" />
-                            <span className="text-[9px] font-semibold">Rasmga olish</span>
+                            <span className="text-[9px] font-semibold">{t("Rasmga olish", "Сделать фото")}</span>
                           </button>
                         )}
                       </div>
@@ -352,15 +354,15 @@ const CleaningPage = ({ activeHostel, stayDateIso }: CleaningPageProps) => {
                     /* Stacked layout for multi-photo rooms */
                     <>
                       <div>
-                        <p className="text-[10px] font-semibold text-muted-foreground mb-1.5">Oldin (Do)</p>
+                        <p className="text-[10px] font-semibold text-muted-foreground mb-1.5">{t("Oldin (Do)", "До")}</p>
                         <div className="grid grid-cols-4 gap-2">
                           {room.photosBefore.map((url, i) => (
                             <button
                               key={i}
-                              onClick={() => openGallery(room.id, "before", `${room.name} — Oldin`)}
+                              onClick={() => openGallery(room.id, "before", `${room.name} — ${t("Oldin", "До")}`)}
                               className="w-full h-16 rounded-lg overflow-hidden border border-border"
                             >
-                              <img src={url} alt={`Before ${i + 1}`} className="w-full h-full object-cover" />
+                              <img src={url} alt={`${t("Oldin", "До")} ${i + 1}`} className="w-full h-full object-cover" />
                             </button>
                           ))}
                           {room.photosBefore.length < maxPhotos && (
@@ -375,15 +377,15 @@ const CleaningPage = ({ activeHostel, stayDateIso }: CleaningPageProps) => {
                         </div>
                       </div>
                       <div>
-                        <p className="text-[10px] font-semibold text-muted-foreground mb-1.5">Keyin (Posle)</p>
+                        <p className="text-[10px] font-semibold text-muted-foreground mb-1.5">{t("Keyin (Posle)", "После")}</p>
                         <div className="grid grid-cols-4 gap-2">
                           {room.photosAfter.map((url, i) => (
                             <button
                               key={i}
-                              onClick={() => openGallery(room.id, "after", `${room.name} — Keyin`)}
+                              onClick={() => openGallery(room.id, "after", `${room.name} — ${t("Keyin", "После")}`)}
                               className="w-full h-16 rounded-lg overflow-hidden border border-border"
                             >
-                              <img src={url} alt={`After ${i + 1}`} className="w-full h-full object-cover" />
+                              <img src={url} alt={`${t("Keyin", "После")} ${i + 1}`} className="w-full h-full object-cover" />
                             </button>
                           ))}
                           {room.photosAfter.length < maxPhotos && (
@@ -407,7 +409,7 @@ const CleaningPage = ({ activeHostel, stayDateIso }: CleaningPageProps) => {
                       className="w-full py-2.5 rounded-xl bg-green-500 text-white text-sm font-bold flex items-center justify-center gap-2 active:bg-green-600"
                     >
                       <Check className="w-4 h-4" />
-                      Tozalandi
+                      {t("Tozalandi", "Убрано")}
                     </button>
                   )}
                 </div>
@@ -418,7 +420,7 @@ const CleaningPage = ({ activeHostel, stayDateIso }: CleaningPageProps) => {
 
         {filtered.length === 0 && (
           <div className="text-center py-10 text-muted-foreground text-sm">
-            Tozalanishi kerak xonalar yo'q
+            {t("Tozalanishi kerak xonalar yo'q", "Нет комнат, требующих уборки")}
           </div>
         )}
       </div>
@@ -450,7 +452,7 @@ const CleaningPage = ({ activeHostel, stayDateIso }: CleaningPageProps) => {
               <button
                 onClick={() => setGallery(null)}
                 className="inline-flex h-12 w-12 touch-manipulation items-center justify-center rounded-full bg-white/20 text-white active:scale-[0.98]"
-                aria-label="Galereyani yopish"
+                aria-label={t("Galereyani yopish", "Закрыть галерею")}
               >
                 <X className="w-7 h-7" />
               </button>
@@ -522,14 +524,14 @@ const CleaningPage = ({ activeHostel, stayDateIso }: CleaningPageProps) => {
               className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-white/10 text-white text-sm font-semibold"
             >
               <RefreshCw className="w-4 h-4" />
-              Almashtirish
+              {t("Almashtirish", "Заменить")}
             </button>
             <button
               onClick={handleGalleryDelete}
               className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-destructive/20 text-destructive text-sm font-semibold"
             >
               <Trash2 className="w-4 h-4" />
-              O'chirish
+              {t("O'chirish", "Удалить")}
             </button>
           </div>
 

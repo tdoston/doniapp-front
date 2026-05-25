@@ -1,6 +1,7 @@
 import React, { useState, useRef, useCallback, useEffect } from "react";
 import { BedDouble, ImageIcon, Sparkles } from "lucide-react";
 import { digitsFromSoumInput } from "@/lib/moneyInput";
+import { useUiLanguage } from "@/lib/ui-language";
 import RoomPhotoGallery from "./RoomPhotoGallery";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
@@ -82,6 +83,7 @@ const RoomCard = ({
   onToggleFullTaken,
   onCancelFullRoomBron,
 }: RoomCardProps) => {
+  const { t } = useUiLanguage();
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const touchStartRef = useRef<{ x: number; y: number } | null>(null);
   const touchMovedRef = useRef(false);
@@ -195,6 +197,7 @@ const RoomCard = ({
   const canOpenRoomActions = !inactive;
   const canFullCheckIn = !fullTaken && checkInCount > 0 && checkInCount < room.totalBeds;
   const canFullBron = !fullTaken && allBedsEmpty;
+  const fullTakenLabel = `${t("To'liq band", "Полностью занято")}${fullTakenMode === "bron" ? ` (${t("Bron", "Бронь")})` : ""}`;
 
   return (
     <>
@@ -216,11 +219,11 @@ const RoomCard = ({
               {room.name}
             </button>
             {inactive && (
-              <p className="text-[10px] font-semibold text-orange-300 mt-0.5">Nofaol</p>
+              <p className="text-[10px] font-semibold text-orange-300 mt-0.5">{t("Nofaol", "Неактивно")}</p>
             )}
             {!inactive && fullTaken && (
               <p className="text-[10px] font-semibold text-amber-300 mt-0.5">
-                To&apos;liq band {fullTakenMode === "bron" ? "(Bron)" : ""}
+                {fullTakenLabel}
               </p>
             )}
           </div>
@@ -233,7 +236,7 @@ const RoomCard = ({
               }`}
             >
               <Sparkles className="w-3 h-3" />
-              {cleaningStatus === "clean" ? "Toza" : "Toza emas"}
+              {cleaningStatus === "clean" ? t("Toza", "Чисто") : t("Toza emas", "Не убрано")}
             </div>
             <button
               type="button"
@@ -252,7 +255,7 @@ const RoomCard = ({
               key={bed.id}
               type="button"
               disabled={(inactive || fullTaken) && bed.status === "empty"}
-              title={debt ? "Qarz bor" : undefined}
+              title={debt ? t("Qarz bor", "Есть долг") : undefined}
               onTouchStart={(e) => handleTouchStart(bed.id, e)}
               onTouchMove={handleTouchMove}
               onTouchEnd={() => handleTouchEnd(bed.id)}
@@ -317,13 +320,13 @@ const RoomCard = ({
             <DialogHeader className="text-left space-y-1">
               <DialogTitle className="text-base font-extrabold">{room.name}</DialogTitle>
               <p className="text-xs text-muted-foreground">
-                Xona holati:{" "}
+                {t("Xona holati", "Статус комнаты")}:{" "}
                 {fullTaken ? (
                   <span className="font-semibold text-amber-700 dark:text-amber-300">
-                    To&apos;liq band {fullTakenMode === "bron" ? "(Bron)" : ""}
+                    {fullTakenLabel}
                   </span>
                 ) : (
-                  <span className="font-semibold text-emerald-700 dark:text-emerald-300">Ochiq</span>
+                  <span className="font-semibold text-emerald-700 dark:text-emerald-300">{t("Ochiq", "Открыто")}</span>
                 )}
               </p>
             </DialogHeader>
@@ -338,7 +341,7 @@ const RoomCard = ({
                 }}
                 className="h-11 rounded-xl border border-red-500/40 bg-red-600/90 text-sm font-bold text-white disabled:opacity-40"
               >
-                To&apos;liq band
+                {t("To'liq band", "Полностью занять")}
               </button>
               <button
                 type="button"
@@ -349,7 +352,7 @@ const RoomCard = ({
                 }}
                 className="h-11 rounded-xl border border-amber-400/50 bg-amber-400 text-sm font-bold text-amber-950 disabled:opacity-40"
               >
-                To&apos;liq bron
+                {t("To'liq bron", "Полная бронь")}
               </button>
             </div>
 
@@ -361,12 +364,12 @@ const RoomCard = ({
                     onClick={() => setConfirmCancelBron(true)}
                     className="mt-3 h-11 w-full rounded-xl border border-amber-500/50 bg-amber-500/15 text-sm font-bold text-amber-800 dark:text-amber-200"
                   >
-                    To&apos;liq bronni bekor qilish
+                    {t("To'liq bronni bekor qilish", "Отменить полную бронь")}
                   </button>
                 ) : (
                   <div className="mt-3 rounded-xl border border-amber-500/40 bg-amber-500/10 p-3">
                     <p className="text-xs font-semibold text-amber-800 dark:text-amber-200 mb-2">
-                      Tasdiqlaysizmi? Xonadagi barcha bron yozuvlari bekor qilinadi.
+                      {t("Tasdiqlaysizmi? Xonadagi barcha bron yozuvlari bekor qilinadi.", "Подтверждаете? Все записи брони в комнате будут отменены.")}
                     </p>
                     <div className="grid grid-cols-2 gap-2">
                       <button
@@ -374,7 +377,7 @@ const RoomCard = ({
                         onClick={() => setConfirmCancelBron(false)}
                         className="h-10 rounded-xl border border-border bg-background text-sm font-bold text-foreground"
                       >
-                        Yo&apos;q
+                        {t("Yo'q", "Нет")}
                       </button>
                       <button
                         type="button"
@@ -390,7 +393,7 @@ const RoomCard = ({
                         }}
                         className="h-10 rounded-xl bg-amber-500 text-sm font-bold text-amber-950 disabled:opacity-50"
                       >
-                        {cancellingBron ? "Bekor qilinmoqda…" : "Ha, bekor qilish"}
+                        {cancellingBron ? t("Bekor qilinmoqda…", "Отмена…") : t("Ha, bekor qilish", "Да, отменить")}
                       </button>
                     </div>
                   </div>
@@ -406,12 +409,12 @@ const RoomCard = ({
                     onClick={() => setConfirmRelease(true)}
                     className="mt-3 h-11 w-full rounded-xl border border-emerald-500/40 bg-emerald-500/90 text-sm font-bold text-white"
                   >
-                    To&apos;liq bandni bekor qilish
+                    {t("To'liq bandni bekor qilish", "Снять полную занятость")}
                   </button>
                 ) : (
                   <div className="mt-3 rounded-xl border border-destructive/40 bg-destructive/10 p-3">
                     <p className="text-xs font-semibold text-destructive mb-2">
-                      Tasdiqlaysizmi? Xona yana bo&apos;sh joylash uchun ochiladi.
+                      {t("Tasdiqlaysizmi? Xona yana bo'sh joylash uchun ochiladi.", "Подтверждаете? Комната снова откроется для свободного заселения.")}
                     </p>
                     <div className="grid grid-cols-2 gap-2">
                       <button
@@ -419,7 +422,7 @@ const RoomCard = ({
                         onClick={() => setConfirmRelease(false)}
                         className="h-10 rounded-xl border border-border bg-background text-sm font-bold text-foreground"
                       >
-                        Yo&apos;q
+                        {t("Yo'q", "Нет")}
                       </button>
                       <button
                         type="button"
@@ -430,7 +433,7 @@ const RoomCard = ({
                         }}
                         className="h-10 rounded-xl bg-destructive text-sm font-bold text-destructive-foreground"
                       >
-                        Ha, o&apos;chirish
+                        {t("Ha, o'chirish", "Да, снять")}
                       </button>
                     </div>
                   </div>

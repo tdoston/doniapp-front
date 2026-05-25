@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
+import { useUiLanguage } from "@/lib/ui-language";
 
 interface StatsData {
   empty: number;
@@ -15,6 +16,7 @@ interface StatCardsProps {
 }
 
 const StatCards = ({ stats, pending }: StatCardsProps) => {
+  const { t } = useUiLanguage();
   const [showRevenue, setShowRevenue] = useState(true);
   const n = (v: number) => (pending ? "—" : v);
   const totalBeds = stats.empty + stats.guests;
@@ -26,19 +28,19 @@ const StatCards = ({ stats, pending }: StatCardsProps) => {
         <span className="text-3xl font-extrabold text-[hsl(30,80%,20%)]">
           {pending ? "—" : `${stats.empty}/${totalBeds}`}
         </span>
-        <span className="text-xs font-semibold text-[hsl(30,60%,30%)]">Bo'sh</span>
+        <span className="text-xs font-semibold text-[hsl(30,60%,30%)]">{t("Bo'sh", "Свободно")}</span>
       </div>
       <div
         className={`rounded-xl p-4 flex flex-col items-center justify-center bg-[hsl(var(--guest))] min-h-[80px] ${pending ? "animate-pulse opacity-70" : ""}`}
       >
         <span className="text-3xl font-extrabold text-[hsl(215,60%,25%)]">{n(stats.guests)}</span>
-        <span className="text-xs font-semibold text-[hsl(215,40%,35%)]">Mehmon</span>
+        <span className="text-xs font-semibold text-[hsl(215,40%,35%)]">{t("Mehmon", "Гость")}</span>
       </div>
       <div
         className={`rounded-xl p-4 flex flex-col items-center justify-center bg-[hsl(var(--debt))] min-h-[80px] ${pending ? "animate-pulse opacity-70" : ""}`}
       >
         <span className="text-3xl font-extrabold text-destructive">{n(stats.debt)}</span>
-        <span className="text-xs font-semibold text-destructive">Qarzi</span>
+        <span className="text-xs font-semibold text-destructive">{t("Qarzi", "Долг")}</span>
       </div>
       <div
         className={`rounded-xl p-4 flex flex-col items-center justify-center bg-[hsl(var(--income))] min-h-[80px] relative ${pending ? "" : "cursor-pointer"}`}
@@ -50,7 +52,7 @@ const StatCards = ({ stats, pending }: StatCardsProps) => {
         <span className="text-3xl font-extrabold text-accent">
           {pending ? "—" : showRevenue ? stats.revenue : "•••"}
         </span>
-        <span className="text-xs font-semibold text-accent">Kirim</span>
+        <span className="text-xs font-semibold text-accent">{t("Kirim", "Доход")}</span>
       </div>
     </div>
   );

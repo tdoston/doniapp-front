@@ -2,6 +2,7 @@ import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import { initTelegramMiniApp } from "./lib/telegramWebApp";
 import { registerSW } from "virtual:pwa-register";
+import { UiLanguageProvider } from "./lib/ui-language";
 import "./index.css";
 
 initTelegramMiniApp();
@@ -14,4 +15,8 @@ const updateSW = registerSW({
 });
 void updateSW;
 
-createRoot(document.getElementById("root")!).render(<App />);
+createRoot(document.getElementById("root")!).render(
+  <UiLanguageProvider>
+    <App />
+  </UiLanguageProvider>
+);

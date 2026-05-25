@@ -1,7 +1,8 @@
 import { differenceInCalendarDays, isToday, isYesterday, parse, parseISO } from "date-fns";
+import type { UiLanguage } from "./ui-language";
 
 /** Bron qayd etilgan vaqt (`created_at`): SQLite `yyyy-MM-dd HH:mm:ss` yoki ISO — Toshkent vaqti. */
-export function formatCheckInDateTime(raw: string | undefined | null): string {
+export function formatCheckInDateTime(raw: string | undefined | null, lang: UiLanguage = "uz"): string {
   if (!raw?.trim()) return "";
   const s = raw.trim();
   let d: Date;
@@ -19,7 +20,7 @@ export function formatCheckInDateTime(raw: string | undefined | null): string {
     return "";
   }
   if (Number.isNaN(d.getTime())) return "";
-  return new Intl.DateTimeFormat("uz-UZ", {
+  return new Intl.DateTimeFormat(lang === "ru" ? "ru-RU" : "uz-UZ", {
     timeZone: "Asia/Tashkent",
     day: "2-digit",
     month: "2-digit",
@@ -29,15 +30,14 @@ export function formatCheckInDateTime(raw: string | undefined | null): string {
   }).format(d);
 }
 
-export function checkInLabel(iso: string): string {
+export function checkInLabel(iso: string, lang: UiLanguage = "uz"): string {
   try {
     const d = parseISO(iso);
-    if (isToday(d)) return "Bugun";
-    if (isYesterday(d)) return "Kecha";
+    if (isToday(d)) return lang === "ru" ? "Сегодня" : "Bugun";
+    if (isYesterday(d)) return lang === "ru" ? "Вчера" : "Kecha";
     const days = differenceInCalendarDays(new Date(), d);
-    if (days === 2) return "2 kun oldin";
-    if (days === 3) return "3 kun oldin";
-    if (days > 0 && days <= 7) return `${days} kun oldin`;
+    if (days >= 2 && days <= 4) return lang === "ru" ? `${days} дня назад` : `${days} kun oldin`;
+    if (days > 0 && days <= 7) return lang === "ru" ? `${days} дней назад` : `${days} kun oldin`;
     return iso;
   } catch {
     return iso;

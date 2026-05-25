@@ -16,6 +16,7 @@ import {
   type TelegramLoginPayload,
 } from "./lib/api";
 import { getTelegramInitData, isTelegramWebApp } from "./lib/telegramWebApp";
+import { useUiLanguage } from "./lib/ui-language";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -75,6 +76,7 @@ const TelegramLoginWidget = ({
 }) => {
   const holderRef = useRef<HTMLDivElement | null>(null);
   const [busy, setBusy] = useState(false);
+  const { t } = useUiLanguage();
 
   useEffect(() => {
     const node = holderRef.current;
@@ -83,14 +85,14 @@ const TelegramLoginWidget = ({
     const cbName = "__swiftBookingsTelegramAuth";
     (window as Window & { [k: string]: unknown })[cbName] = async (user: unknown) => {
       if (!user || typeof user !== "object") {
-        onError("Telegram login javobi noto'g'ri.");
+        onError(t("Telegram login javobi noto'g'ri.", "Неверный ответ Telegram login."));
         return;
       }
       setBusy(true);
       try {
         await onAuth(user as TelegramLoginPayload);
       } catch (e) {
-        onError(e instanceof Error ? e.message : "Telegram login xatosi");
+        onError(e instanceof Error ? e.message : t("Telegram login xatosi", "Ошибка Telegram login"));
       } finally {
         setBusy(false);
       }
@@ -112,12 +114,12 @@ const TelegramLoginWidget = ({
   }, [onAuth, onError]);
 
   if (!TELEGRAM_LOGIN_BOT) {
-    return <p className="text-sm text-destructive">`VITE_TELEGRAM_LOGIN_BOT` sozlanmagan.</p>;
+    return <p className="text-sm text-destructive">{t("`VITE_TELEGRAM_LOGIN_BOT` sozlanmagan.", "`VITE_TELEGRAM_LOGIN_BOT` не настроен.")}</p>;
   }
   return (
     <div className="space-y-3 text-center">
       <div ref={holderRef} className="flex justify-center" />
-      {busy ? <p className="text-xs text-muted-foreground">Tekshirilmoqda...</p> : null}
+      {busy ? <p className="text-xs text-muted-foreground">{t("Tekshirilmoqda...", "Проверяется...")}</p> : null}
     </div>
   );
 };
@@ -131,6 +133,7 @@ const LoginPasswordForm = ({
 }) => {
   const [login, setLogin] = useState("");
   const [password, setPassword] = useState("");
+  const { t } = useUiLanguage();
 
   return (
     <form
@@ -143,7 +146,7 @@ const LoginPasswordForm = ({
       <input
         value={login}
         onChange={(e) => setLogin(e.target.value)}
-        placeholder="Login"
+        placeholder={t("Login", "Логин")}
         autoComplete="username"
         className="h-12 w-full rounded-xl border border-input bg-card px-4 text-[1rem] font-semibold leading-snug text-foreground outline-none transition-all placeholder:font-normal placeholder:text-muted-foreground/70 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-0"
       />
@@ -151,7 +154,7 @@ const LoginPasswordForm = ({
         type="password"
         value={password}
         onChange={(e) => setPassword(e.target.value)}
-        placeholder="Parol"
+        placeholder={t("Parol", "Пароль")}
         autoComplete="current-password"
         className="h-12 w-full rounded-xl border border-input bg-card px-4 text-[1rem] font-semibold leading-snug text-foreground outline-none transition-all placeholder:font-normal placeholder:text-muted-foreground/70 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-0"
       />
@@ -160,13 +163,14 @@ const LoginPasswordForm = ({
         disabled={busy || !login.trim() || !password}
         className="h-11 w-full rounded-xl bg-primary text-primary-foreground text-sm font-bold disabled:opacity-50"
       >
-        {busy ? "Kirilmoqda..." : "Kirish"}
+        {busy ? t("Kirilmoqda...", "Вход...") : t("Kirish", "Войти")}
       </button>
     </form>
   );
 };
 
 const App = () => {
+  const { t } = useUiLanguage();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>("");
   const [me, setMe] = useState<AuthUserDto | null>(null);
@@ -226,7 +230,7 @@ const App = () => {
         clearAuthToken();
         if (!cancelled) {
           setNeedsLogin(true);
-          setError(e instanceof Error ? e.message : "Authorization xatosi");
+          setError(e instanceof Error ? e.message : t("Authorization xatosi", "Ошибка авторизации"));
           setLoading(false);
         }
       }
@@ -240,7 +244,7 @@ const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
       {loading ? (
-        <div className="min-h-screen grid place-items-center text-sm text-muted-foreground">Yuklanmoqda...</div>
+        <div className="min-h-screen grid place-items-center text-sm text-muted-foreground">{t("Yuklanmoqda...", "Загрузка...")}</div>
       ) : me ? (
         <AppRoutes me={me} onLogout={logout} onMeUpdate={setMe} />
       ) : needsLogin ? (
@@ -248,7 +252,7 @@ const App = () => {
           <div className="w-full max-w-md rounded-3xl border border-white/40 bg-white/70 dark:bg-slate-950/70 backdrop-blur-xl p-5 shadow-2xl space-y-4">
             <div className="text-center space-y-1">
               <h1 className="text-lg font-black tracking-tight">DoniHostel</h1>
-              <p className="text-xs text-muted-foreground">Kirish usulini tanlang</p>
+              <p className="text-xs text-muted-foreground">{t("Kirish usulini tanlang", "Выберите способ входа")}</p>
             </div>
 
             <div className="grid grid-cols-2 gap-2 rounded-2xl bg-muted/60 p-1">
@@ -268,7 +272,7 @@ const App = () => {
                   authMode === "password" ? "bg-background shadow text-foreground" : "text-muted-foreground"
                 }`}
               >
-                Login / Parol
+                {t("Login / Parol", "Логин / Пароль")}
               </button>
             </div>
 
@@ -295,7 +299,7 @@ const App = () => {
                     setMe(meRes.user);
                     setError("");
                   } catch (e) {
-                    setError(e instanceof Error ? e.message : "Kirishda xato");
+                    setError(e instanceof Error ? e.message : t("Kirishda xato", "Ошибка входа"));
                   } finally {
                     setPasswordBusy(false);
                   }
@@ -308,7 +312,7 @@ const App = () => {
         </div>
       ) : (
         <div className="min-h-screen grid place-items-center px-4 text-center text-sm text-destructive">
-          {error || "Authorization xatosi"}
+          {error || t("Authorization xatosi", "Ошибка авторизации")}
         </div>
       )}
     </QueryClientProvider>

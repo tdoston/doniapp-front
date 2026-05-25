@@ -33,6 +33,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { useUiLanguage } from "@/lib/ui-language";
 
 /** Guest booking form (Index) sticky footer — same visual language for dialog actions */
 const bookingFormActionRow = "grid grid-cols-2 gap-3 w-full";
@@ -99,6 +100,7 @@ export function initialsOf(name: string): string {
  * Simple staff list — usable as a standalone page or embedded in Profile.
  */
 export function StaffUsersList({ heading = true }: { heading?: boolean } = {}) {
+  const { t } = useUiLanguage();
   const queryClient = useQueryClient();
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["users"],
@@ -120,15 +122,15 @@ export function StaffUsersList({ heading = true }: { heading?: boolean } = {}) {
       <div className="flex items-center justify-between">
         {heading ? (
           <div>
-            <h2 className="text-base font-extrabold leading-tight">Jamoa boshqaruvi</h2>
-            <p className="text-[11px] text-muted-foreground">Jamoa va ruxsatlar</p>
+            <h2 className="text-base font-extrabold leading-tight">{t("Jamoa boshqaruvi", "Управление командой")}</h2>
+            <p className="text-[11px] text-muted-foreground">{t("Jamoa va ruxsatlar", "Команда и права доступа")}</p>
           </div>
         ) : <span />}
         <Dialog open={createOpen} onOpenChange={setCreateOpen}>
           <DialogTrigger asChild>
             <Button size="sm" className="h-9 gap-1.5">
               <UserPlus className="h-4 w-4" />
-              Qo'shish
+              {t("Qo'shish", "Добавить")}
             </Button>
           </DialogTrigger>
           <CreateUserDialog
@@ -151,9 +153,9 @@ export function StaffUsersList({ heading = true }: { heading?: boolean } = {}) {
 
       {isError && (
         <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-5 text-center">
-          <p className="text-sm font-bold text-destructive">Ma'lumot olinmadi</p>
+          <p className="text-sm font-bold text-destructive">{t("Ma'lumot olinmadi", "Не удалось загрузить данные")}</p>
           <Button variant="outline" size="sm" className="mt-3" onClick={() => refetch()}>
-            Qayta urinish
+            {t("Qayta urinish", "Повторить")}
           </Button>
         </div>
       )}
@@ -161,7 +163,7 @@ export function StaffUsersList({ heading = true }: { heading?: boolean } = {}) {
       {!isLoading && !isError && users.length === 0 && (
         <div className="rounded-xl border border-dashed border-border bg-card/50 p-8 text-center">
           <Users className="mx-auto h-7 w-7 text-muted-foreground" />
-          <p className="mt-2 text-sm font-semibold">Foydalanuvchi yo'q</p>
+          <p className="mt-2 text-sm font-semibold">{t("Foydalanuvchi yo'q", "Пользователей нет")}</p>
         </div>
       )}
 

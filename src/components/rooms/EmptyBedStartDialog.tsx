@@ -11,8 +11,7 @@ import PhoneInput from "@/components/booking/PhoneInput";
 import { Input } from "@/components/ui/input";
 import { formatNotesWithContactDetails } from "@/lib/bookingNotesContact";
 import { cn } from "@/lib/utils";
-
-const BRON_QUICK_NOTES = ["Booking orqali bron", "Yana kelmoqchi (kechagi mehmonlar)"];
+import { useUiLanguage } from "@/lib/ui-language";
 
 function appendQuickNote(current: string, note: string): string {
   const base = current.trim();
@@ -61,6 +60,11 @@ const EmptyBedStartDialog = ({
   onCancelExistingBron,
   bronCancelReasons,
 }: EmptyBedStartDialogProps) => {
+  const { t } = useUiLanguage();
+  const bronQuickNotes = [
+    t("Booking orqali bron", "Бронь через Booking"),
+    t("Yana kelmoqchi (kechagi mehmonlar)", "Хочет вернуться (вчерашние гости)"),
+  ];
   const [step, setStep] = useState<Step>("menu");
   const [expectedArrivalIso, setExpectedArrivalIso] = useState(() => normalizeExpectedLocal(undefined, stayDateIso));
   const [bronNote, setBronNote] = useState("");
@@ -105,7 +109,7 @@ const EmptyBedStartDialog = ({
       await onCancelExistingBron(existingBron.bookingId, apiReason);
       onClose();
     } catch (e) {
-      setErr(e instanceof Error ? e.message : "Bekor qilib bo‘lmadi");
+      setErr(e instanceof Error ? e.message : t("Bekor qilib bo‘lmadi", "Не удалось отменить"));
     } finally {
       setSubmitting(false);
     }
@@ -114,7 +118,7 @@ const EmptyBedStartDialog = ({
   const handleBronFinalSubmit = async () => {
     if (!context) return;
     if (!bronDraftBookingId) {
-      setErr("Avval vaqtni tasdiqlang");
+      setErr(t("Avval vaqtni tasdiqlang", "Сначала подтвердите время"));
       return;
     }
     setErr(null);
@@ -126,7 +130,7 @@ const EmptyBedStartDialog = ({
       }
       onClose();
     } catch (e) {
-      setErr(e instanceof Error ? e.message : "Saqlab bo‘lmadi");
+      setErr(e instanceof Error ? e.message : t("Saqlab bo‘lmadi", "Не удалось сохранить"));
     } finally {
       setSubmitting(false);
     }
@@ -144,7 +148,7 @@ const EmptyBedStartDialog = ({
                 </DialogTitle>
                 {existingBron ? (
                   <span className="text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-md bg-amber-500/25 text-amber-900 dark:text-amber-100">
-                    Bron
+                    {t("Bron", "Бронь")}
                   </span>
                 ) : null}
               </div>
@@ -157,7 +161,7 @@ const EmptyBedStartDialog = ({
                     existingBron ? "tracking-tight" : "uppercase tracking-wider"
                   )}
                 >
-                  {existingBron ? "Bron bo‘yicha check-in qilish" : "Check-in"}
+                  {existingBron ? t("Bron bo‘yicha check-in qilish", "Заселить по брони") : t("Check-in", "Заселение")}
                 </p>
                 <div className="flex flex-col gap-2">
                   <button
@@ -168,24 +172,24 @@ const EmptyBedStartDialog = ({
                     }}
                     className="w-full h-14 rounded-2xl bg-primary px-4 text-left text-base font-bold text-primary-foreground active:scale-[0.98]"
                   >
-                    Yangi mehmon
+                    {t("Yangi mehmon", "Новый гость")}
                   </button>
                   <button
                     type="button"
                     onClick={() => onAvvalKelgan(context)}
                     className="w-full h-14 rounded-2xl border border-border bg-background px-4 text-left text-base font-bold text-foreground active:scale-[0.98] active:bg-muted/50"
                   >
-                    Avval kelgan
+                    {t("Avval kelgan", "Ранее проживал")}
                   </button>
                 </div>
               </div>
 
               <div>
-                <p className="text-[0.6875rem] font-bold uppercase tracking-wider text-muted-foreground mb-2">Bron</p>
+                <p className="text-[0.6875rem] font-bold uppercase tracking-wider text-muted-foreground mb-2">{t("Bron", "Бронь")}</p>
                 {existingBron ? (
                   <div className="rounded-xl border border-border bg-muted/30 p-3 space-y-3">
                     <div>
-                      <p className="text-xs font-medium text-muted-foreground">Tashrif</p>
+                      <p className="text-xs font-medium text-muted-foreground">{t("Tashrif", "Визит")}</p>
                       <p className="text-base font-bold tabular-nums text-foreground mt-0.5">
                         {formatBronArrivalHuman(
                           normalizeExpectedLocal(existingBron.expectedArrival, stayDateIso)
@@ -193,7 +197,7 @@ const EmptyBedStartDialog = ({
                       </p>
                     </div>
                     <div className="border-t border-border pt-2">
-                      <p className="text-xs font-medium text-muted-foreground">Izoh</p>
+                      <p className="text-xs font-medium text-muted-foreground">{t("Izoh", "Комментарий")}</p>
                       {existingBron.notes?.trim() ? (
                         <p className="text-sm text-foreground mt-1 max-h-24 overflow-y-auto whitespace-pre-wrap leading-snug">
                           {existingBron.notes.trim()}
@@ -220,7 +224,7 @@ const EmptyBedStartDialog = ({
                       )}
                     >
                       <Trash2 className="h-4 w-4" />
-                      Bronni bekor qilish
+                      {t("Bronni bekor qilish", "Отменить бронь")}
                     </Button>
                   </div>
                 ) : (
@@ -232,7 +236,7 @@ const EmptyBedStartDialog = ({
                     }}
                     className="w-full h-14 rounded-2xl border border-amber-600/40 bg-amber-400/90 px-4 text-left text-base font-bold text-amber-950 active:scale-[0.98]"
                   >
-                    Bron
+                    {t("Bron", "Бронь")}
                   </button>
                 )}
               </div>
@@ -255,16 +259,16 @@ const EmptyBedStartDialog = ({
                 className="inline-flex items-center gap-1 text-xs font-semibold text-muted-foreground hover:text-foreground mb-1 -ml-1"
               >
                 <ChevronLeft className="w-4 h-4" />
-                Ortga
+                {t("Ortga", "Назад")}
               </button>
-              <DialogTitle className="text-lg font-extrabold tracking-tight">Bronni bekor qilish</DialogTitle>
+              <DialogTitle className="text-lg font-extrabold tracking-tight">{t("Bronni bekor qilish", "Отменить бронь")}</DialogTitle>
               <p className="text-xs font-medium text-muted-foreground leading-snug">
-                Karavot bo‘shaydi. Sababni tanlang — keyin tasdiqlang.
+                {t("Karavot bo‘shaydi. Sababni tanlang — keyin tasdiqlang.", "Кровать освободится. Выберите причину и подтвердите.")}
               </p>
             </DialogHeader>
             <RadioGroup value={cancelReasonValue} onValueChange={setCancelReasonValue} className="gap-3 mt-4">
               {bronCancelReasons === null ? (
-                <p className="text-sm text-muted-foreground py-2">Sabablari yuklanmoqda…</p>
+                <p className="text-sm text-muted-foreground py-2">{t("Sabablari yuklanmoqda…", "Причины загружаются…")}</p>
               ) : (
                 bronCancelReasons.map((r) => (
                   <div
@@ -283,7 +287,7 @@ const EmptyBedStartDialog = ({
               <Textarea
                 value={cancelOtherNote}
                 onChange={(e) => setCancelOtherNote(e.target.value)}
-                placeholder="Batafsil yozing (ixtiyoriy)"
+                placeholder={t("Batafsil yozing (ixtiyoriy)", "Напишите подробнее (необязательно)")}
                 rows={3}
                 maxLength={500}
                 className="mt-3 rounded-xl border-border/80 bg-background/80 text-sm resize-none"
@@ -303,7 +307,7 @@ const EmptyBedStartDialog = ({
                 }}
                 className="h-14 rounded-2xl font-bold text-base"
               >
-                Bekor qilish
+                {t("Bekor qilish", "Отмена")}
               </Button>
               <Button
                 type="button"
@@ -312,7 +316,7 @@ const EmptyBedStartDialog = ({
                 onClick={() => void handleConfirmCancelExistingBron()}
                 className="h-14 rounded-2xl font-bold text-base shadow-md"
               >
-                {submitting ? "…" : "Tasdiqlash"}
+                {submitting ? "…" : t("Tasdiqlash", "Подтвердить")}
               </Button>
             </div>
           </div>
@@ -330,11 +334,11 @@ const EmptyBedStartDialog = ({
                 className="inline-flex items-center gap-1 text-xs font-semibold text-muted-foreground hover:text-foreground mb-1 -ml-1"
               >
                 <ChevronLeft className="w-4 h-4" />
-                Ortga
+                {t("Ortga", "Назад")}
               </button>
-              <DialogTitle className="text-lg font-extrabold tracking-tight">Kelish vaqti</DialogTitle>
+              <DialogTitle className="text-lg font-extrabold tracking-tight">{t("Kelish vaqti", "Время прибытия")}</DialogTitle>
               <p className="text-xs font-medium text-muted-foreground leading-snug">
-                Mehmon qachon kelishi mumkin? Avval soatni tanlang.
+                {t("Mehmon qachon kelishi mumkin? Avval soatni tanlang.", "Когда гость может приехать? Сначала выберите время.")}
               </p>
             </DialogHeader>
             <div className="mt-4">
@@ -349,7 +353,7 @@ const EmptyBedStartDialog = ({
                 if (!context) return;
                 const v = expectedArrivalIso.trim();
                 if (!v) {
-                  setErr("Kelish vaqtini tanlang");
+                  setErr(t("Kelish vaqtini tanlang", "Выберите время прибытия"));
                   return;
                 }
                 setErr(null);
@@ -359,13 +363,13 @@ const EmptyBedStartDialog = ({
                   setBronDraftBookingId(bookingId);
                   setStep("bronNote");
                 } catch (e) {
-                  setErr(e instanceof Error ? e.message : "Bron qilib bo‘lmadi");
+                  setErr(e instanceof Error ? e.message : t("Bron qilib bo‘lmadi", "Не удалось оформить бронь"));
                 } finally {
                   setSubmitting(false);
                 }
               }}
             >
-              {submitting ? "Band qilinmoqda…" : "Davom etish"}
+              {submitting ? t("Band qilinmoqda…", "Бронируется…") : t("Davom etish", "Продолжить")}
             </Button>
           </div>
         ) : null}
@@ -382,11 +386,11 @@ const EmptyBedStartDialog = ({
                 className="inline-flex items-center gap-1 text-xs font-semibold text-muted-foreground hover:text-foreground mb-1 -ml-1"
               >
                 <ChevronLeft className="w-4 h-4" />
-                Vaqtga qaytish
+                {t("Vaqtga qaytish", "Назад ко времени")}
               </button>
-              <DialogTitle className="text-lg font-extrabold tracking-tight">Izoh</DialogTitle>
+              <DialogTitle className="text-lg font-extrabold tracking-tight">{t("Izoh", "Комментарий")}</DialogTitle>
               <p className="text-xs font-medium text-muted-foreground leading-snug">
-                Telefon va hujjat izohga qo&apos;shilib saqlanadi (ixtiyoriy).
+                {t("Telefon va hujjat izohga qo'shilib saqlanadi (ixtiyoriy).", "Телефон и документ будут добавлены в комментарий (необязательно).")}
               </p>
             </DialogHeader>
             <div className="mt-3 space-y-2">
@@ -400,8 +404,8 @@ const EmptyBedStartDialog = ({
                 <Input
                   value={bronPassport}
                   onChange={(e) => setBronPassport(e.target.value.toUpperCase())}
-                  placeholder="Pasport yoki guvohnoma seriyasi"
-                  aria-label="Pasport yoki guvohnoma"
+                  placeholder={t("Pasport yoki guvohnoma seriyasi", "Серия паспорта или документа")}
+                  aria-label={t("Pasport yoki guvohnoma", "Паспорт или документ")}
                   autoCapitalize="characters"
                   className="h-11 border-0 bg-transparent px-0 text-sm font-semibold shadow-none focus-visible:ring-0"
                 />
@@ -410,13 +414,13 @@ const EmptyBedStartDialog = ({
             <Textarea
               value={bronNote}
               onChange={(e) => setBronNote(e.target.value)}
-              placeholder="Masalan: Telegramdan yozgan, kechqurun…"
+              placeholder={t("Masalan: Telegramdan yozgan, kechqurun…", "Например: написал в Telegram, вечером…")}
               rows={4}
               maxLength={500}
               className="mt-3 rounded-2xl border-border/80 bg-background/80 text-sm resize-none min-h-[120px]"
             />
             <div className="mt-2 flex flex-wrap gap-2">
-              {BRON_QUICK_NOTES.map((option) => (
+              {bronQuickNotes.map((option) => (
                 <button
                   key={option}
                   type="button"
@@ -434,7 +438,7 @@ const EmptyBedStartDialog = ({
               disabled={submitting}
               onClick={() => void handleBronFinalSubmit()}
             >
-              {submitting ? "Saqlanmoqda…" : "Bronni saqlash"}
+              {submitting ? t("Saqlanmoqda…", "Сохраняется…") : t("Bronni saqlash", "Сохранить бронь")}
             </Button>
           </div>
         ) : null}

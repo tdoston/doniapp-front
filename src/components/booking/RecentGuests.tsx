@@ -4,6 +4,7 @@ import { differenceInCalendarDays, isToday, isYesterday, parseISO } from "date-f
 import { Users, Clock, Search, ChevronLeft } from "lucide-react";
 import { fetchRecentGuests, recentGuestsQueryKey } from "@/lib/api";
 import { checkInLabel } from "@/lib/dates";
+import { useUiLanguage } from "@/lib/ui-language";
 
 export interface RecentGuest {
   lookupKey?: string;
@@ -26,11 +27,24 @@ interface RecentGuestsProps {
   onSelect: (guest: RecentGuest) => void;
 }
 
-const filters = ["Hammasi", "Bugun", "Kecha", "2-3 kun"];
+const FILTER_KEYS = ["all", "today", "yesterday", "twoThreeDays"] as const;
+type FilterKey = (typeof FILTER_KEYS)[number];
 
 const RecentGuests = ({ open, onClose, onSelect }: RecentGuestsProps) => {
+  const { lang, t } = useUiLanguage();
+  const filters = FILTER_KEYS.map((key) => ({
+    key,
+    label:
+      key === "all"
+        ? t("Hammasi", "Все")
+        : key === "today"
+          ? t("Bugun", "Сегодня")
+          : key === "yesterday"
+            ? t("Kecha", "Вчера")
+            : t("2-3 kun", "2-3 дня"),
+  }));
   const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState("Hammasi");
+  const [filter, setFilter] = useState<FilterKey>("all");
 
   const limit = 120;
   const { data, isLoading, isError, refetch } = useQuery({
@@ -46,9 +60,9 @@ const RecentGuests = ({ open, onClose, onSelect }: RecentGuestsProps) => {
     return (data?.guests ?? []).map((g) => ({
       ...g,
       checkInIso: g.lastVisit,
-      lastVisit: checkInLabel(g.lastVisit),
+      lastVisit: checkInLabel(g.lastVisit, lang),
     }));
-  }, [data]);
+  }, [data, lang]);
 
   const filtered = guests.filter((g) => {
     const matchesSearch =
@@ -57,13 +71,13 @@ const RecentGuests = ({ open, onClose, onSelect }: RecentGuestsProps) => {
       g.phone.includes(search) ||
       (g.passportSeries || "").toLowerCase().includes(search.toLowerCase());
 
-    if (filter === "Hammasi") return matchesSearch;
+    if (filter === "all") return matchesSearch;
 
     try {
       const d = parseISO(g.checkInIso);
-      if (filter === "Bugun") return matchesSearch && isToday(d);
-      if (filter === "Kecha") return matchesSearch && isYesterday(d);
-      if (filter === "2-3 kun") {
+      if (filter === "today") return matchesSearch && isToday(d);
+      if (filter === "yesterday") return matchesSearch && isYesterday(d);
+      if (filter === "twoThreeDays") {
         const days = differenceInCalendarDays(new Date(), d);
         return matchesSearch && days >= 2 && days <= 3;
       }
@@ -71,7 +85,7 @@ const RecentGuests = ({ open, onClose, onSelect }: RecentGuestsProps) => {
       return false;
     }
     return matchesSearch;
-  });
+  }, [guests, search, filter]);
 
   if (!open) return null;
 
@@ -85,11 +99,11 @@ const RecentGuests = ({ open, onClose, onSelect }: RecentGuestsProps) => {
             className="inline-flex h-10 items-center justify-center gap-1 rounded-lg px-3 text-muted-foreground hover:bg-muted transition-colors active:scale-[0.98] font-semibold text-sm"
           >
             <ChevronLeft className="h-5 w-5" />
-            Ortga
+            {t("Ortga", "Назад")}
           </button>
           <h1 className="text-lg font-extrabold text-foreground flex items-center gap-2">
             <Users className="w-5 h-5 text-primary" />
-            Mehmonlar
+            {t("Mehmonlar", "Гости")}
           </h1>
         </div>
       </div>
@@ -101,7 +115,7 @@ const RecentGuests = ({ open, onClose, onSelect }: RecentGuestsProps) => {
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Ism, telefon yoki pasport qidirish..."
+            placeholder={t("Ism, telefon yoki pasport qidirish...", "Поиск по имени, телефону или паспорту...")}
             autoFocus
             className="w-full h-11 pl-9 pr-4 rounded-xl border border-input bg-card text-sm font-medium focus:outline-none focus:ring-2 focus:ring-ring"
           />
@@ -111,30 +125,30 @@ const RecentGuests = ({ open, onClose, onSelect }: RecentGuestsProps) => {
       <div className="flex gap-2 px-4 py-2 shrink-0">
         {filters.map((f) => (
           <button
-            key={f}
+            key={f.key}
             type="button"
-            onClick={() => setFilter(f)}
+            onClick={() => setFilter(f.key)}
             className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${
-              filter === f ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"
+              filter === f.key ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"
             }`}
           >
-            {f}
+            {f.label}
           </button>
         ))}
       </div>
 
       <div className="flex-1 overflow-y-auto">
-        {isLoading && <p className="text-center text-sm text-muted-foreground py-12">Yuklanmoqda…</p>}
+        {isLoading && <p className="text-center text-sm text-muted-foreground py-12">{t("Yuklanmoqda…", "Загрузка…")}</p>}
         {isError && (
           <div className="text-center py-8 px-4">
-            <p className="text-sm text-destructive mb-2">Yuklab bo'lmadi</p>
+            <p className="text-sm text-destructive mb-2">{t("Yuklab bo'lmadi", "Не удалось загрузить")}</p>
             <button type="button" onClick={() => refetch()} className="text-xs font-semibold text-primary underline">
-              Qayta urinish
+              {t("Qayta urinish", "Повторить")}
             </button>
           </div>
         )}
         {!isLoading && !isError && filtered.length === 0 && (
-          <p className="text-center text-sm text-muted-foreground py-12">Mehmon topilmadi</p>
+          <p className="text-center text-sm text-muted-foreground py-12">{t("Mehmon topilmadi", "Гость не найден")}</p>
         )}
         {!isLoading &&
           !isError &&
@@ -180,7 +194,7 @@ const RecentGuests = ({ open, onClose, onSelect }: RecentGuestsProps) => {
                     })()}
                   </span>
                   <span>·</span>
-                  <span className="font-semibold">{guest.price.toLocaleString()} so'm</span>
+                    <span className="font-semibold">{guest.price.toLocaleString()} {t("so'm", "сум")}</span>
                 </div>
                 {guest.hostel && (
                   <span className="text-[10px] text-muted-foreground/70 mt-0.5 block">

@@ -1,27 +1,28 @@
 import React from "react";
 import { BedDouble, Users, Wallet, Sparkles, UserCircle2 } from "lucide-react";
+import { useUiLanguage } from "@/lib/ui-language";
 
 interface BottomNavProps {
   active: string;
   onSelect: (tab: string) => void;
 }
 
-const TABS = [
-  { id: "rooms", label: "Xonalar", icon: BedDouble },
-  { id: "guests", label: "Mehmonlar", icon: Users },
-  { id: "payments", label: "To'lov", icon: Wallet },
-  { id: "cleaning", label: "Tozalik", icon: Sparkles },
-  { id: "profile", label: "Profil", icon: UserCircle2 },
-];
-
 const BottomNav = ({ active, onSelect }: BottomNavProps) => {
+  const { t } = useUiLanguage();
+  const tabs = [
+    { id: "rooms", label: t("Xonalar", "Комнаты"), icon: BedDouble },
+    { id: "guests", label: t("Mehmonlar", "Гости"), icon: Users },
+    { id: "payments", label: t("To'lov", "Оплата"), icon: Wallet },
+    { id: "cleaning", label: t("Tozalik", "Уборка"), icon: Sparkles },
+    { id: "profile", label: t("Profil", "Профиль"), icon: UserCircle2 },
+  ];
   return (
     <div
       className="fixed bottom-0 left-0 right-0 bg-card border-t border-border z-20"
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
       <div className="grid grid-cols-5">
-        {TABS.map((tab) => {
+        {tabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = active === tab.id;
           return (

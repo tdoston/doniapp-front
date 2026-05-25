@@ -39,6 +39,7 @@ import {
   stripEmbeddedContactLines,
 } from "@/lib/bookingNotesContact";
 import { LAST_BOOKING_IDENTITY_OVERLAP_KEY } from "@/lib/identityOverlapWarning";
+import { useUiLanguage } from "@/lib/ui-language";
 
 function guestNameFromNotes(notes: string): string {
   const m = notes.match(/^Mijoz:\s*(.+)$/i);
@@ -85,6 +86,7 @@ const createEmptyGuest = (id: number): GuestEntry => ({
 });
 
 const Index = () => {
+  const { lang, t } = useUiLanguage();
   const navigate = useNavigate();
   const location = useLocation();
   const queryClient = useQueryClient();
@@ -126,7 +128,7 @@ const Index = () => {
         .slice(0, 3);
       m[key] = {
         name: g.name || "",
-        lastVisit: checkInLabel(g.lastVisit),
+        lastVisit: checkInLabel(g.lastVisit, lang),
         price: g.price,
         paid: paidNum,
         nights: nightsSnap,
@@ -139,7 +141,7 @@ const Index = () => {
       };
     });
     return m;
-  }, [recentData]);
+  }, [recentData, lang]);
 
   const normalizedPhone = (prefill.guestPhone || "").replace(/\D/g, "");
   const notesFromEmbeddedContact =
@@ -590,7 +592,7 @@ const Index = () => {
     }
   };
 
-  const hostelName = prefill.hostel || "Bron";
+  const hostelName = prefill.hostel || t("Bron", "Бронь");
   const activeGuest = guests[activeGuestIdx];
 
   /** To‘g‘ridan-to‘g‘ri `/booking` URL — taxta state siz */
@@ -614,12 +616,12 @@ const Index = () => {
             className="inline-flex h-10 items-center justify-center gap-1 rounded-lg px-3 text-muted-foreground hover:bg-muted transition-colors active:scale-[0.98] font-semibold text-sm"
           >
             <ChevronLeft className="h-5 w-5" />
-            Ortga
+            {t("Ortga", "Назад")}
           </button>
           <h1 className="text-[1.125rem] sm:text-xl font-extrabold tracking-tight text-primary">{hostelName}</h1>
           {isEditMode && isBronReservation ? (
             <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-orange-500/25 text-orange-800 dark:text-orange-200">
-              Bron
+              {t("Bron", "Бронь")}
             </span>
           ) : null}
           {prefill.roomName && (
@@ -638,12 +640,12 @@ const Index = () => {
 
       {!isEditMode && bookingContextIncomplete && (
         <div className="bg-amber-500/15 border-b border-amber-500/25 px-4 py-3 shrink-0 text-sm">
-          <p className="font-semibold text-foreground">Taxtadan xona va karavot tanlanmagan</p>
+          <p className="font-semibold text-foreground">{t("Taxtadan xona va karavot tanlanmagan", "Комната и кровать не выбраны с доски")}</p>
           <Link
             to="/"
             className="mt-2 inline-block text-sm font-bold text-primary underline underline-offset-[3px]"
           >
-            Taxtaga o‘tish
+            {t("Taxtaga o‘tish", "Перейти к доске")}
           </Link>
         </div>
       )}
@@ -661,7 +663,7 @@ const Index = () => {
                 }`}
               >
                 <button type="button" onClick={() => setActiveGuestIdx(idx)} className="flex items-center gap-1.5 py-1 pr-1">
-                  Mehmon {idx + 1}
+                  {t("Mehmon", "Гость")} {idx + 1}
                   {(g.phone || g.passportSeries) && (
                     <span className="opacity-70">·{(g.phone || g.passportSeries).slice(-4)}</span>
                   )}
@@ -669,7 +671,7 @@ const Index = () => {
                 {guests.length > 1 && idx === activeGuestIdx && !fieldsReadOnly && (
                   <button
                     type="button"
-                    aria-label="Mehmonni olib tashlash"
+                    aria-label={t("Mehmonni olib tashlash", "Удалить гостя")}
                     onClick={() => removeGuest(idx)}
                     className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary-foreground/15 text-primary-foreground hover:bg-primary-foreground/25"
                   >
@@ -685,7 +687,7 @@ const Index = () => {
               className="flex items-center gap-1 px-3 py-2 rounded-xl text-xs font-bold bg-primary/10 text-primary whitespace-nowrap active:bg-primary/20 disabled:opacity-40"
             >
               <UserPlus className="w-3.5 h-3.5" />
-              Qo'shish
+              {t("Qo'shish", "Добавить")}
             </button>
           </div>
         </div>
@@ -708,8 +710,8 @@ const Index = () => {
                       ? updateGuest(activeGuestIdx, { passportSeries: e.target.value.toUpperCase() })
                       : setPassportSeries(e.target.value.toUpperCase())
                   }
-                  placeholder="Pasport yoki guvohnoma seriyasi"
-                  aria-label="Hujjat seriyasi"
+                  placeholder={t("Pasport yoki guvohnoma seriyasi", "Серия паспорта или документа")}
+                  aria-label={t("Hujjat seriyasi", "Серия документа")}
                   readOnly={fieldsReadOnly}
                   disabled={fieldsReadOnly}
                   className={BOOKING_SINGLE_LINE_INPUT_CLASS}
@@ -721,8 +723,8 @@ const Index = () => {
                   type="button"
                   onClick={() => void handleParseFromPhoto()}
                   disabled={aiParsing}
-                  title="Rasmdan AI orqali parse qilish"
-                  aria-label="Rasmdan AI orqali parse qilish"
+                  title={t("Rasmdan AI orqali parse qilish", "Распознать с фото через AI")}
+                  aria-label={t("Rasmdan AI orqali parse qilish", "Распознать с фото через AI")}
                   className="relative h-12 w-12 rounded-xl border border-primary/35 bg-primary/10 text-primary shadow-sm transition-all hover:bg-primary/20 active:scale-[0.97] shrink-0 disabled:opacity-50 inline-flex items-center justify-center overflow-hidden"
                 >
                   {aiParsing ? (
@@ -737,7 +739,7 @@ const Index = () => {
             </div>
             {aiExtracted ? (
               <div className="rounded-xl border border-primary/30 bg-primary/5 px-3 py-2 text-xs">
-                <p className="font-bold text-primary mb-1">AI parse natijasi</p>
+                <p className="font-bold text-primary mb-1">{t("AI parse natijasi", "Результат AI распознавания")}</p>
                 <p>
                   <span className="font-semibold">Name:</span> {aiExtracted.name || "—"}
                 </p>
@@ -791,7 +793,7 @@ const Index = () => {
 
           <div className="flex flex-col gap-2">
             <Label className="text-[0.8125rem] font-semibold leading-none text-foreground tracking-tight">
-              Izoh
+              {t("Izoh", "Комментарий")}
             </Label>
             <NotesInput
               hideLabel
@@ -823,7 +825,7 @@ const Index = () => {
               disabled={saving || deleting}
               className="w-full h-11 rounded-xl font-bold text-sm border-2 border-destructive/50 text-destructive bg-destructive/5 hover:bg-destructive/10 transition-all active:scale-[0.99] disabled:opacity-50"
             >
-              {isBronReservation ? "Bronni bekor qilish" : "Check-inni bekor qilish"}
+              {isBronReservation ? t("Bronni bekor qilish", "Отменить бронь") : t("Check-inni bekor qilish", "Отменить заселение")}
             </button>
           </div>
         )}
@@ -835,7 +837,7 @@ const Index = () => {
             className="h-14 rounded-2xl font-bold text-base bg-muted text-foreground border border-border/80 transition-all active:scale-[0.98] flex items-center justify-center gap-1.5 disabled:opacity-50"
           >
             <ChevronLeft className="h-5 w-5" />
-            Ortga
+            {t("Ortga", "Назад")}
           </button>
           {isCheckInEditLocked ? (
             <button
@@ -844,7 +846,7 @@ const Index = () => {
               disabled={saving}
               className="h-14 rounded-2xl font-bold text-base bg-primary text-primary-foreground shadow-lg shadow-primary/25 transition-all active:scale-[0.98] disabled:opacity-50"
             >
-              O&apos;zgartirish
+              {t("O'zgartirish", "Изменить")}
             </button>
           ) : (
             <button
@@ -854,12 +856,12 @@ const Index = () => {
               className="h-14 rounded-2xl font-bold text-base bg-primary text-primary-foreground shadow-lg shadow-primary/25 transition-all active:scale-[0.98] disabled:opacity-50"
             >
               {saving
-                ? "Saqlanmoqda…"
+                ? t("Saqlanmoqda…", "Сохраняется…")
                 : isBronReservation
-                  ? "Check-in qilish"
+                  ? t("Check-in qilish", "Заселить")
                   : isEditMode
-                    ? "Saqlash"
-                    : "Check-in"}
+                    ? t("Saqlash", "Сохранить")
+                    : t("Check-in", "Заселение")}
             </button>
           )}
         </div>
@@ -875,11 +877,11 @@ const Index = () => {
         >
           <div className="bg-card rounded-2xl p-5 w-full max-w-sm shadow-xl border border-border animate-fade-in max-h-[90dvh] overflow-y-auto">
             <h2 id="cancel-booking-title" className="text-lg font-extrabold text-foreground mb-4">
-              {isBronReservation ? "Bronni bekor qilish" : "Check-inni bekor qilish"}
+              {isBronReservation ? t("Bronni bekor qilish", "Отменить бронь") : t("Check-inni bekor qilish", "Отменить заселение")}
             </h2>
             <RadioGroup value={cancelReasonValue} onValueChange={setCancelReasonValue} className="gap-3 mb-5">
               {bookingCancelReasonsLoading ? (
-                <p className="text-sm text-muted-foreground py-2">Sabablari yuklanmoqda…</p>
+                <p className="text-sm text-muted-foreground py-2">{t("Sabablari yuklanmoqda…", "Причины загружаются…")}</p>
               ) : (
                 bookingCancelReasonRows.map((r) => (
                   <div
@@ -904,7 +906,7 @@ const Index = () => {
                 disabled={deleting}
                 className="h-12 rounded-xl font-bold text-sm bg-muted text-foreground border border-border transition-all active:scale-[0.98] disabled:opacity-50"
               >
-                Bekor qilish
+                {t("Bekor qilish", "Отмена")}
               </button>
               <button
                 type="button"
@@ -917,7 +919,7 @@ const Index = () => {
                 }
                 className="h-12 rounded-xl font-bold text-sm bg-destructive text-destructive-foreground shadow-md transition-all active:scale-[0.98] disabled:opacity-50"
               >
-                {deleting ? "…" : "Tasdiqlash"}
+                {deleting ? "…" : t("Tasdiqlash", "Подтвердить")}
               </button>
             </div>
           </div>
@@ -930,7 +932,7 @@ const Index = () => {
           style={{ paddingTop: "env(safe-area-inset-top)" }}
         >
           <div className="bg-card rounded-2xl mx-6 p-6 w-full max-w-sm shadow-xl animate-fade-in">
-            <h2 className="text-lg font-extrabold text-foreground mb-5">Check-inni tasdiqlang</h2>
+            <h2 className="text-lg font-extrabold text-foreground mb-5">{t("Check-inni tasdiqlang", "Подтвердите заселение")}</h2>
             <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
@@ -938,7 +940,7 @@ const Index = () => {
                 disabled={saving}
                 className="h-12 rounded-xl font-bold text-sm bg-muted text-foreground border border-border transition-all active:scale-[0.98] disabled:opacity-50"
               >
-                Bekor qilish
+                {t("Bekor qilish", "Отмена")}
               </button>
               <button
                 type="button"
@@ -946,7 +948,7 @@ const Index = () => {
                 disabled={saving}
                 className="h-12 rounded-xl font-bold text-sm bg-primary text-primary-foreground shadow-lg transition-all active:scale-[0.98] disabled:opacity-50"
               >
-                {saving ? "…" : "Tasdiqlash"}
+                {saving ? "…" : t("Tasdiqlash", "Подтвердить")}
               </button>
             </div>
           </div>
