@@ -4,6 +4,7 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 import Rooms from "./pages/Rooms.tsx";
 import Index from "./pages/Index.tsx";
 import NotFound from "./pages/NotFound.tsx";
+import FinancePage from "./pages/Finance.tsx";
 import {
   authTelegram,
   authTelegramLogin,
@@ -47,6 +48,7 @@ const AppRoutes = ({
         element={<Rooms currentUser={me} currentUserRole={me.role} onLogout={onLogout} onMeUpdate={onMeUpdate} />}
       />
       <Route path="/booking" element={<Index />} />
+      <Route path="/finance" element={<FinancePage me={me} />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   </BrowserRouter>
@@ -83,7 +85,7 @@ const TelegramLoginWidget = ({
     if (!node) return;
     if (!TELEGRAM_LOGIN_BOT) return;
     const cbName = "__swiftBookingsTelegramAuth";
-    (window as Window & { [k: string]: unknown })[cbName] = async (user: unknown) => {
+    (window as unknown as Record<string, unknown>)[cbName] = async (user: unknown) => {
       if (!user || typeof user !== "object") {
         onError(t("Telegram login javobi noto'g'ri.", "Неверный ответ Telegram login."));
         return;
@@ -108,7 +110,7 @@ const TelegramLoginWidget = ({
     node.innerHTML = "";
     node.appendChild(s);
     return () => {
-      delete (window as Window & { [k: string]: unknown })[cbName];
+      delete (window as unknown as Record<string, unknown>)[cbName];
       if (node) node.innerHTML = "";
     };
   }, [onAuth, onError]);

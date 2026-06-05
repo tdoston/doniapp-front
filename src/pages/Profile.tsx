@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
-import { LogOut, Briefcase, BookUser, ShieldCheck, Camera, Loader2, UserRound, Pencil, Check, X, Trash2 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { LogOut, Briefcase, BookUser, ShieldCheck, Camera, Loader2, UserRound, Pencil, Check, X, Trash2, Wallet, ChevronRight } from "lucide-react";
 import { patchMe, type AuthUserDto } from "@/lib/api";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Label } from "@/components/ui/label";
@@ -84,6 +85,7 @@ const ProfilePage = ({ me, onLogout, onMeUpdate }: ProfilePageProps) => {
   const meta = ROLE_META[me.role] ?? ROLE_META.staff;
   const RoleIcon = meta.icon;
   const isSuperAdmin = me.role === "super_admin";
+  const navigate = useNavigate();
   const fileRef = useRef<HTMLInputElement | null>(null);
   const [busy, setBusy] = useState(false);
   const [nameBusy, setNameBusy] = useState(false);
@@ -305,6 +307,27 @@ const ProfilePage = ({ me, onLogout, onMeUpdate }: ProfilePageProps) => {
           <p className="font-semibold leading-snug">{error}</p>
         </div>
       ) : null}
+
+      <button
+        type="button"
+        onClick={() => navigate("/finance")}
+        className="w-full rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50 to-white p-4 text-left transition-all hover:shadow-md hover:border-emerald-300 active:scale-[0.99]"
+      >
+        <div className="flex items-center gap-3">
+          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-emerald-600 text-white shadow-lg shadow-emerald-500/30">
+            <Wallet className="h-6 w-6" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="text-[0.95rem] font-extrabold text-foreground leading-tight">
+              {isSuperAdmin ? "Xarajatlarim" : "Daromadlarim"}
+            </p>
+            <p className="text-[12px] font-medium text-muted-foreground mt-0.5">
+              {isSuperAdmin ? "Managerlarga to'lovlarni boshqaring" : "Olgan to'lovlaringizni ko'ring"}
+            </p>
+          </div>
+          <ChevronRight className="h-5 w-5 text-muted-foreground shrink-0" />
+        </div>
+      </button>
 
       <Dialog open={profileEditOpen} onOpenChange={setProfileEditOpen}>
         <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
