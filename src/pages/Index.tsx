@@ -167,6 +167,12 @@ const Index = () => {
     }
     return [];
   });
+  /** Edit: board endi photos qaytarmaydi — detail yuklanmaguncha PATCH photos yuborilmasin. */
+  const photosHydratedRef = useRef(!isEditMode || ((prefill.bookingPhotos?.length ?? 0) > 0));
+  const photosDirtyRef = useRef(false);
+  const [photosLoading, setPhotosLoading] = useState(
+    () => isEditMode && !!prefill.bookingId && !(prefill.bookingPhotos && prefill.bookingPhotos.length > 0)
+  );
   const [phone, setPhone] = useState(() =>
     normalizedPhone.length >= 9
       ? normalizedPhone
@@ -218,26 +224,39 @@ const Index = () => {
 
   useEffect(() => {
     setEditUnlocked(false);
-  }, [prefill.bookingId, prefill.mode]);
+    photosDirtyRef.current = false;
+    const hasPrefillPhotos = (prefill.bookingPhotos?.length ?? 0) > 0;
+    photosHydratedRef.current = !isEditMode || hasPrefillPhotos;
+    setPhotosLoading(isEditMode && !!prefill.bookingId && !hasPrefillPhotos);
+  }, [prefill.bookingId, prefill.mode, isEditMode, prefill.bookingPhotos]);
 
   useEffect(() => {
     if (!isEditMode || !prefill.bookingId) return;
+    if (photosHydratedRef.current && (prefill.bookingPhotos?.length ?? 0) > 0) {
+      setPhotosLoading(false);
+      return;
+    }
     let cancelled = false;
+    setPhotosLoading(true);
     void fetchBooking(prefill.bookingId)
       .then((detail) => {
         if (cancelled) return;
         const next = (detail.photos ?? [])
           .filter((u): u is string => typeof u === "string" && u.trim().length > 0)
           .slice(0, 3);
-        setPhotos(next);
+        if (!photosDirtyRef.current) setPhotos(next);
+        photosHydratedRef.current = true;
       })
       .catch(() => {
-        /* board list no longer includes photos */
+        /* keep empty UI; do not mark dirty so save won't wipe DB photos */
+      })
+      .finally(() => {
+        if (!cancelled) setPhotosLoading(false);
       });
     return () => {
       cancelled = true;
     };
-  }, [isEditMode, prefill.bookingId]);
+  }, [isEditMode, prefill.bookingId, prefill.bookingPhotos]);
 
   const crmRefreshForKey = useRef<string | null>(null);
   useEffect(() => {
@@ -282,6 +301,7 @@ const Index = () => {
             }
           : {};
         const notesOut = formatNotesWithContactDetails(notes, phone, passportSeries);
+        const canSendPhotos = photosHydratedRef.current || photosDirtyRef.current;
         const res = await patchBooking(id, {
           ...identityPatch,
           guestName: resolvedGuestName,
@@ -290,7 +310,12 @@ const Index = () => {
           notes: notesOut,
           nights,
           checkInDate: prefill.checkInDate ?? stayDateIso,
-          photos,
+          ...(canSendPhotos
+            ? {
+                photos,
+                ...(photos.length === 0 && photosDirtyRef.current ? { clearPhotos: true } : {}),
+              }
+            : {}),
           checkedInBy: prefill.checkedInBy,
           ...(prefill.bookingKind === "bron" ? { bookingKind: "check_in" as const } : {}),
         });
@@ -377,6 +402,7 @@ const Index = () => {
 
   const handlePhotos = useCallback(
     (files: FileList) => {
+      photosDirtyRef.current = true;
       if (isFullRoom) {
         const guest = guests[activeGuestIdx];
         if (!guest) return;
@@ -411,6 +437,7 @@ const Index = () => {
   );
 
   const removePhoto = (i: number) => {
+    photosDirtyRef.current = true;
     if (isFullRoom) {
       setGuests((prev) =>
         prev.map((g, idx) =>
@@ -423,6 +450,7 @@ const Index = () => {
   };
 
   const replacePhoto = (i: number, file: File) => {
+    photosDirtyRef.current = true;
     const reader = new FileReader();
     reader.onload = (e) => {
       const url = e.target?.result as string;
@@ -784,9 +812,14 @@ const Index = () => {
                 applied={!!repeatGuest && appliedRepeatKey === repeatLookupKey}
               />
             ) : null}
+            {photosLoading ? (
+              <p className="text-xs text-muted-foreground animate-pulse">
+                {t("Rasmlar yuklanmoqda…", "Загрузка фото…")}
+              </p>
+            ) : null}
             <PhotoUpload
               variant="default"
-              readOnly={fieldsReadOnly}
+              readOnly={fieldsReadOnly || photosLoading}
               photos={isFullRoom ? activeGuest?.photos || [] : photos}
               onAdd={handlePhotos}
               onRemove={removePhoto}

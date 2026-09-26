@@ -426,6 +426,7 @@ export async function patchBooking(
     nights: number;
     checkInDate: string;
     photos: string[];
+    clearPhotos?: boolean;
     checkedInBy: string;
     bookingKind: BoardBookingKind;
   }>
