@@ -7,7 +7,7 @@ import { useUiLanguage } from "@/lib/ui-language";
 
 const PaymentsPage = () => {
   const { lang, t } = useUiLanguage();
-  const limit = 200;
+  const limit = 40;
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: recentGuestsQueryKey(limit),
     queryFn: () => fetchRecentGuests(limit),

@@ -30,7 +30,7 @@ const GuestsPage = ({ onGuestPickForCheckIn }: GuestsPageProps) => {
   const [filter, setFilter] = useState<FilterKey>("all");
   const [selectedGuest, setSelectedGuest] = useState<RecentGuestDto | null>(null);
 
-  const limit = 200;
+  const limit = 40;
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: recentGuestsQueryKey(limit),
     queryFn: () => fetchRecentGuests(limit),

@@ -46,7 +46,7 @@ const RecentGuests = ({ open, onClose, onSelect }: RecentGuestsProps) => {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<FilterKey>("all");
 
-  const limit = 120;
+  const limit = 40;
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: recentGuestsQueryKey(limit),
     queryFn: () => fetchRecentGuests(limit),

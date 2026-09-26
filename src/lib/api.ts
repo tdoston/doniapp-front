@@ -199,7 +199,7 @@ export type RecentGuestDto = {
   notes?: string;
   hostel?: string;
   room?: string;
-  /** Oxirgi yozuvdagi hujjat suratlari (URL yoki base64, max 3) */
+  /** List API da odatda bo'sh; rasmlar `GET /bookings/:id` orqali */
   photos?: string[];
 };
 
@@ -292,8 +292,32 @@ export async function deactivateUser(id: number): Promise<{ ok: boolean }> {
   return fetchJson(`/users/${id}`, { method: "DELETE" });
 }
 
-export async function fetchRecentGuests(limit = 80): Promise<{ guests: RecentGuestDto[] }> {
+export async function fetchRecentGuests(limit = 40): Promise<{ guests: RecentGuestDto[] }> {
   return fetchJson(`/guests/recent?limit=${limit}`);
+}
+
+export type BookingDetailDto = {
+  bookingId: string;
+  guestName: string;
+  guestPhone: string;
+  guestPassportSeries?: string;
+  checkedInBy: string;
+  price: string;
+  paid: string;
+  notes: string;
+  nights: number;
+  checkInDate: string;
+  photos: string[];
+  checkedInAt?: string;
+  bookingKind?: BoardBookingKind;
+  expectedArrival?: string;
+  roomCode: string;
+  bedIndex: number;
+  hostel: string;
+};
+
+export async function fetchBooking(id: string): Promise<BookingDetailDto> {
+  return fetchJson(`/bookings/${encodeURIComponent(id)}`);
 }
 
 export type GuestHistoryRow = {

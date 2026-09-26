@@ -20,6 +20,7 @@ import {
   createBooking,
   deleteBooking,
   digitsOnly,
+  fetchBooking,
   fetchCancelReasons,
   fetchRecentGuests,
   patchBooking,
@@ -102,7 +103,7 @@ const Index = () => {
   const todayIso = format(new Date(), "yyyy-MM-dd");
   const stayDateIso = prefill.stayDate ?? todayIso;
 
-  const recentLimit = 120;
+  const recentLimit = 40;
   const { data: recentData } = useQuery({
     queryKey: recentGuestsQueryKey(recentLimit),
     queryFn: () => fetchRecentGuests(recentLimit),
@@ -218,6 +219,25 @@ const Index = () => {
   useEffect(() => {
     setEditUnlocked(false);
   }, [prefill.bookingId, prefill.mode]);
+
+  useEffect(() => {
+    if (!isEditMode || !prefill.bookingId) return;
+    let cancelled = false;
+    void fetchBooking(prefill.bookingId)
+      .then((detail) => {
+        if (cancelled) return;
+        const next = (detail.photos ?? [])
+          .filter((u): u is string => typeof u === "string" && u.trim().length > 0)
+          .slice(0, 3);
+        setPhotos(next);
+      })
+      .catch(() => {
+        /* board list no longer includes photos */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isEditMode, prefill.bookingId]);
 
   const crmRefreshForKey = useRef<string | null>(null);
   useEffect(() => {
